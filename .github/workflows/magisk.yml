@@ -48,11 +48,12 @@ jobs:
           zip_name = ""
           with zipfile.ZipFile(out_file) as zip:
               for f in zip.filelist:
-                  if f.filename.__contains__(arch):
+                  if arch in f.filename.lower():
                       zip_name = f.filename
                       if not os.path.isfile(zip_name):
                           print(f"unzipping to {zip_name}", flush=True)
                           zip.extract(f)
+                  break
 
           with zipfile.ZipFile(zip_name) as zip:
               if not os.path.isdir(arch):
