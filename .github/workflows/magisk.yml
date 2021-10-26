@@ -157,6 +157,12 @@ jobs:
         run: |
           sudo umount system/vendor
           sudo umount system
+      - name: Shrink images
+        run: |
+          e2fsck -yf ${{ github.event.inputs.arch }}/system.img
+          resize2fs ${{ github.event.inputs.arch }}/system.img
+          e2fsck -yf ${{ github.event.inputs.arch }}/vendor.img
+          resize2fs ${{ github.event.inputs.arch }}/vendor.img
       - name: Remove signature
         run: |
           rm -rf ${{ github.event.inputs.arch }}/\[Content_Types\].xml ${{ github.event.inputs.arch }}/AppxBlockMap.xml ${{ github.event.inputs.arch }}/AppxSignature.p7x ${{ github.event.inputs.arch }}/AppxMetadata
