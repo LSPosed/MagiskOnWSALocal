@@ -198,6 +198,10 @@ jobs:
               seclabel u:r:magisk:s0
               oneshot
           EOF
+      - name: Integrate GApps
+        if: ${{ github.event.inputs.gapps_variant != 'none' && github.event.inputs.gapps_variant != '' }}
+        run: |
+          echo 'Not supported yet' && false
       - name: Umount images
         run: |
           sudo umount system/vendor
