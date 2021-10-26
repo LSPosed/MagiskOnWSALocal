@@ -9,10 +9,10 @@ on:
         description: 'Download link to magisk apk.'
         required: true
         default: 'https://raw.githubusercontent.com/LSPosed/MagiskOnWSA/main/magisk.apk'
-      gapps_variant:
-        description: 'Variants of gapps. Should be: [none, aroma, super, stock, full, mini, micro, nano, pico, tvstock, tvmini]'
-        required: true
-        default: 'none'
+      # gapps_variant:
+      #   description: 'Variants of gapps. Should be: [none, aroma, super, stock, full, mini, micro, nano, pico, tvstock, tvmini]'
+      #   required: true
+      #   default: 'none'
 
 jobs:
   build:
@@ -139,7 +139,9 @@ jobs:
           sudo mkdir system
           sudo mount -o loop ${{ matrix.arch }}/system.img system
           sudo mount -o loop ${{ matrix.arch }}/vendor.img system/vendor
-      - name: Modify images
+          sudo mount -o loop ${{ matrix.arch }}/product.img system/product
+          sudo mount -o loop ${{ matrix.arch }}/system_ext.img system/system_ext
+      - name: Integrate Magisk
         run: |
           sudo mkdir system/sbin
           sudo chcon --reference system/init.environ.rc system/sbin
@@ -199,6 +201,8 @@ jobs:
       - name: Umount images
         run: |
           sudo umount system/vendor
+          sudo umount system/product
+          sudo umount system/system_ext
           sudo umount system
       - name: Shrink images
         run: |
@@ -206,6 +210,10 @@ jobs:
           resize2fs ${{ matrix.arch }}/system.img
           e2fsck -yf ${{ matrix.arch }}/vendor.img
           resize2fs ${{ matrix.arch }}/vendor.img
+          e2fsck -yf ${{ matrix.arch }}/product.img
+          resize2fs ${{ matrix.arch }}/product.img
+          e2fsck -yf ${{ matrix.arch }}/system_ext.img
+          resize2fs ${{ matrix.arch }}/system_ext.img
       - name: Remove signature
         run: |
           rm -rf ${{ matrix.arch }}/\[Content_Types\].xml ${{ matrix.arch }}/AppxBlockMap.xml ${{ matrix.arch }}/AppxSignature.p7x ${{ matrix.arch }}/AppxMetadata
