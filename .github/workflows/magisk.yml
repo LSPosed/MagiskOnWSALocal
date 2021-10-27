@@ -123,12 +123,6 @@ jobs:
 
           if not os.path.isfile(out_file):
               urllib.request.urlretrieve(link, out_file)
-
-          out_dir = "gapps"
-          with zipfile.ZipFile(out_file) as zip:
-              if not os.path.isdir(out_dir):
-                  print(f"unzipping from {out_file}", flush=True)
-                  zip.extractall(out_dir)
           print("done", flush=True)
       - name: Expand images
         run: |
@@ -208,7 +202,7 @@ jobs:
         if: ${{ github.event.inputs.gapps_variant != 'none' && github.event.inputs.gapps_variant != '' }}
         run: |
           mkdir gapps/tmp
-          cat gapps/{Core,GApps}/*.lz | tar --lzip -C gapps/tmp -xvf - -i --strip-components=2 --exclude='setupwizardtablet-x86_64' --exclude='packageinstallergoogle-all'
+          unzip -p gapps.zip {Core,GApps}/'*.lz' | tar --lzip -C gapps/tmp -xvf - -i --strip-components=2 --exclude='setupwizardtablet-x86_64' --exclude='packageinstallergoogle-all'
 
           sudo cp -r gapps/tmp/{app,etc,framework,priv-app} system/system
           sudo cp -r gapps/tmp/product/* system/product/
