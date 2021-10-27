@@ -1,5 +1,11 @@
 # Magisk on WSA
 
+## Features
+- Integrate Magisk and OpenGApps in a few clicks within minus
+- No Linux environment is required for the integration
+- Keep latest on each build
+- Support both ARM64 and x64
+
 ## Usage
 
 1. Fork this repo
