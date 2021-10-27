@@ -124,16 +124,23 @@ jobs:
           if not os.path.isfile(out_file):
               urllib.request.urlretrieve(link, out_file)
           print("done", flush=True)
-      - name: Expand images
+
+      - name: Extract GApps and expand images
+        if: ${{ github.event.inputs.gapps_variant != 'none' && github.event.inputs.gapps_variant != '' }}
         run: |
+          mkdir gapps
+          unzip -p gapps.zip {Core,GApps}/'*.lz' | tar --lzip -C gapps -xvf - -i --strip-components=2 --exclude='setupwizardtablet-x86_64' --exclude='packageinstallergoogle-all' --exclude='speech-common' --exclude='markup-lib-arm' --exclude='markup-all'
+
           e2fsck -yf ${{ matrix.arch }}/system.img
-          resize2fs ${{ matrix.arch }}/system.img 1280M
-          e2fsck -yf ${{ matrix.arch }}/vendor.img
-          resize2fs ${{ matrix.arch }}/vendor.img 320M
+          resize2fs ${{ matrix.arch }}/system.img $(( $(du -sB512 gapps | cut -f1) + $(du -sB512 ${{ matrix.arch }}/system.img | cut -f1) ))s
           e2fsck -yf ${{ matrix.arch }}/product.img
           resize2fs ${{ matrix.arch }}/product.img 1024M
           e2fsck -yf ${{ matrix.arch }}/system_ext.img
           resize2fs ${{ matrix.arch }}/system_ext.img 108M
+      - name: Expand vendor
+        run: |
+          e2fsck -yf ${{ matrix.arch }}/vendor.img
+          resize2fs ${{ matrix.arch }}/vendor.img 320M
       - name: Mount images
         run: |
           sudo mkdir system
@@ -201,9 +208,6 @@ jobs:
       - name: Integrate GApps
         if: ${{ github.event.inputs.gapps_variant != 'none' && github.event.inputs.gapps_variant != '' }}
         run: |
-          mkdir gapps
-          unzip -p gapps.zip {Core,GApps}/'*.lz' | tar --lzip -C gapps -xvf - -i --strip-components=2 --exclude='setupwizardtablet-x86_64' --exclude='packageinstallergoogle-all'
-
           sudo cp -r gapps/{app,etc,framework,priv-app} system/system
           sudo cp -r gapps/product/* system/product/
 
@@ -227,6 +231,7 @@ jobs:
 
           sudo ./magisk/magiskpolicy --load system/vendor/etc/selinux/precompiled_sepolicy --save system/vendor/etc/selinux/precompiled_sepolicy "allow gmscore_app gmscore_app vsock_socket { create connect write read }" "allow gmscore_app device_config_runtime_native_boot_prop file read"
       - name: Fix GApps prop
+        if: ${{ github.event.inputs.gapps_variant != 'none' && github.event.inputs.gapps_variant != '' }}
         shell: sudo python {0}
         run: |
           from __future__ import annotations
