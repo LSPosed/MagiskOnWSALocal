@@ -201,11 +201,11 @@ jobs:
       - name: Integrate GApps
         if: ${{ github.event.inputs.gapps_variant != 'none' && github.event.inputs.gapps_variant != '' }}
         run: |
-          mkdir gapps/tmp
-          unzip -p gapps.zip {Core,GApps}/'*.lz' | tar --lzip -C gapps/tmp -xvf - -i --strip-components=2 --exclude='setupwizardtablet-x86_64' --exclude='packageinstallergoogle-all'
+          mkdir gapps
+          unzip -p gapps.zip {Core,GApps}/'*.lz' | tar --lzip -C gapps -xvf - -i --strip-components=2 --exclude='setupwizardtablet-x86_64' --exclude='packageinstallergoogle-all'
 
-          sudo cp -r gapps/tmp/{app,etc,framework,priv-app} system/system
-          sudo cp -r gapps/tmp/product/* system/product/
+          sudo cp -r gapps/{app,etc,framework,priv-app} system/system
+          sudo cp -r gapps/product/* system/product/
 
           sudo find system/system/{app,etc,framework,priv-app} -exec chown root:root {} \;
           sudo find system/product/{app,etc,overlay,priv-app} -exec chown root:root {} \;
