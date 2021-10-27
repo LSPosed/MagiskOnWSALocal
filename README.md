@@ -23,3 +23,9 @@
 ## Prebuilt Magisk
 
 There's still a bug from Magisk that prevents it from running on WSA. So please don't use the official build yet. The download link of the prebuilt Magisk is: [https://raw.githubusercontent.com/LSPosed/MagiskOnWSA/main/magisk.apk](https://raw.githubusercontent.com/LSPosed/MagiskOnWSA/main/magisk.apk) and its source codes are on the magisk branch.
+
+## Credits
+- [Magisk](https://github.com/topjohnwu/Magisk): The most famous root solution on Android
+- [The Open GApps Project](https://opengapps.org): One of the most famous Google Apps packages solution
+- [WSA-Kernel-SU](https://github.com/LSPosed/WSA-Kernel-SU) and [kernel-assisted-superuser](https://git.zx2c4.com/kernel-assisted-superuser/): The kernel `su` for debugging Magisk Integration
+- [WSAGAScript](https://github.com/ADeltaX/WSAGAScript): The first GApps integration script for WSA
