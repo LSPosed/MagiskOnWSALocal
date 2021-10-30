@@ -5,6 +5,8 @@
 - No Linux environment required for integration
 - Keep each build up to date
 - Support both ARM64 and x64
+- Support all OpenGApps variants
+- Fix external storage access of DocumentUI
 
 ## Usage
 
