@@ -8,16 +8,23 @@
 
 ## Usage
 
-1. Fork this repo
-1. Go to Action tab and select workflow `Magisk`, click the run button and enter the needed infomation (magisk apk download link)
+1. Star (if you like) and fork this repo
+1. Go to the **Action** tab in your forked repo
+    ![Action Tab](https://docs.github.com/assets/images/help/repository/actions-tab.png)
+1. In the left sidebar, click the **Magisk** workflow.
+    ![Workflow](https://docs.github.com/assets/images/actions-select-workflow.png)
+1. Above the list of workflow runs, select **Run workflow**
+    ![Run Workflow](https://docs.github.com/assets/images/actions-workflow-dispatch.png)
+1. Input the download link of Magisk and select the [OpenGApps variant](https://github.com/opengapps/opengapps/wiki#variants) (none is no OpenGApps) you like and click **Run workflow**
+    ![Run Workflow](https://docs.github.com/assets/images/actions-manually-run-workflow.png)
 1. Wait the action complete and download the artifact
-1. Uninstall WSA
-1. Unzip the artifact
+    ![Download](https://docs.github.com/assets/images/help/repository/artifact-drop-down-updated.png)
+1. Unzip the artifact and uninstall WSA if you have an official installation or replace the pevious unzipped artifact if you have a manual installation
 1. Enable developer mode on Windows
 1. Open powershell with admin privileges and run `Add-AppxPackage -Register .\AppxManifest.xml` under the unzipped artifact directory
 1. Launch WSA and enable developer mode, launch the file manager, and wait until the file manager popup
 1. Run `adb connect localhost:58526` to connect to WSA and install Magisk app (the one you use to build) and launch it
-1. Fix the environment as Magisk app will prompt and reboot
+1. Fix the environment as Magisk app will prompt and reboot (sometimes it keeps prompting even after environment fix, just ignore it)
 1. Enjoy by installing Riru and LSPosed
 
 ## Prebuilt Magisk
