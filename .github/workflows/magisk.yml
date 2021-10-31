@@ -329,7 +329,7 @@ jobs:
       - name: Remove signature and add scripts
         run: |
           rm -rf ${{ matrix.arch }}/\[Content_Types\].xml ${{ matrix.arch }}/AppxBlockMap.xml ${{ matrix.arch }}/AppxSignature.p7x ${{ matrix.arch }}/AppxMetadata
-          tee Install.ps1 <<EOF
+          tee ${{ matrix.arch }}/Install.ps1 <<EOF
           function Test-Administrator
           {
               [OutputType([bool])]
