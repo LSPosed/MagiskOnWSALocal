@@ -8,7 +8,7 @@ on:
       magisk_apk:
         description: 'Download link to magisk apk.'
         required: true
-        default: 'https://cdn.jsdelivr.net/gh/topjohnwu/magisk-files@e5c449a3dee28712f5bd629d3e56d5df5362fcec/app-debug.apk'
+        default: 'https://raw.githubusercontent.com/topjohnwu/magisk-files/canary/app-debug.apk'
       gapps_variant:
         description: 'Variants of gapps. Should be: [none, aroma, super, stock, full, mini, micro, nano, pico, tvstock, tvmini]'
         required: true
