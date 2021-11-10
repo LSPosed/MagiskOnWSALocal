@@ -358,11 +358,20 @@ jobs:
       - name: Generate artifact name
         run: |
           variant="${{ github.event.inputs.gapps_variant }}"
-          if [[ "$variant" = "none" || "$variant" = "" ]]; then
-            echo "artifact_name=WSA-with-Magisk-NoGApps_${{ matrix.arch }}" >> $GITHUB_ENV
+          root="${{ github.event.inputs.root_sol }}"
+          if [[ "$root" = "none" ]]; then
+            name1="-"
+          elif [[ "$root" = "" ]]; then
+            name1="-with-magisk"
           else
-            echo "artifact_name=WSA-with-Magisk-GApps-${variant}_${{ matrix.arch }}" >> $GITHUB_ENV
+            name1="-with-${root}"
           fi
+          if [[ "$variant" = "none" || "$variant" = "" ]]; then
+            name2="-NoGApps"
+          else
+            name2="-GApps-${variant}"
+          fi
+          echo "artifact_name=WSA${name1}${name2}_${{ matrix.arch }}" >> $GITHUB_ENV
       - name: Upload WSA
         uses: actions/upload-artifact@v2
         with:
