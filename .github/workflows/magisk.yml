@@ -360,7 +360,7 @@ jobs:
           variant="${{ github.event.inputs.gapps_variant }}"
           root="${{ github.event.inputs.root_sol }}"
           if [[ "$root" = "none" ]]; then
-            name1="-"
+            name1=""
           elif [[ "$root" = "" ]]; then
             name1="-with-magisk"
           else
