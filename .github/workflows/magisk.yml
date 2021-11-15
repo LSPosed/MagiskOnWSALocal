@@ -163,6 +163,7 @@ jobs:
       - name: Integrate Magisk
         if: ${{ github.event.inputs.root_sol == 'magisk' || github.event.inputs.root_sol == '' }}
         run: |
+          cp magisk.zip ${{ matrix.arch }}/Magisk.apk
           sudo mkdir system/sbin
           sudo chcon --reference system/init.environ.rc system/sbin
           sudo chown root:root system/sbin
