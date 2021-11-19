@@ -431,7 +431,7 @@ jobs:
               ./adb shell am force-stop com.amazon.venezia
               Write-Output "Installing Magisk App..."
               ./adb install Magisk.apk
-              adb shell monkey -p com.topjohnwu.magisk -c android.intent.category.LAUNCHER 1
+              ./adb shell monkey -p com.topjohnwu.magisk -c android.intent.category.LAUNCHER 1
           }
           EOF
       - name: Generate artifact name
