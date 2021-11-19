@@ -416,7 +416,7 @@ jobs:
               Write-Output "starting an App to force the creation of the rw sdcard"
               start-process "\$env:LOCALAPPDATA/Microsoft/WindowsApps/MicrosoftCorporationII.WindowsSubsystemForAndroid_8wekyb3d8bbwe/WsaClient.exe" -Args "/launch wsa://com.amazon.venezia"
               Write-Output "Waiting for the Android system to boot for the first time..."
-              adb kill-server
+              ./adb kill-server
               do{}until((./adb connect localhost:58526).Contains("connected"))
               do{
                   \$output=(./adb devices)
