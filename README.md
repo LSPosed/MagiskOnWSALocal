@@ -9,7 +9,6 @@
 - Fix external storage access of DocumentUI
 - Unatended installation
 - Automatically activates developers mode in Windows 11
-- Automatically activates developer mode in WSA
 
 ## Usage
 
