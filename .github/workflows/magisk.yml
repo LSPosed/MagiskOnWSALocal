@@ -40,19 +40,35 @@ jobs:
           import os
           import urllib.request
 
+          arch = "${{ matrix.arch }}"
+
           res = requests.post("https://store.rg-adguard.net/api/GetFiles", "type=CategoryId&url=858014f3-3934-4abe-8078-4aa193e74ca8&ring=WIS&lang=en-US", headers={
               "content-type": "application/x-www-form-urlencoded"
           })
           html = BeautifulSoup(res.content, "lxml")
+
+          a = html.find("a", string=re.compile(f"Microsoft\.UI\.Xaml\..*_{arch}_.*\.appx"))
+          link = a["href"]
+          print(f"downloading link: {link}", flush=True)
+          out_file = "xaml.appx"
+          if not os.path.isfile(out_file):
+              urllib.request.urlretrieve(link, out_file)
+          with open(os.environ['GITHUB_ENV'], 'a') as f:
+              f.write(f'XAML_NAME={a.string.split("_", 1)[0]}\n')
+
+          a = html.find("a", string=re.compile(f"Microsoft\.VCLibs\..*_{arch}_.*\.appx"))
+          link = a["href"]
+          print(f"downloading link: {link}", flush=True)
+          out_file = "vclibs.appx"
+          if not os.path.isfile(out_file):
+              urllib.request.urlretrieve(link, out_file)
+          with open(os.environ['GITHUB_ENV'], 'a') as f:
+              f.write(f'VCLIB_NAME={a.string.split("_", 1)[0]}\n')
+
           a = html.find("a", string=re.compile("MicrosoftCorporationII\.WindowsSubsystemForAndroid_.*\.msixbundle"))
           link = a["href"]
-
           print(f"downloading link: {link}", flush=True)
-
           out_file = "wsa.zip"
-
-          arch = "${{ matrix.arch }}"
-
           if not os.path.isfile(out_file):
               urllib.request.urlretrieve(link, out_file)
 
@@ -402,6 +418,7 @@ jobs:
       - name: Remove signature and add scripts
         run: |
           rm -rf ${{ matrix.arch }}/\[Content_Types\].xml ${{ matrix.arch }}/AppxBlockMap.xml ${{ matrix.arch }}/AppxSignature.p7x ${{ matrix.arch }}/AppxMetadata
+          cp vclibs.appx xaml.appx ${{ matrix.arch }}
           tee ${{ matrix.arch }}/Install.ps1 <<EOF
           # Automated Install script by Mioki
           # http://github.com/okibcn
@@ -431,6 +448,20 @@ jobs:
           reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
 
           \$Installed = \$null
+          \$Installed = Get-AppxPackage -Name '$VCLIB_NAME'
+
+          If (\$null -eq \$Installed) {
+              Add-AppxPackage -Path vclibs.appx
+          }
+
+          \$Installed = \$null
+          \$Installed = Get-AppxPackage -Name '$XAML_NAME'
+
+          If (\$null -eq \$Installed) {
+              Add-AppxPackage -Path xaml.appx
+          }
+
+          \$Installed = \$null
           \$Installed = Get-AppxPackage -Name 'MicrosoftCorporationII.WindowsSubsystemForAndroid'
 
           If (\$null -ne \$Installed) {
@@ -452,10 +483,6 @@ jobs:
 
           Write-Host "Installing MagiskOnWSA..."
           Add-AppxPackage -Register .\AppxManifest.xml
-          Start-Process "wsa://com.topjohnwu.magisk"
-
-          Write-Host "All Done\`r\`nPress any key to exit"
-          \$null = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown');
           EOF
       - name: Generate artifact name
         run: |
@@ -475,6 +502,8 @@ jobs:
             name2="-GApps-${variant}"
             echo 'Start-Process "wsa://com.android.vending"' >> ${{ matrix.arch }}/Install.ps1
           fi
+          echo 'Write-Host "All Done`r`nPress any key to exit"' >> ${{ matrix.arch }}/Install.ps1
+          echo "\$null = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')" >> ${{ matrix.arch }}/Install.ps1
           echo "artifact_name=WSA${name1}${name2}_${{ env.WSA_VER }}_${{ matrix.arch }}_${{ env.WSA_REL }}" >> $GITHUB_ENV
       - name: Upload WSA
         uses: actions/upload-artifact@v2
