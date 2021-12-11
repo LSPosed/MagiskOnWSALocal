@@ -431,7 +431,7 @@ jobs:
           reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
 
           \$Installed = \$null
-          \$Installed = Get-AppxPackage –Name 'MicrosoftCorporationII.WindowsSubsystemForAndroid'
+          \$Installed = Get-AppxPackage -Name 'MicrosoftCorporationII.WindowsSubsystemForAndroid'
 
           If (\$null -ne \$Installed) {
               If (-not (\$Installed.IsDevelopmentMode)) {
