@@ -9,6 +9,7 @@
 - Fix external storage access of DocumentUI
 - Unatended installation
 - Automatically activates developers mode in Windows 11
+- Update to new version while preserving data with one-click script
 
 ## Usage
 
@@ -23,8 +24,10 @@
     ![Run Workflow](https://docs.github.com/assets/images/actions-manually-run-workflow.png)
 1. Wait for the action to complete and download the artifact
     ![Download](https://docs.github.com/assets/images/help/repository/artifact-drop-down-updated.png)
-1. Unzip the artifact and uninstall WSA if you have an official installation or replace the previously unzipped artifact if you have a manual installation
+1. Unzip the artifact
+    - If you have an official WSA installation, you should uninstall it first. (In case you want to preserve your data, you can backup `%LOCALAPPDATA%\Packages\MicrosoftCorporationII.WindowsSubsystemForAndroid_8wekyb3d8bbwe\LocalCache\userdata.vhdx` before uninstallation and restore it after installation.)
 1. Right-click `Install.ps1` and select `Run with PowerShell`
+    - If you previously have a MagiskOnWSA installation, it will automatically uninstall the previous while **preserving all userdata** and install the new one, so don't worry about your data.
 1. Enjoy by installing LSPosed-zygisk with zygisk enabled or Riru and LSPosed-riru
 
 ## Video Demo
