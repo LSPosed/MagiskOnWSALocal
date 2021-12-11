@@ -27,7 +27,7 @@ jobs:
       - name: Dependencies
         run: |
           pip3 install beautifulsoup4 lxml
-          sudo apt-get update && sudo apt-get install setools lzip
+          sudo apt-get update && sudo apt-get install setools lzip qemu-utils
       - name: Download WSA
         shell: python
         run: |
@@ -107,7 +107,12 @@ jobs:
               extract_as(zip, f"lib/{ abi_map[arch][0] }/libmagisk64.so", "magisk64", "magisk")
               extract_as(zip, f"lib/{ abi_map[arch][1] }/libmagisk32.so", "magisk32", "magisk")
               extract_as(zip, f"lib/{ abi_map[arch][0] }/libmagiskinit.so", "magiskinit", "magisk")
-              extract_as(zip, f"lib/{ abi_map['x64'][0] }/libmagiskinit.so", "magiskpolicy", "magisk")
+              extract_as(zip, f"lib/{ abi_map[arch][0] }/libmagiskinit.so", "magiskpolicy", "magisk")
+              extract_as(zip, f"lib/{ abi_map[arch][0] }/libmagiskboot.so", "magiskboot", "magisk")
+              extract_as(zip, f"lib/{ abi_map[arch][0] }/libbusybox.so", "busybox", "magisk")
+              extract_as(zip, f"lib/{ abi_map['x64'][0] }/libmagiskinit.so", "magiskpolicy", ".")
+              extract_as(zip, f"assets/boot_patch.sh", "boot_patch.sh", "magisk")
+              extract_as(zip, f"assets/util_functions.sh", "util_functions.sh", "magisk")
       - name: Download OpenGApps
         if: ${{ github.event.inputs.gapps_variant != 'none' && github.event.inputs.gapps_variant != '' }}
         shell: python
@@ -155,10 +160,13 @@ jobs:
       - name: Mount images
         run: |
           sudo mkdir system
+          sudo mkdir userdata
           sudo mount -o loop ${{ matrix.arch }}/system.img system
           sudo mount -o loop ${{ matrix.arch }}/vendor.img system/vendor
           sudo mount -o loop ${{ matrix.arch }}/product.img system/product
           sudo mount -o loop ${{ matrix.arch }}/system_ext.img system/system_ext
+          qemu-img convert -O raw ${{ matrix.arch }}/userdata.vhdx userdata.img
+          sudo mount -o loop userdata.img userdata
       - name: Integrate Magisk
         if: ${{ github.event.inputs.root_sol == 'magisk' || github.event.inputs.root_sol == '' }}
         run: |
@@ -168,8 +176,14 @@ jobs:
           sudo chown root:root system/sbin
           sudo chmod 0700 system/sbin
           sudo cp magisk/* system/sbin/
+          sudo mkdir -p userdata/adb/magisk
+          sudo chmod -R 700 userdata/adb
+          sudo cp magisk/* userdata/adb/magisk/
+          sudo find userdata/adb/magisk -type f -exec chmod 0755 {} \;
+          sudo cp magisk.zip userdata/adb/magisk/magisk.apk
           sudo tee -a system/sbin/loadpolicy.sh <<EOF
           #!/system/bin/sh
+          restorecon -R /data/adb/magisk
           for module in $(ls /data/adb/modules); do
               if ! [ -f "/data/adb/modules/$module/disable" ] && [ -f "/data/adb/modules/$module/sepolicy.rule" ]; then
                   /sbin/magiskpolicy --live --apply "/data/adb/modules/$module/sepolicy.rule"
@@ -179,9 +193,10 @@ jobs:
           sudo find system/sbin -type f -exec chmod 0755 {} \;
           sudo find system/sbin -type f -exec chown root:root {} \;
           sudo find system/sbin -type f -exec chcon --reference system/product {} \;
-          chmod +x magisk/magiskpolicy
+          chmod +x ./magiskpolicy
           echo '/dev/wsa-magisk(/.*)?    u:object_r:magisk_file:s0' | sudo tee -a system/vendor/etc/selinux/vendor_file_contexts
-          sudo ./magisk/magiskpolicy --load system/vendor/etc/selinux/precompiled_sepolicy --save system/vendor/etc/selinux/precompiled_sepolicy --magisk "allow * magisk_file lnk_file *"
+          echo '/data/adb/magisk(/.*)?   u:object_r:magisk_file:s0' | sudo tee -a system/vendor/etc/selinux/vendor_file_contexts
+          sudo ./magiskpolicy --load system/vendor/etc/selinux/precompiled_sepolicy --save system/vendor/etc/selinux/precompiled_sepolicy --magisk "allow * magisk_file lnk_file *"
           sudo tee -a system/system/etc/init/hw/init.rc <<EOF
 
           on post-fs-data
@@ -263,8 +278,8 @@ jobs:
           sudo find system/system/{app,framework,priv-app} -type f -exec chcon --reference=system/system/framework/ext.jar {} \;
           ls gapps/etc/ | xargs -n 1 -I dir sudo find system/system/etc/dir -type f -exec chcon --reference=system/system/etc/permissions {} \;
           sudo find system/product/{app,etc,overlay,priv-app} -type f -exec chcon --reference=system/product/etc/permissions/privapp-permissions-venezia.xml {} \;
-          chmod +x ./magisk/magiskpolicy
-          sudo ./magisk/magiskpolicy --load system/vendor/etc/selinux/precompiled_sepolicy --save system/vendor/etc/selinux/precompiled_sepolicy "allow gmscore_app gmscore_app vsock_socket { create connect write read }" "allow gmscore_app device_config_runtime_native_boot_prop file read" "allow gmscore_app system_server_tmpfs dir search" "allow gmscore_app system_server_tmpfs file open"
+          chmod +x ./magiskpolicy
+          sudo ./magiskpolicy --load system/vendor/etc/selinux/precompiled_sepolicy --save system/vendor/etc/selinux/precompiled_sepolicy "allow gmscore_app gmscore_app vsock_socket { create connect write read }" "allow gmscore_app device_config_runtime_native_boot_prop file read" "allow gmscore_app system_server_tmpfs dir search" "allow gmscore_app system_server_tmpfs file open"
       - name: Fix GApps prop
         if: ${{ github.event.inputs.gapps_variant != 'none' && github.event.inputs.gapps_variant != '' }}
         shell: sudo python {0}
@@ -344,6 +359,8 @@ jobs:
           sudo umount system/product
           sudo umount system/system_ext
           sudo umount system
+          sudo umount userdata
+          qemu-img convert -p -o subformat=dynamic -f raw -O vhdx userdata.img ${{ matrix.arch }}/userdata.vhdx
       - name: Shrink images
         run: |
           e2fsck -yf ${{ matrix.arch }}/system.img
