@@ -10,6 +10,7 @@
 - Unatended installation
 - Automatically activates developers mode in Windows 11
 - Update to new version while preserving data with one-click script
+- Merged all language packs
 
 ## Usage
 

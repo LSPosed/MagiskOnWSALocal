@@ -27,7 +27,9 @@ jobs:
       - name: Dependencies
         run: |
           pip3 install beautifulsoup4 lxml
-          sudo apt-get update && sudo apt-get install setools lzip qemu-utils
+          sudo apt-get update && sudo apt-get install setools lzip qemu-utils wine winetricks
+          wget -qO- "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/archive/$GITHUB_REF.tar.gz" | sudo tar --wildcards -zxvf- -C ~ --strip-component=2 '*/wine/*'
+          winetricks msxml6
       - name: Download WSA
         shell: python
         run: |
@@ -64,18 +66,30 @@ jobs:
                           zip.extract(f)
                           ver_no = zip_name.split("_")
                           ver = ver_no[1]
-                          with open(os.environ['GITHUB_ENV'], 'a') as f:
-                              f.write(f'WSA_VER={ver}\n')
+                          with open(os.environ['GITHUB_ENV'], 'a') as g:
+                              g.write(f'WSA_VER={ver}\n')
                           rel = ver_no[3].split(".")
                           rell = str(rel[0])
-                          with open(os.environ['GITHUB_ENV'], 'a') as f:
-                              f.write(f'WSA_REL={rell}\n')
-                      break
+                          with open(os.environ['GITHUB_ENV'], 'a') as g:
+                              g.write(f'WSA_REL={rell}\n')
+                  if 'language' in f.filename.lower():
+                      name = f.filename.split("-", 1)[1].split(".")[0]
+                      zip.extract(f)
+                      with zipfile.ZipFile(f.filename) as l:
+                          for g in l.filelist:
+                              if g.filename == 'resources.pri':
+                                  g.filename = f'{name}.pri'
+                                  l.extract(g, 'pri')
+                                  print(f"extract language pack {g.filename}")
+                              elif g.filename == 'AppxManifest.xml':
+                                  g.filename = f'{name}.xml'
+                                  l.extract(g, 'xml')
 
           with zipfile.ZipFile(zip_name) as zip:
               if not os.path.isdir(arch):
                   print(f"unzipping from {zip_name}", flush=True)
                   zip.extractall(arch)
+
           print("done", flush=True)
       - name: Download Magisk
         shell: python
@@ -246,6 +260,21 @@ jobs:
               seclabel u:r:magisk:s0
               oneshot
           EOF
+      - name: Merge Language Resources
+        run: |
+          cp ${{ matrix.arch }}/resources.pri pri/en-us.pri
+          cp ${{ matrix.arch }}/AppxManifest.xml pri/en-us.xml
+          tee priconfig.xml <<EOF
+          <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+          <resources targetOsVersion="10.0.0" majorVersion="1">
+              <index root="\" startIndexAt="\">
+                  <indexer-config type="folder" foldernameAsQualifier="true" filenameAsQualifier="true" qualifierDelimiter="."/>
+                  <indexer-config type="PRI"/>
+              </index>
+          </resources>
+          EOF
+          wine64 ~/makepri.exe new /pr pri /in MicrosoftCorporationII.WindowsSubsystemForAndroid /cf priconfig.xml /of ${{ matrix.arch }}/resources.pri /o
+          sed -i -zE "s/<Resources.*Resources>/<Resources>\n$(cat xml/* | grep -Po '<Resource [^>]*/>' | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/\$/\\$/g' | sed 's/\//\\\//g')\n<\/Resources>/g" ${{ matrix.arch }}/AppxManifest.xml
       - name: Fix External Storage
         run: |
           wget -qO- "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/archive/$GITHUB_REF.tar.gz" | sudo tar --wildcards -zxvf- --strip-component=2 '*/x64/system/*'
