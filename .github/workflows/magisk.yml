@@ -72,7 +72,7 @@ jobs:
                           rell = str(rel[0])
                           with open(os.environ['GITHUB_ENV'], 'a') as g:
                               g.write(f'WSA_REL={rell}\n')
-                  if 'language' in f.filename.lower():
+                  if 'language' in f.filename.lower() or 'scale' in f.filename.lower():
                       name = f.filename.split("-", 1)[1].split(".")[0]
                       zip.extract(f)
                       with zipfile.ZipFile(f.filename) as l:
@@ -80,7 +80,7 @@ jobs:
                               if g.filename == 'resources.pri':
                                   g.filename = f'{name}.pri'
                                   l.extract(g, 'pri')
-                                  print(f"extract language pack {g.filename}")
+                                  print(f"extract resource pack {g.filename}")
                               elif g.filename == 'AppxManifest.xml':
                                   g.filename = f'{name}.xml'
                                   l.extract(g, 'xml')
@@ -277,14 +277,14 @@ jobs:
           sed -i -zE "s/<Resources.*Resources>/<Resources>\n$(cat xml/* | grep -Po '<Resource [^>]*/>' | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/\$/\\$/g' | sed 's/\//\\\//g')\n<\/Resources>/g" ${{ matrix.arch }}/AppxManifest.xml
       - name: Fix External Storage
         run: |
-          wget -qO- "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/archive/$GITHUB_REF.tar.gz" | sudo tar --wildcards -zxvf- --strip-component=2 '*/x64/system/*'
+          wget -qO- "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/archive/$GITHUB_REF.tar.gz" | sudo tar --wildcards -zxvf- --strip-component=2 '*/${{ matrix.arch }}/system/*'
           sudo find system/system/priv-app -type d -exec chmod 0755 {} \;
           sudo find system/system/priv-app -type f -exec chmod 0644 {} \;
           sudo find system/system/priv-app -type d -exec chcon --reference=system/system/priv-app {} \;
       - name: Integrate GApps
         if: ${{ github.event.inputs.gapps_variant != 'none' && github.event.inputs.gapps_variant != '' }}
         run: |
-          wget -qO- "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/archive/$GITHUB_REF.tar.gz" | sudo tar --wildcards -zxvf- --strip-component=2 '*/x64/gapps/*'
+          wget -qO- "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/archive/$GITHUB_REF.tar.gz" | sudo tar --wildcards -zxvf- --strip-component=2 '*/${{ matrix.arch }}/gapps/*'
           shopt -s extglob
           sudo cp -vr gapps/!(product) system/system
           sudo cp -vr gapps/product/* system/product/
