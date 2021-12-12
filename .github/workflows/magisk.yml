@@ -448,17 +448,17 @@ jobs:
           reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
 
           \$Installed = \$null
-          \$Installed = Get-AppxPackage -Name '$VCLIB_NAME'
-
-          If (\$null -eq \$Installed) {
-              Add-AppxPackage -Path vclibs.appx
-          }
-
-          \$Installed = \$null
           \$Installed = Get-AppxPackage -Name '$XAML_NAME'
 
           If (\$null -eq \$Installed) {
               Add-AppxPackage -Path xaml.appx
+          }
+
+          \$Installed = \$null
+          \$Installed = Get-AppxPackage -Name '$VCLIB_NAME'
+
+          If (\$null -eq \$Installed) {
+              Add-AppxPackage -Path vclibs.appx
           }
 
           \$Installed = \$null
