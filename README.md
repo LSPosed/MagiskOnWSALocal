@@ -1,4 +1,4 @@
-# Magisk on WSA
+# Magisk on WSA (with Google Apps)
 
 ## Features
 - Integrate Magisk and OpenGApps in a few clicks within minutes
@@ -12,7 +12,10 @@
 - Update to new version while preserving data with one-click script
 - Merged all language packs
 
-## Usage
+## Video Guide
+https://user-images.githubusercontent.com/5022927/145696886-e13ebfc1-ff25-4410-893e-d3e517af70ea.mp4
+
+## Text Guide
 
 1. Star (if you like) and fork this repo
 1. Go to the **Action** tab in your forked repo
