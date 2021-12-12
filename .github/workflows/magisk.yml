@@ -275,7 +275,7 @@ jobs:
       - name: Merge Language Resources
         run: |
           cp ${{ matrix.arch }}/resources.pri pri/en-us.pri
-          cp ${{ matrix.arch }}/AppxManifest.xml pri/en-us.xml
+          cp ${{ matrix.arch }}/AppxManifest.xml xml/en-us.xml
           tee priconfig.xml <<EOF
           <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
           <resources targetOsVersion="10.0.0" majorVersion="1">
