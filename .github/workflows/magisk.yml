@@ -427,6 +427,12 @@ jobs:
               }
           }
 
+          function Finish {
+              Clear-Host
+              Start-Process "wsa://com.topjohnwu.magisk"
+              Start-Process "wsa://com.android.vending"
+          }
+
           if (-not (Test-Administrator)) {
               \$proc = Start-Process -PassThru -WindowStyle Hidden -Verb RunAs powershell.exe -Args "-executionpolicy bypass -command Set-Location \`"\$PSScriptRoot\`"; \`"\$PSCommandPath\`" EVAL"
               \$proc.WaitForExit()
@@ -464,28 +470,35 @@ jobs:
           \$Installed = \$null
           \$Installed = Get-AppxPackage -Name 'MicrosoftCorporationII.WindowsSubsystemForAndroid'
 
-          If (\$null -ne \$Installed) {
-              If (-not (\$Installed.IsDevelopmentMode)) {
-                  Clear-Host
-                  Write-Warning "There is already one installed WSA. Please uninstall it first.\`r\`nPress y to uninstall existing WSA or press any key to exit"
-                  \$key = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
-                  If ("y" -eq \$key.Character) {
-                      Remove-AppxPackage -Package \$Installed.PackageFullName
-                  }
-                  Else {
-                      exit 1
-                  }
+          If ((\$null -ne \$Installed) -and (-not (\$Installed.IsDevelopmentMode))) {
+              Clear-Host
+              Write-Warning "There is already one installed WSA. Please uninstall it first.\`r\`nPress y to uninstall existing WSA or press any key to exit"
+              \$key = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+              If ("y" -eq \$key.Character) {
+                  Remove-AppxPackage -Package \$Installed.PackageFullName
               }
               Else {
-                  Clear-Host
-                  Write-Host "Uninstalling existing installation while preserving userdata..."
-                  Remove-AppxPackage -PreserveApplicationData -Package \$Installed.PackageFullName
+                  exit 1
               }
           }
           Clear-Host
           Write-Host "Installing MagiskOnWSA..."
-          Add-AppxPackage -Register .\AppxManifest.xml
-          Clear-Host
+          Stop-Process -Name "wsaclient"
+          Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Register .\AppxManifest.xml
+          if (\$?) {
+              Finish
+          }
+          Elseif (\$null -ne \$Installed) {
+              Clear-Host
+              Write-Host "Failed to update, try to uninstall existing installation while preserving userdata..."
+              Remove-AppxPackage -PreserveApplicationData -Package \$Installed.PackageFullName
+              Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Register .\AppxManifest.xml
+              if (\$?) {
+                  Finish
+              }
+          }
+          Write-Host "All Done\`r\`nPress any key to exit"
+          \$null = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
           EOF
       - name: Generate artifact name
         run: |
@@ -495,7 +508,6 @@ jobs:
             name1=""
           elif [[ "$root" = "" ]]; then
             name1="-with-magisk"
-            echo 'Start-Process "wsa://com.topjohnwu.magisk"' >> ${{ matrix.arch }}/Install.ps1
           else
             name1="-with-${root}"
           fi
@@ -503,10 +515,7 @@ jobs:
             name2="-NoGApps"
           else
             name2="-GApps-${variant}"
-            echo 'Start-Process "wsa://com.android.vending"' >> ${{ matrix.arch }}/Install.ps1
           fi
-          echo 'Write-Host "All Done`r`nPress any key to exit"' >> ${{ matrix.arch }}/Install.ps1
-          echo "\$null = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')" >> ${{ matrix.arch }}/Install.ps1
           echo "artifact_name=WSA${name1}${name2}_${{ env.WSA_VER }}_${{ matrix.arch }}_${{ env.WSA_REL }}" >> $GITHUB_ENV
       - name: Upload WSA
         uses: actions/upload-artifact@v2
