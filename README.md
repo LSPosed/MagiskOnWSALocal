@@ -78,6 +78,12 @@ https://user-images.githubusercontent.com/5022927/145696886-e13ebfc1-ff25-4410-8
 - How can I get rid of Magisk?
 
     Input `none` as root solution.
+- Github Action script is updated, how can I synchronize it?
+
+    1. In your fork repository, click `fetch upstream`
+        ![fetch](https://docs.github.com/assets/cb-33284/images/help/repository/fetch-upstream-drop-down.png)
+    1. Then and click `fetch and merge`
+        ![merge](https://docs.github.com/assets/cb-128489/images/help/repository/fetch-and-merge-button.png)
 
 ## Credits
 - [Magisk](https://github.com/topjohnwu/Magisk): The most famous root solution on Android
