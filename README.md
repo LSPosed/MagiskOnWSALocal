@@ -5,7 +5,7 @@
 - No Linux environment required for integration
 - Keep each build up to date
 - Support both ARM64 and x64
-- Support all OpenGApps variants
+- Support all OpenGApps variants except for aroma (aroma does not support x86_64, please use super instead)
 - Fix external storage access of DocumentUI
 - Unatended installation
 - Automatically activates developers mode in Windows 11
