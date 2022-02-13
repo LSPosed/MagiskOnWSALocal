@@ -13,9 +13,6 @@ on:
         - stable
         - beta
         - canary
-        - customize
-      magisk_link:
-        description: "Download link to Magisk's apk if you are choosing customize above."
       gapps_variant:
         description: "Variants of gapps"
         required: true
@@ -138,8 +135,6 @@ jobs:
 
           magisk_apk = """${{ github.event.inputs.magisk_apk }}"""
 
-          if magisk_apk == "customize":
-              maigks_apk = """${{ github.event.inputs.magisk_link }}"""
           if not magisk_apk:
               magisk_apk = "stable"
           if magisk_apk == "stable" or magisk_apk == "beta" or magisk_apk == "canary":
