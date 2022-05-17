@@ -1,6 +1,7 @@
 # Magisk on WSA (with Google Apps)
 
 ## Features
+
 - Integrate Magisk and OpenGApps in a few clicks within minutes
 - No Linux environment required for integration
 - Keep each build up to date
@@ -15,6 +16,7 @@
 - Support managing start menu icons (manually installing [WSAHelper](https://github.com/LSPosed/WSAHelper/releases/latest) to use this feature)
 
 ## Video Guide
+
 https://user-images.githubusercontent.com/5022927/145696886-e13ebfc1-ff25-4410-893e-d3e517af70ea.mp4
 
 ## Text Guide
@@ -44,6 +46,15 @@ https://user-images.githubusercontent.com/5022927/145696886-e13ebfc1-ff25-4410-8
 1. Magisk/Play store will be launched. Enjoy by installing LSPosed-zygisk with zygisk enabled or Riru and LSPosed-riru
 
 ## FAQ
+
+- Actions workflow run Failed
+
+    Check workflow permissions, should be `Read and write permissions`
+
+     ![permissions](https://user-images.githubusercontent.com/40033067/168649322-dadaafc9-dd31-4922-afe1-8aa933b7b036.png)
+
+     Read the [Github Docs](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#configuring-the-default-github_token-permissions) to find out how to change this setting
+
 - Can I delete the unzipped folder?
 
     No.
@@ -91,6 +102,7 @@ https://user-images.githubusercontent.com/5022927/145696886-e13ebfc1-ff25-4410-8
         ![merge](https://docs.github.com/assets/cb-128489/images/help/repository/fetch-and-merge-button.png)
 
 ## Credits
+
 - [Magisk](https://github.com/topjohnwu/Magisk): The most famous root solution on Android
 - [The Open GApps Project](https://opengapps.org): One of the most famous Google Apps packages solution
 - [WSA-Kernel-SU](https://github.com/LSPosed/WSA-Kernel-SU) and [kernel-assisted-superuser](https://git.zx2c4.com/kernel-assisted-superuser/): The kernel `su` for debugging Magisk Integration
