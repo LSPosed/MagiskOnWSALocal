@@ -30,6 +30,7 @@ on:
         - stable
         - beta
         - canary
+        - debug
       gapps_variant:
         description: "Variants of gapps"
         required: true
