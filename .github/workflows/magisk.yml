@@ -146,7 +146,7 @@ jobs:
                           ver_no = zip_name.split("_")
                           long_ver = ver_no[1]
                           ver=long_ver.split(".")
-                          main_ver=ver[1]
+                          main_ver=ver[0]
                           with open(os.environ['GITHUB_ENV'], 'a') as g:
                               g.write(f'WSA_VER={long_ver}\n')
                           with open(os.environ['GITHUB_ENV'], 'a') as g:
