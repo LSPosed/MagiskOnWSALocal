@@ -7,7 +7,6 @@
 - Keep each build up to date
 - Support both ARM64 and x64
 - Support all OpenGApps variants except for aroma (aroma does not support x86_64, please use super instead)
-- Fix external storage access of DocumentUI
 - Fix VPN dialog not showing (use our [VpnDialogs app](https://github.com/LSPosed/VpnDialogs))
 - Unattended installation
 - Automatically activates developers mode in Windows 11
@@ -55,9 +54,9 @@ https://user-images.githubusercontent.com/5022927/145696886-e13ebfc1-ff25-4410-8
 
      Read the [Github Docs](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#configuring-the-default-github_token-permissions) to find out how to change this setting
 
-- Why should delete old workflow runs
+- Why should we delete old workflow runs?
 
-    Keeping old workflow runs can take up a lot of storage resources and is suspected to be abusive, which can lead to banning
+    Keeping old workflow runs can take up a lot of storage resources and is suspected to be abusive, which can lead to banning.
 - Can I delete the unzipped folder?
 
     No.
