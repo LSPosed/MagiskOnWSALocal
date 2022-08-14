@@ -17,7 +17,7 @@ function YesNoBox {
 }
 
 echo "Dependencies"
-sudo apt update && sudo apt -y install setools lzip wine winetricks patchelf
+sudo apt update && sudo apt -y install setools lzip wine winetricks patchelf whiptail e2fsck resize2fs
 cp -r ../wine/.cache/* ~/.cache
 winetricks msxml6
 
