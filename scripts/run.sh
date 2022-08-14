@@ -53,7 +53,23 @@ MAGISK_VER=$(
         'canary' "Canary Channel" 'off' \
         'debug' "Canary Channel Debug Build" 'off'
 )
+
 if (YesNoBox '([title]="Install Gapps" [text]="Do you want to install gapps?")'); then
+    if [ -f ../download/MindTheGapps/MindTheGapps_$ARCH.zip ]; then
+        GAPPS_BRAND=$(
+            Radiolist '([title]="Which gapps do you want to install?"
+                     [default]="OpenGapps")' \
+                \
+                'OpenGapps' "" 'on' \
+                'MindTheGapps' "" 'off'
+        )
+    else
+        GAPPS_BRAND="OpenGapps"
+    fi
+else
+    GAPPS_VARIANT="none"
+fi
+if [ $GAPPS_BRAND = "OpenGapps" ]; then
     GAPPS_VARIANT=$(
         Radiolist '([title]="Variants of gapps"
                      [default]="pico")' \
@@ -69,7 +85,7 @@ if (YesNoBox '([title]="Install Gapps" [text]="Do you want to install gapps?")')
             'tvmini' "" 'off'
     )
 else
-    GAPPS_VARIANT="none"
+    GAPPS_VARIANT=$GAPPS_BRAND
 fi
 
 if (YesNoBox '([title]="Remove Amazon AppStore" [text]="Do you want to remove amazon appStore?")'); then
@@ -101,19 +117,29 @@ python3 extractWSA.py "$ARCH"
 echo "Download Magisk"
 python3 downloadMagisk.py "$ARCH" "$MAGISK_VER"
 
-echo "Download OpenGApps"
-python3 downloadGapps.py "$ARCH" "$MAGISK_VER"
-
-echo "Extract GApps"
 if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
-    mkdir ../workdir/gapps
-    unzip -p ../download/gapps.zip {Core,GApps}/'*.lz' | tar --lzip -C ../workdir/gapps -xvf - -i --strip-components=2 --exclude='setupwizardtablet-x86_64' --exclude='packageinstallergoogle-all' --exclude='speech-common' --exclude='markup-lib-arm' --exclude='markup-lib-arm64' --exclude='markup-all' --exclude='setupwizarddefault-x86_64' --exclude='pixellauncher-all' --exclude='pixellauncher-common'
+    if [ $GAPPS_BRAND = "OpenGapps" ]; then
+        echo "Download OpenGApps"
+        python3 downloadGapps.py "$ARCH" "$MAGISK_VER"
+    fi
+    echo "Extract GApps"
+    mkdir -p ../workdir/gapps
+    if [ $GAPPS_BRAND = "OpenGapps" ]; then
+        unzip -p ../download/gapps.zip {Core,GApps}/'*.lz' | tar --lzip -C ../workdir/gapps -xvf - -i --strip-components=2 --exclude='setupwizardtablet-x86_64' --exclude='packageinstallergoogle-all' --exclude='speech-common' --exclude='markup-lib-arm' --exclude='markup-lib-arm64' --exclude='markup-all' --exclude='setupwizarddefault-x86_64' --exclude='pixellauncher-all' --exclude='pixellauncher-common'
+    else
+        unzip ../download/MindTheGapps/MindTheGapps_$ARCH.zip "system/*" -x "system/addon.d/*" "system/system_ext/priv-app/SetupWizard/*" -d ../workdir/gapps
+        mv ../workdir/gapps/system/* ../workdir/gapps
+        rm -rf ../workdir/gapps/system
+    fi
 fi
 
 echo "Expand images"
 
 e2fsck -yf ../workdir/wsa/$ARCH/system_ext.img
 SYSTEM_EXT_SIZE=$(($(du -sB512 ../workdir/wsa/$ARCH/system_ext.img | cut -f1) + 20000))
+if [ -d ../workdir/gapps/system_ext ]; then
+    SYSTEM_EXT_SIZE=$(($SYSTEM_EXT_SIZE + $(du -sB512 ../workdir/gapps/system_ext | cut -f1)))
+fi
 resize2fs ../workdir/wsa/$ARCH/system_ext.img "$SYSTEM_EXT_SIZE"s
 
 e2fsck -yf ../workdir/wsa/$ARCH/product.img
@@ -127,6 +153,9 @@ e2fsck -yf ../workdir/wsa/$ARCH/system.img
 SYSTEM_SIZE=$(($(du -sB512 ../workdir/wsa/$ARCH/system.img | cut -f1) + 20000))
 if [ -d ../workdir/gapps ]; then
     SYSTEM_SIZE=$(($SYSTEM_SIZE + $(du -sB512 ../workdir/gapps | cut -f1) - $(du -sB512 ../workdir/gapps/product | cut -f1)))
+    if [ -d ../workdir/gapps/system_ext ]; then
+        SYSTEM_SIZE=$(($SYSTEM_SIZE - $(du -sB512 ../workdir/gapps/system_ext | cut -f1)))
+    fi
 fi
 if [ -d ../workdir/magisk ]; then
     SYSTEM_SIZE=$(($SYSTEM_SIZE + $(du -sB512 ../workdir/magisk/magisk | cut -f1)))
@@ -148,13 +177,13 @@ sudo mount -o loop ../workdir/wsa/$ARCH/vendor.img $MOUNT_DIR/vendor
 sudo mount -o loop ../workdir/wsa/$ARCH/product.img $MOUNT_DIR/product
 sudo mount -o loop ../workdir/wsa/$ARCH/system_ext.img $MOUNT_DIR/system_ext
 
-echo "Remove Amazon AppStore"
 if [ $REMOVE_AMAZON = 'remove' ]; then
+    echo "Remove Amazon AppStore"
     find $MOUNT_DIR/product/{etc/permissions,etc/sysconfig,framework,priv-app} | grep -e amazon -e venezia | sudo xargs rm -rf
 fi
 
-echo "Integrate Magisk"
 if [ $ROOT_SOL = 'magisk' ] || [ $ROOT_SOL = '' ]; then
+    echo "Integrate Magisk"
     sudo mkdir $MOUNT_DIR/sbin
     sudo chcon --reference $MOUNT_DIR/init.environ.rc $MOUNT_DIR/sbin
     sudo chown root:root $MOUNT_DIR/sbin
@@ -261,13 +290,32 @@ sudo find $MOUNT_DIR/system/priv-app -type d -exec chmod 0755 {} \;
 sudo find $MOUNT_DIR/system/priv-app -type f -exec chmod 0644 {} \;
 sudo find $MOUNT_DIR/system/priv-app -exec chcon --reference=$MOUNT_DIR/system/priv-app {} \;
 
-echo "Integrate GApps"
 if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
+    echo "Integrate GApps"
     cp -r ../$ARCH/gapps/* ../workdir/gapps
+    for d in $(find ../workdir/gapps -mindepth 1 -type d -type d); do
+        sudo chmod 0755 $d
+        sudo chown root:root $d
+    done
+    for f in $(find ../workdir/gapps -type f); do
+        type=$(echo "$f" | sed 's/.*\.//')
+        if [ "$type" == "sh" ] || [ "$type" == "$f" ]; then
+            sudo chmod 0755 $f
+        else
+            sudo chmod 0644 $f
+        fi
+        sudo chown root:root $f
+        sudo chcon -h --reference=$MOUNT_DIR/product/etc/permissions/com.android.settings.intelligence.xml $f
+        sudo chcon --reference=$MOUNT_DIR/product/etc/permissions/com.android.settings.intelligence.xml $f
+    done
     shopt -s extglob
-    sudo cp -vr ../workdir/gapps/product/* $MOUNT_DIR/product/
+    sudo cp --preserve=a -vr ../workdir/gapps/product/* $MOUNT_DIR/product/
     rm -rf ../workdir/gapps/product
-    sudo cp -vr ../workdir/gapps/* $MOUNT_DIR/system
+    if [ $GAPPS_BRAND = "MindTheGapps" ]; then
+        sudo cp --preserve=a -vr ../workdir/gapps/system_ext/* $MOUNT_DIR/system_ext/
+        rm -rf ../workdir/gapps/system_ext
+    fi
+    sudo cp --preserve=a -vr ../workdir/gapps/* $MOUNT_DIR/system
 
     sudo find $MOUNT_DIR/system/{app,etc,framework,priv-app} -exec chown root:root {} \;
     sudo find $MOUNT_DIR/product/{app,etc,overlay,priv-app} -exec chown root:root {} \;
@@ -276,16 +324,20 @@ if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
     sudo find $MOUNT_DIR/product/{app,etc,overlay,priv-app} -type d -exec chmod 0755 {} \;
 
     sudo find $MOUNT_DIR/system/{app,framework,priv-app} -type f -exec chmod 0644 {} \;
-    ls ../workdir/gapps/etc/ | xargs -n 1 -I dir sudo find $MOUNT_DIR/system/etc/dir -type f -exec chmod 0644 {} \;
     sudo find $MOUNT_DIR/product/{app,etc,overlay,priv-app} -type f -exec chmod 0644 {} \;
 
     sudo find $MOUNT_DIR/system/{app,framework,priv-app} -type d -exec chcon --reference=$MOUNT_DIR/system/app {} \;
     sudo find $MOUNT_DIR/product/{app,etc,overlay,priv-app} -type d -exec chcon --reference=$MOUNT_DIR/product/app {} \;
-    ls ../workdir/gapps/etc/ | xargs -n 1 -I dir sudo find $MOUNT_DIR/system/etc/dir -type d -exec chcon --reference=$MOUNT_DIR/system/etc/permissions {} \;
 
     sudo find $MOUNT_DIR/system/{app,framework,priv-app} -type f -exec chcon --reference=$MOUNT_DIR/system/framework/ext.jar {} \;
-    ls ../workdir/gapps/etc/ | xargs -n 1 -I dir sudo find $MOUNT_DIR/system/etc/dir -type f -exec chcon --reference=$MOUNT_DIR/system/etc/permissions {} \;
     sudo find $MOUNT_DIR/product/{app,etc,overlay,priv-app} -type f -exec chcon --reference=$MOUNT_DIR/product/etc/permissions/com.android.settings.intelligence.xml {} \;
+
+    if [ $GAPPS_BRAND = "OpenGapps" ]; then
+        ls ../workdir/gapps/etc/ | xargs -n 1 -I dir sudo find $MOUNT_DIR/system/etc/dir -type f -exec chmod 0644 {} \;
+        ls ../workdir/gapps/etc/ | xargs -n 1 -I dir sudo find $MOUNT_DIR/system/etc/dir -type d -exec chcon --reference=$MOUNT_DIR/system/etc/permissions {} \;
+        ls ../workdir/gapps/etc/ | xargs -n 1 -I dir sudo find $MOUNT_DIR/system/etc/dir -type f -exec chcon --reference=$MOUNT_DIR/system/etc/permissions {} \;
+    fi
+
     sudo patchelf --replace-needed libc.so "../linker/libc.so" ../workdir/magisk/magiskpolicy || true
     sudo patchelf --replace-needed libm.so "../linker/libm.so" ../workdir/magisk/magiskpolicy || true
     sudo patchelf --replace-needed libdl.so "../linker/libdl.so" ../workdir/magisk/magiskpolicy || true
@@ -294,8 +346,9 @@ if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
     sudo ../workdir/magisk/magiskpolicy --load $MOUNT_DIR/vendor/etc/selinux/precompiled_sepolicy --save $MOUNT_DIR/vendor/etc/selinux/precompiled_sepolicy "allow gmscore_app gmscore_app vsock_socket { create connect write read }" "allow gmscore_app device_config_runtime_native_boot_prop file read" "allow gmscore_app system_server_tmpfs dir search" "allow gmscore_app system_server_tmpfs file open"
 
 fi
-echo "Fix GApps prop"
+
 if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
+    echo "Fix GApps prop"
     sudo python3 fixGappsProp.py $MOUNT_DIR
 fi
 
@@ -423,7 +476,7 @@ fi
 if [[ "$GAPPS_VARIANT" = "none" || "$GAPPS_VARIANT" = "" ]]; then
     name2="-NoGApps"
 else
-    if [[ "$GAPPS_VARIANT" != "pico" ]]; then
+    if [ "$GAPPS_VARIANT" != "pico" ] && [ $GAPPS_BRAND = "OpenGapps" ]; then
         echo ":warning: Since OpenGapps doesn't officially support Android 12.1 yet, lock the variant to pico!"
     fi
     name2="-GApps-${GAPPS_VARIANT}"
