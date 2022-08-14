@@ -88,10 +88,10 @@ else
     GAPPS_VARIANT=$GAPPS_BRAND
 fi
 
-if (YesNoBox '([title]="Remove Amazon AppStore" [text]="Do you want to remove amazon appStore?")'); then
-    REMOVE_AMAZON="remove"
-else
+if (YesNoBox '([title]="Remove Amazon AppStore" [text]="Do you want to keep amazon appStore?")'); then
     REMOVE_AMAZON="keep"
+else
+    REMOVE_AMAZON="remove"
 fi
 
 ROOT_SOL=$(
@@ -309,33 +309,44 @@ if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
         sudo chcon --reference=$MOUNT_DIR/product/etc/permissions/com.android.settings.intelligence.xml $f
     done
     shopt -s extglob
-    sudo cp --preserve=a -vr ../workdir/gapps/product/* $MOUNT_DIR/product/
+    sudo cp -vr ../workdir/gapps/product/* $MOUNT_DIR/product/
     rm -rf ../workdir/gapps/product
     if [ $GAPPS_BRAND = "MindTheGapps" ]; then
+        mv ../workdir/gapps/priv-app/* ../workdir/gapps/system_ext/priv-app
         sudo cp --preserve=a -vr ../workdir/gapps/system_ext/* $MOUNT_DIR/system_ext/
+        ls ../workdir/gapps/system_ext/etc/ | xargs -n 1 -I dir sudo find $MOUNT_DIR/system_ext/etc/dir -type f -exec chmod 0644 {} \;
+        ls ../workdir/gapps/system_ext/etc/ | xargs -n 1 -I dir sudo find $MOUNT_DIR/system_ext/etc/dir -type d -exec chcon --reference=$MOUNT_DIR/system_ext/etc/permissions {} \;
+        ls ../workdir/gapps/system_ext/etc/ | xargs -n 1 -I dir sudo find $MOUNT_DIR/system_ext/etc/dir -type f -exec chcon --reference=$MOUNT_DIR/system_ext/etc/permissions {} \;
+
         rm -rf ../workdir/gapps/system_ext
     fi
-    sudo cp --preserve=a -vr ../workdir/gapps/* $MOUNT_DIR/system
+    sudo cp -vr ../workdir/gapps/* $MOUNT_DIR/system
 
     sudo find $MOUNT_DIR/system/{app,etc,framework,priv-app} -exec chown root:root {} \;
-    sudo find $MOUNT_DIR/product/{app,etc,overlay,priv-app} -exec chown root:root {} \;
+    sudo find $MOUNT_DIR/product/{app,etc,overlay,priv-app,lib64,lib,framework} -exec chown root:root {} \;
 
     sudo find $MOUNT_DIR/system/{app,etc,framework,priv-app} -type d -exec chmod 0755 {} \;
-    sudo find $MOUNT_DIR/product/{app,etc,overlay,priv-app} -type d -exec chmod 0755 {} \;
+    sudo find $MOUNT_DIR/product/{app,etc,overlay,priv-app,lib64,lib,framework} -type d -exec chmod 0755 {} \;
 
     sudo find $MOUNT_DIR/system/{app,framework,priv-app} -type f -exec chmod 0644 {} \;
-    sudo find $MOUNT_DIR/product/{app,etc,overlay,priv-app} -type f -exec chmod 0644 {} \;
+    sudo find $MOUNT_DIR/product/{app,etc,overlay,priv-app,lib64,lib,framework} -type f -exec chmod 0644 {} \;
 
     sudo find $MOUNT_DIR/system/{app,framework,priv-app} -type d -exec chcon --reference=$MOUNT_DIR/system/app {} \;
-    sudo find $MOUNT_DIR/product/{app,etc,overlay,priv-app} -type d -exec chcon --reference=$MOUNT_DIR/product/app {} \;
+    sudo find $MOUNT_DIR/product/{app,etc,overlay,priv-app,lib64,lib,framework} -type d -exec chcon --reference=$MOUNT_DIR/product/app {} \;
 
     sudo find $MOUNT_DIR/system/{app,framework,priv-app} -type f -exec chcon --reference=$MOUNT_DIR/system/framework/ext.jar {} \;
-    sudo find $MOUNT_DIR/product/{app,etc,overlay,priv-app} -type f -exec chcon --reference=$MOUNT_DIR/product/etc/permissions/com.android.settings.intelligence.xml {} \;
+    sudo find $MOUNT_DIR/product/{app,etc,overlay,priv-app,lib64,lib,framework} -type f -exec chcon --reference=$MOUNT_DIR/product/etc/permissions/com.android.settings.intelligence.xml {} \;
 
     if [ $GAPPS_BRAND = "OpenGapps" ]; then
         ls ../workdir/gapps/etc/ | xargs -n 1 -I dir sudo find $MOUNT_DIR/system/etc/dir -type f -exec chmod 0644 {} \;
         ls ../workdir/gapps/etc/ | xargs -n 1 -I dir sudo find $MOUNT_DIR/system/etc/dir -type d -exec chcon --reference=$MOUNT_DIR/system/etc/permissions {} \;
         ls ../workdir/gapps/etc/ | xargs -n 1 -I dir sudo find $MOUNT_DIR/system/etc/dir -type f -exec chcon --reference=$MOUNT_DIR/system/etc/permissions {} \;
+    else
+        sudo find $MOUNT_DIR/system_ext/{priv-app,etc} -exec chown root:root {} \;
+        sudo find $MOUNT_DIR/system_ext/{priv-app,etc} -type d -exec chmod 0755 {} \;
+        sudo find $MOUNT_DIR/system_ext/{priv-app,etc} -type f -exec chmod 0644 {} \;
+        sudo find $MOUNT_DIR/system_ext/{priv-app,etc} -type d -exec chcon --reference=$MOUNT_DIR/system_ext/priv-app {} \;
+        sudo find $MOUNT_DIR/system_ext/{priv-app,etc} -type f -exec chcon --reference=$MOUNT_DIR/system_ext/etc/permissions/com.android.settings.xml {} \;
     fi
 
     sudo patchelf --replace-needed libc.so "../linker/libc.so" ../workdir/magisk/magiskpolicy || true
