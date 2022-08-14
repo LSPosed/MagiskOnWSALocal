@@ -16,10 +16,10 @@ warnings.filterwarnings("ignore")
 
 arch = sys.argv[1]
 
-if not os.path.exists(Path.cwd().parent / "workdir" / "wsa"):
-    os.makedirs(Path.cwd().parent / "workdir" / "wsa")
+if not os.path.exists(Path.cwd().parent / "_WORK_DIR_" / "wsa"):
+    os.makedirs(Path.cwd().parent / "_WORK_DIR_" / "wsa")
 zip_name = ""
-workdir = Path.cwd().parent / "workdir" / "wsa"
+workdir = Path.cwd().parent / "_WORK_DIR_" / "wsa"
 with zipfile.ZipFile(Path.cwd().parent / "download/wsa.zip") as zip:
     for f in zip.filelist:
         if arch in f.filename.lower():

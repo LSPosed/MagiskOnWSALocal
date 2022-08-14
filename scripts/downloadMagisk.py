@@ -15,9 +15,9 @@ if not os.path.exists(Path.cwd().parent / "download"):
     os.makedirs(Path.cwd().parent / "download")
 download_dir = Path.cwd().parent / "download"
 
-if not os.path.exists(Path.cwd().parent / "workdir" / "magisk"):
-    os.makedirs(Path.cwd().parent / "workdir" / "magisk")
-workdir = Path.cwd().parent / "workdir" / "magisk"
+if not os.path.exists(Path.cwd().parent / "_WORK_DIR_" / "magisk"):
+    os.makedirs(Path.cwd().parent / "_WORK_DIR_" / "magisk")
+workdir = Path.cwd().parent / "_WORK_DIR_" / "magisk"
 
 if not magisk_apk:
     magisk_apk = "stable"
