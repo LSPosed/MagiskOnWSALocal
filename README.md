@@ -3,7 +3,6 @@
 ## Features
 
 - Integrate Magisk and OpenGApps in a few clicks within minutes
-- No Linux environment required for integration
 - Keep each build up to date
 - Support both ARM64 and x64
 - Support all OpenGApps variants except for aroma (aroma does not support x86_64, please use super instead)
@@ -16,12 +15,12 @@
 
 ## Text Guide
 
-1. Star (if you like) and fork this repo (keep it PUBLIC, private repo is not supported)
+1. Star (if you like)
 1. Clone the repo to local
 1. Run `scripts/run.sh`
 1. Select the version of Magisk and select the [OpenGApps variant](https://github.com/opengapps/opengapps/wiki#variants) you like, select the root solution (none means no root), select WSA version and its architecture (mostly x64)
 1. Wait for the script to complete and the artifact will in `output` folder
-    
+
 1. Move the artifact to a places you like
 1. Right-click `Install.ps1` and select `Run with PowerShell`
     - If you previously have a MagiskOnWSA installation, it will automatically uninstall the previous while **preserving all userdata** and install the new one, so don't worry about your data.
