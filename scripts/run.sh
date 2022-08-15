@@ -17,6 +17,10 @@ function YesNoBox {
     whiptail --title "${o[title]}" --yesno "${o[text]}" 0 0
 }
 
+function Gen_Rand_Str {
+    echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w "$1" | head -n 1)
+}
+
 echo "Dependencies"
 sudo apt update && sudo apt -y install setools lzip wine winetricks patchelf whiptail e2fsprogs
 cp -r ../wine/.cache/* ~/.cache
@@ -212,47 +216,52 @@ EOF
     sudo patchelf --replace-needed libdl.so "../linker/libdl.so" ../_WORK_DIR_/magisk/magiskpolicy || true
     sudo patchelf --set-interpreter "../linker/linker64" ../_WORK_DIR_/magisk/magiskpolicy || true
     chmod +x ../_WORK_DIR_/magisk/magiskpolicy
-    echo '/dev/wsa-magisk(/.*)?    u:object_r:magisk_file:s0' | sudo tee -a $MOUNT_DIR/vendor/etc/selinux/vendor_file_contexts
+    TMP_PATH=$(Gen_Rand_Str 8)
+    echo "/dev/"$TMP_PATH"(/.*)?    u:object_r:magisk_file:s0" | sudo tee -a $MOUNT_DIR/vendor/etc/selinux/vendor_file_contexts
     echo '/data/adb/magisk(/.*)?   u:object_r:magisk_file:s0' | sudo tee -a $MOUNT_DIR/vendor/etc/selinux/vendor_file_contexts
     sudo ../_WORK_DIR_/magisk/magiskpolicy --load $MOUNT_DIR/vendor/etc/selinux/precompiled_sepolicy --save $MOUNT_DIR/vendor/etc/selinux/precompiled_sepolicy --magisk "allow * magisk_file lnk_file *"
+    SERVER_NAME1=$(Gen_Rand_Str 12)
+    SERVER_NAME2=$(Gen_Rand_Str 12)
+    SERVER_NAME3=$(Gen_Rand_Str 12)
+    SERVER_NAME4=$(Gen_Rand_Str 12)
     sudo tee -a $MOUNT_DIR/system/etc/init/hw/init.rc <<EOF
 on post-fs-data
     start logd
     start adbd
-    mkdir /dev/wsa-magisk
-    mount tmpfs tmpfs /dev/wsa-magisk mode=0755
-    copy /sbin/magisk64 /dev/wsa-magisk/magisk64
-    chmod 0755 /dev/wsa-magisk/magisk64
-    symlink ./magisk64 /dev/wsa-magisk/magisk
-    symlink ./magisk64 /dev/wsa-magisk/su
-    symlink ./magisk64 /dev/wsa-magisk/resetprop
-    copy /sbin/magisk32 /dev/wsa-magisk/magisk32
-    chmod 0755 /dev/wsa-magisk/magisk32
-    copy /sbin/magiskinit /dev/wsa-magisk/magiskinit
-    chmod 0755 /dev/wsa-magisk/magiskinit
-    copy /sbin/magiskpolicy /dev/wsa-magisk/magiskpolicy
-    chmod 0755 /dev/wsa-magisk/magiskpolicy
-    mkdir /dev/wsa-magisk/.magisk 700
-    mkdir /dev/wsa-magisk/.magisk/mirror 700
-    mkdir /dev/wsa-magisk/.magisk/block 700
-    copy /sbin/magisk.apk /dev/wsa-magisk/stub.apk
+    mkdir /dev/$TMP_PATH
+    mount tmpfs tmpfs /dev/$TMP_PATH mode=0755
+    copy /sbin/magisk64 /dev/$TMP_PATH/magisk64
+    chmod 0755 /dev/$TMP_PATH/magisk64
+    symlink ./magisk64 /dev/$TMP_PATH/magisk
+    symlink ./magisk64 /dev/$TMP_PATH/su
+    symlink ./magisk64 /dev/$TMP_PATH/resetprop
+    copy /sbin/magisk32 /dev/$TMP_PATH/magisk32
+    chmod 0755 /dev/$TMP_PATH/magisk32
+    copy /sbin/magiskinit /dev/$TMP_PATH/magiskinit
+    chmod 0755 /dev/$TMP_PATH/magiskinit
+    copy /sbin/magiskpolicy /dev/$TMP_PATH/magiskpolicy
+    chmod 0755 /dev/$TMP_PATH/magiskpolicy
+    mkdir /dev/$TMP_PATH/.magisk 700
+    mkdir /dev/$TMP_PATH/.magisk/mirror 700
+    mkdir /dev/$TMP_PATH/.magisk/block 700
+    copy /sbin/magisk.apk /dev/$TMP_PATH/stub.apk
     rm /dev/.magisk_unblock
-    start IhhslLhHYfse
-    start FAhW7H9G5sf
+    start $SERVER_NAME1
+    start $SERVER_NAME2
     wait /dev/.magisk_unblock 40
     rm /dev/.magisk_unblock
 
-service IhhslLhHYfse /system/bin/sh /sbin/loadpolicy.sh
+service $SERVER_NAME1 /system/bin/sh /sbin/loadpolicy.sh
     user root
     seclabel u:r:magisk:s0
     oneshot
 
-service FAhW7H9G5sf /dev/wsa-magisk/magisk --post-fs-data
+service $SERVER_NAME2 /dev/$TMP_PATH/magisk --post-fs-data
     user root
     seclabel u:r:magisk:s0
     oneshot
 
-service HLiFsR1HtIXVN6 /dev/wsa-magisk/magisk --service
+service $SERVER_NAME3 /dev/$TMP_PATH/magisk --service
     class late_start
     user root
     seclabel u:r:magisk:s0
@@ -261,9 +270,9 @@ service HLiFsR1HtIXVN6 /dev/wsa-magisk/magisk --service
 on property:sys.boot_completed=1
     mkdir /data/adb/magisk 755
     copy /sbin/magisk.apk /data/adb/magisk/magisk.apk
-    start YqCTLTppv3ML
+    start $SERVER_NAME4
 
-service YqCTLTppv3ML /dev/wsa-magisk/magisk --boot-complete
+service $SERVER_NAME4 /dev/$TMP_PATH/magisk --boot-complete
     user root
     seclabel u:r:magisk:s0
     oneshot
