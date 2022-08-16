@@ -134,7 +134,7 @@ if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
     else
         unzip ../download/MindTheGapps/MindTheGapps_"$ARCH".zip "system/*" -x "system/addon.d/*" "system/system_ext/priv-app/SetupWizard/*" -d ../_WORK_DIR_/gapps
         mv ../_WORK_DIR_/gapps/system/* ../_WORK_DIR_/gapps
-        rm -rf ../_WORK_DIR_/gapps/system
+        sudo rm -rf ../_WORK_DIR_/gapps/system
     fi
 fi
 
@@ -320,7 +320,7 @@ if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
     done
     shopt -s extglob
     sudo cp -vr ../_WORK_DIR_/gapps/product/* $MOUNT_DIR/product/
-    rm -rf ../_WORK_DIR_/gapps/product
+    sudo rm -rf ../_WORK_DIR_/gapps/product
     if [ $GAPPS_BRAND = "MindTheGapps" ]; then
         mv ../_WORK_DIR_/gapps/priv-app/* ../_WORK_DIR_/gapps/system_ext/priv-app
         sudo cp --preserve=a -vr ../_WORK_DIR_/gapps/system_ext/* $MOUNT_DIR/system_ext/
@@ -328,7 +328,7 @@ if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
         ls ../_WORK_DIR_/gapps/system_ext/etc/ | xargs -n 1 -I dir sudo find $MOUNT_DIR/system_ext/etc/dir -type d -exec chcon --reference=$MOUNT_DIR/system_ext/etc/permissions {} \;
         ls ../_WORK_DIR_/gapps/system_ext/etc/ | xargs -n 1 -I dir sudo find $MOUNT_DIR/system_ext/etc/dir -type f -exec chcon --reference=$MOUNT_DIR/system_ext/etc/permissions {} \;
 
-        rm -rf ../_WORK_DIR_/gapps/system_ext
+        sudo rm -rf ../_WORK_DIR_/gapps/system_ext
     fi
     sudo cp -vr ../_WORK_DIR_/gapps/* $MOUNT_DIR/system
 
@@ -391,7 +391,7 @@ e2fsck -yf ../_WORK_DIR_/wsa/"$ARCH"/system_ext.img
 resize2fs -M ../_WORK_DIR_/wsa/"$ARCH"/system_ext.img
 
 echo "Remove signature and add scripts"
-rm -rf ../_WORK_DIR_/wsa/"$ARCH"/\[Content_Types\].xml ../_WORK_DIR_/wsa/"$ARCH"/AppxBlockMap.xml ../_WORK_DIR_/wsa/"$ARCH"/AppxSignature.p7x ../_WORK_DIR_/wsa/"$ARCH"/AppxMetadata
+sudo rm -rf ../_WORK_DIR_/wsa/"$ARCH"/\[Content_Types\].xml ../_WORK_DIR_/wsa/"$ARCH"/AppxBlockMap.xml ../_WORK_DIR_/wsa/"$ARCH"/AppxSignature.p7x ../_WORK_DIR_/wsa/"$ARCH"/AppxMetadata
 cp ../download/vclibs.appx ../download/xaml.appx ../_WORK_DIR_/wsa/"$ARCH"
 tee ../_WORK_DIR_/wsa/"$ARCH"/Install.ps1 <<EOF
 # Automated Install script by Mioki
@@ -506,4 +506,4 @@ echo "WSA${name1}${name2}_${ARCH}"
 cat ../_WORK_DIR_/ENV
 rm -rf ../output
 mv ../_WORK_DIR_/wsa/"$ARCH" ../output
-rm -rf ../_WORK_DIR_
+sudo rm -rf ../_WORK_DIR_
