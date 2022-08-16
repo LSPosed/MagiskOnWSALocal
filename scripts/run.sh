@@ -1,6 +1,11 @@
 #!/bin/bash
 cd "$(dirname "$0")" || exit
 
+if [ ! "$BASH_VERSION" ] ; then
+    echo "Please do not use sh to run this script, just execute it directly" 1>&2
+    exit 1
+fi
+
 function Radiolist {
     declare -A o="$1"
     shift
