@@ -16,10 +16,10 @@ warnings.filterwarnings("ignore")
 
 arch = sys.argv[1]
 
-if not os.path.exists(Path.cwd().parent / "_WORK_DIR_" / "wsa"):
-    os.makedirs(Path.cwd().parent / "_WORK_DIR_" / "wsa")
+if not os.path.exists(Path.cwd().parent / sys.argv[2] / "wsa"):
+    os.makedirs(Path.cwd().parent / sys.argv[2] / "wsa")
 zip_name = ""
-workdir = Path.cwd().parent / "_WORK_DIR_" / "wsa"
+workdir = Path.cwd().parent / sys.argv[2] / "wsa"
 with zipfile.ZipFile(Path.cwd().parent / "download/wsa.zip") as zip:
     for f in zip.filelist:
         if arch in f.filename.lower():
@@ -48,7 +48,6 @@ with zipfile.ZipFile(Path.cwd().parent / "download/wsa.zip") as zip:
                     if g.filename == 'resources.pri':
                         g.filename = f'{name}.pri'
                         l.extract(g, workdir / 'pri')
-                        print(f"extract resource pack {g.filename}")
                     elif g.filename == 'AppxManifest.xml':
                         g.filename = f'{name}.xml'
                         l.extract(g, workdir / 'xml')

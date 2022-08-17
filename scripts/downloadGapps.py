@@ -40,4 +40,3 @@ out_file = download_dir / "gapps.zip"
 
 if not os.path.isfile(out_file):
     urllib.request.urlretrieve(link, out_file)
-print("done", flush=True)
