@@ -1,15 +1,27 @@
 #!/bin/bash
 
-WORK_DIR=../_WORK_DIR_
+WORK_DIR=$(mktemp -d -t wsa-build-XXXXXXXXXX_)
 DOWNLOAD_DIR=../download
 OUTPUT_DIR=../output
-
+MOUNT_DIR="$WORK_DIR"/system
 cd "$(dirname "$0")" || exit 1
 
 abort() {
     echo "An error occurs, exit"
     if [ -d "$WORK_DIR" ]; then
         echo "Cleanup Work Directory"
+        if [ -d "$MOUNT_DIR" ]; then
+            if [ -d "$MOUNT_DIR/vendor" ]; then
+                sudo umount "$MOUNT_DIR"/vendor
+            fi
+            if [ -d "$MOUNT_DIR/product" ]; then
+                sudo umount "$MOUNT_DIR"/product
+            fi
+            if [ -d "$MOUNT_DIR/system_ext" ]; then
+                sudo umount "$MOUNT_DIR"/system_ext
+            fi
+            sudo umount "$MOUNT_DIR"
+        fi
         sudo rm -rf "$WORK_DIR"
     fi
     if [ -d "$DOWNLOAD_DIR" ]; then
@@ -31,9 +43,7 @@ fi
 function Radiolist {
     declare -A o="$1"
     shift
-    whiptail --nocancel --radiolist "${o[title]}" \
-        0 0 0 "$@" 3>&1 1>&2 2>&3
-    if [ $? != 0 ]; then
+    if ! whiptail --nocancel --radiolist "${o[title]}" 0 0 0 "$@" 3>&1 1>&2 2>&3; then
         echo "${o[default]}"
     fi
 }
@@ -45,7 +55,7 @@ function YesNoBox {
 }
 
 function Gen_Rand_Str {
-    echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w "$1" | head -n 1)
+    tr -dc 'a-zA-Z0-9' < /dev/urandom | fold -w "$1" | head -n 1
 }
 
 echo "Dependencies"
@@ -139,13 +149,13 @@ echo -e "Download done\n"
 
 echo "Extract WSA"
 WSA_WORK_ENV="$WORK_DIR"/ENV
-if [ -f $WSA_WORK_ENV ]; then rm -f $WSA_WORK_ENV; fi
+if [ -f "$WSA_WORK_ENV" ]; then rm -f "$WSA_WORK_ENV"; fi
 export WSA_WORK_ENV
-python3 extractWSA.py "$ARCH" || abort
+python3 extractWSA.py "$ARCH" "$WORK_DIR" || abort
 echo -e "Extract done\n"
 
 echo "Download Magisk"
-python3 downloadMagisk.py "$ARCH" "$MAGISK_VER" || abort
+python3 downloadMagisk.py "$ARCH" "$MAGISK_VER" "$WORK_DIR" || abort
 echo -e "done\n"
 
 if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
@@ -157,7 +167,7 @@ if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
     echo "Extract GApps"
     mkdir -p "$WORK_DIR"/gapps || abort
     if [ $GAPPS_BRAND = "OpenGapps" ]; then
-        unzip -p "$DOWNLOAD_DIR"/gapps.zip {Core,GApps}/'*.lz' | tar --lzip -C "$WORK_DIR"/gapps -xvf - -i --strip-components=2 --exclude='setupwizardtablet-x86_64' --exclude='packageinstallergoogle-all' --exclude='speech-common' --exclude='markup-lib-arm' --exclude='markup-lib-arm64' --exclude='markup-all' --exclude='setupwizarddefault-x86_64' --exclude='pixellauncher-all' --exclude='pixellauncher-common' || abort
+        unzip -p "$DOWNLOAD_DIR"/gapps.zip {Core,GApps}/'*.lz' | tar --lzip -C "$WORK_DIR"/gapps -xf - -i --strip-components=2 --exclude='setupwizardtablet-x86_64' --exclude='packageinstallergoogle-all' --exclude='speech-common' --exclude='markup-lib-arm' --exclude='markup-lib-arm64' --exclude='markup-all' --exclude='setupwizarddefault-x86_64' --exclude='pixellauncher-all' --exclude='pixellauncher-common' || abort
     else
         unzip "$DOWNLOAD_DIR"/MindTheGapps/MindTheGapps_"$ARCH".zip "system/*" -x "system/addon.d/*" "system/system_ext/priv-app/SetupWizard/*" -d "$WORK_DIR"/gapps || abort
         mv "$WORK_DIR"/gapps/system/* "$WORK_DIR"/gapps || abort
@@ -204,29 +214,28 @@ resize2fs "$WORK_DIR"/wsa/"$ARCH"/vendor.img "$VENDOR_SIZE"s || abort
 echo -e "Expand images done\n"
 
 echo "Mount images"
-MOUNT_DIR="$WORK_DIR"/system || abort
-sudo mkdir $MOUNT_DIR || abort
-sudo mount -o loop "$WORK_DIR"/wsa/"$ARCH"/system.img $MOUNT_DIR || abort
-sudo mount -o loop "$WORK_DIR"/wsa/"$ARCH"/vendor.img $MOUNT_DIR/vendor || abort
-sudo mount -o loop "$WORK_DIR"/wsa/"$ARCH"/product.img $MOUNT_DIR/product || abort
-sudo mount -o loop "$WORK_DIR"/wsa/"$ARCH"/system_ext.img $MOUNT_DIR/system_ext || abort
+sudo mkdir "$MOUNT_DIR" || abort
+sudo mount -o loop "$WORK_DIR"/wsa/"$ARCH"/system.img "$MOUNT_DIR" || abort
+sudo mount -o loop "$WORK_DIR"/wsa/"$ARCH"/vendor.img "$MOUNT_DIR"/vendor || abort
+sudo mount -o loop "$WORK_DIR"/wsa/"$ARCH"/product.img "$MOUNT_DIR"/product || abort
+sudo mount -o loop "$WORK_DIR"/wsa/"$ARCH"/system_ext.img "$MOUNT_DIR"/system_ext || abort
 echo -e "done\n"
 
 if [ $REMOVE_AMAZON = 'remove' ]; then
     echo "Remove Amazon AppStore"
-    find $MOUNT_DIR/product/{etc/permissions,etc/sysconfig,framework,priv-app} | grep -e amazon -e venezia | sudo xargs rm -rf
+    find "$MOUNT_DIR"/product/{etc/permissions,etc/sysconfig,framework,priv-app} | grep -e amazon -e venezia | sudo xargs rm -rf
     echo -e "done\n"
 fi
 
 if [ "$ROOT_SOL" = 'magisk' ] || [ "$ROOT_SOL" = '' ]; then
     echo "Integrate Magisk"
-    sudo mkdir $MOUNT_DIR/sbin
-    sudo chcon --reference $MOUNT_DIR/init.environ.rc $MOUNT_DIR/sbin
-    sudo chown root:root $MOUNT_DIR/sbin
-    sudo chmod 0700 $MOUNT_DIR/sbin
-    sudo cp "$WORK_DIR"/magisk/magisk/* $MOUNT_DIR/sbin/
-    sudo cp "$DOWNLOAD_DIR"/magisk.zip $MOUNT_DIR/sbin/magisk.apk
-    sudo tee -a $MOUNT_DIR/sbin/loadpolicy.sh <<EOF
+    sudo mkdir "$MOUNT_DIR"/sbin
+    sudo chcon --reference "$MOUNT_DIR"/init.environ.rc "$MOUNT_DIR"/sbin
+    sudo chown root:root "$MOUNT_DIR"/sbin
+    sudo chmod 0700 "$MOUNT_DIR"/sbin
+    sudo cp "$WORK_DIR"/magisk/magisk/* "$MOUNT_DIR"/sbin/
+    sudo cp "$DOWNLOAD_DIR"/magisk.zip "$MOUNT_DIR"/sbin/magisk.apk
+    sudo tee -a "$MOUNT_DIR"/sbin/loadpolicy.sh <<EOF
 #!/system/bin/sh
 mkdir -p /data/adb/magisk
 cp /sbin/* /data/adb/magisk/
@@ -239,23 +248,23 @@ for module in \$(ls /data/adb/modules); do
 done
 EOF
 
-    sudo find $MOUNT_DIR/sbin -type f -exec chmod 0755 {} \;
-    sudo find $MOUNT_DIR/sbin -type f -exec chown root:root {} \;
-    sudo find $MOUNT_DIR/sbin -type f -exec chcon --reference $MOUNT_DIR/product {} \;
+    sudo find "$MOUNT_DIR"/sbin -type f -exec chmod 0755 {} \;
+    sudo find "$MOUNT_DIR"/sbin -type f -exec chown root:root {} \;
+    sudo find "$MOUNT_DIR"/sbin -type f -exec chcon --reference "$MOUNT_DIR"/product {} \;
     sudo patchelf --replace-needed libc.so "../linker/libc.so" "$WORK_DIR"/magisk/magiskpolicy || abort
     sudo patchelf --replace-needed libm.so "../linker/libm.so" "$WORK_DIR"/magisk/magiskpolicy || abort
     sudo patchelf --replace-needed libdl.so "../linker/libdl.so" "$WORK_DIR"/magisk/magiskpolicy || abort
     sudo patchelf --set-interpreter "../linker/linker64" "$WORK_DIR"/magisk/magiskpolicy || abort
     chmod +x "$WORK_DIR"/magisk/magiskpolicy
     TMP_PATH=$(Gen_Rand_Str 8)
-    echo "/dev/"$TMP_PATH"(/.*)?    u:object_r:magisk_file:s0" | sudo tee -a $MOUNT_DIR/vendor/etc/selinux/vendor_file_contexts
-    echo '/data/adb/magisk(/.*)?   u:object_r:magisk_file:s0' | sudo tee -a $MOUNT_DIR/vendor/etc/selinux/vendor_file_contexts
-    sudo "$WORK_DIR"/magisk/magiskpolicy --load $MOUNT_DIR/vendor/etc/selinux/precompiled_sepolicy --save $MOUNT_DIR/vendor/etc/selinux/precompiled_sepolicy --magisk "allow * magisk_file lnk_file *"
+    echo "/dev/$TMP_PATH(/.*)?    u:object_r:magisk_file:s0" | sudo tee -a "$MOUNT_DIR"/vendor/etc/selinux/vendor_file_contexts
+    echo '/data/adb/magisk(/.*)?   u:object_r:magisk_file:s0' | sudo tee -a "$MOUNT_DIR"/vendor/etc/selinux/vendor_file_contexts
+    sudo "$WORK_DIR"/magisk/magiskpolicy --load "$MOUNT_DIR"/vendor/etc/selinux/precompiled_sepolicy --save "$MOUNT_DIR"/vendor/etc/selinux/precompiled_sepolicy --magisk "allow * magisk_file lnk_file *"
     SERVER_NAME1=$(Gen_Rand_Str 12)
     SERVER_NAME2=$(Gen_Rand_Str 12)
     SERVER_NAME3=$(Gen_Rand_Str 12)
     SERVER_NAME4=$(Gen_Rand_Str 12)
-    sudo tee -a $MOUNT_DIR/system/etc/init/hw/init.rc <<EOF
+    sudo tee -a "$MOUNT_DIR"/system/etc/init/hw/init.rc <<EOF
 on post-fs-data
     start logd
     start adbd
@@ -328,10 +337,10 @@ sed -i -zE "s/<Resources.*Resources>/<Resources>\n$(cat "$WORK_DIR"/wsa/xml/* | 
 echo -e "Merge Language Resources done\n"
 
 echo "Add extra packages"
-sudo cp -r ../"$ARCH"/system/* $MOUNT_DIR || abort
-sudo find $MOUNT_DIR/system/priv-app -type d -exec chmod 0755 {} \;
-sudo find $MOUNT_DIR/system/priv-app -type f -exec chmod 0644 {} \;
-sudo find $MOUNT_DIR/system/priv-app -exec chcon --reference=$MOUNT_DIR/system/priv-app {} \;
+sudo cp -r ../"$ARCH"/system/* "$MOUNT_DIR" || abort
+sudo find "$MOUNT_DIR"/system/priv-app -type d -exec chmod 0755 {} \;
+sudo find "$MOUNT_DIR"/system/priv-app -type f -exec chmod 0644 {} \;
+sudo find "$MOUNT_DIR"/system/priv-app -exec chcon --reference="$MOUNT_DIR"/system/priv-app {} \;
 echo -e "Add extra packages done\n"
 
 if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
@@ -349,48 +358,50 @@ if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
             sudo chmod 0644 "$f"
         fi
         sudo chown root:root "$f"
-        sudo chcon -h --reference=$MOUNT_DIR/product/etc/permissions/com.android.settings.intelligence.xml "$f"
-        sudo chcon --reference=$MOUNT_DIR/product/etc/permissions/com.android.settings.intelligence.xml "$f"
+        sudo chcon -h --reference="$MOUNT_DIR"/product/etc/permissions/com.android.settings.intelligence.xml "$f"
+        sudo chcon --reference="$MOUNT_DIR"/product/etc/permissions/com.android.settings.intelligence.xml "$f"
     done
     shopt -s extglob
-    sudo cp -vr "$WORK_DIR"/gapps/product/* $MOUNT_DIR/product/ || abort
+    sudo cp --preserve=a -r "$WORK_DIR"/gapps/product/* "$MOUNT_DIR"/product || abort
     sudo rm -rf "$WORK_DIR"/gapps/product || abort
     if [ $GAPPS_BRAND = "MindTheGapps" ]; then
         mv "$WORK_DIR"/gapps/priv-app/* "$WORK_DIR"/gapps/system_ext/priv-app || abort
-        sudo cp --preserve=a -vr "$WORK_DIR"/gapps/system_ext/* $MOUNT_DIR/system_ext/ || abort
-        ls "$WORK_DIR"/gapps/system_ext/etc/ | xargs -n 1 -I dir sudo find $MOUNT_DIR/system_ext/etc/dir -type f -exec chmod 0644 {} \;
-        ls "$WORK_DIR"/gapps/system_ext/etc/ | xargs -n 1 -I dir sudo find $MOUNT_DIR/system_ext/etc/dir -type d -exec chcon --reference=$MOUNT_DIR/system_ext/etc/permissions {} \;
-        ls "$WORK_DIR"/gapps/system_ext/etc/ | xargs -n 1 -I dir sudo find $MOUNT_DIR/system_ext/etc/dir -type f -exec chcon --reference=$MOUNT_DIR/system_ext/etc/permissions {} \;
-
+        sudo cp --preserve=a -r "$WORK_DIR"/gapps/system_ext/* "$MOUNT_DIR"/system_ext/ || abort
+        ls "$WORK_DIR"/gapps/system_ext/etc/ | xargs -n 1 -I dir sudo find "$MOUNT_DIR"/system_ext/etc/dir -type f -exec chmod 0644 {} \;
+        ls "$WORK_DIR"/gapps/system_ext/etc/ | xargs -n 1 -I dir sudo find "$MOUNT_DIR"/system_ext/etc/dir -type d -exec chcon --reference="$MOUNT_DIR"/system_ext/etc/permissions {} \;
+        ls "$WORK_DIR"/gapps/system_ext/etc/ | xargs -n 1 -I dir sudo find "$MOUNT_DIR"/system_ext/etc/dir -type f -exec chcon --reference="$MOUNT_DIR"/system_ext/etc/permissions {} \;
+        if [ -e "$MOUNT_DIR"/system_ext/priv-app/SetupWizard ] ; then
+            rm -rf "$MOUNT_DIR/system_ext/priv-app/Provision"
+        fi
         sudo rm -rf "$WORK_DIR"/gapps/system_ext || abort
     fi
-    sudo cp -vr "$WORK_DIR"/gapps/* $MOUNT_DIR/system || abort
+    sudo cp --preserve=a -r "$WORK_DIR"/gapps/* "$MOUNT_DIR"/system || abort
 
-    sudo find $MOUNT_DIR/system/{app,etc,framework,priv-app} -exec chown root:root {} \;
-    sudo find $MOUNT_DIR/product/{app,etc,overlay,priv-app,lib64,lib,framework} -exec chown root:root {} \;
+    sudo find "$MOUNT_DIR"/system/{app,etc,framework,priv-app} -exec chown root:root {} \;
+    sudo find "$MOUNT_DIR"/product/{app,etc,overlay,priv-app,lib64,lib,framework} -exec chown root:root {} \;
 
-    sudo find $MOUNT_DIR/system/{app,etc,framework,priv-app} -type d -exec chmod 0755 {} \;
-    sudo find $MOUNT_DIR/product/{app,etc,overlay,priv-app,lib64,lib,framework} -type d -exec chmod 0755 {} \;
+    sudo find "$MOUNT_DIR"/system/{app,etc,framework,priv-app} -type d -exec chmod 0755 {} \;
+    sudo find "$MOUNT_DIR"/product/{app,etc,overlay,priv-app,lib64,lib,framework} -type d -exec chmod 0755 {} \;
 
-    sudo find $MOUNT_DIR/system/{app,framework,priv-app} -type f -exec chmod 0644 {} \;
-    sudo find $MOUNT_DIR/product/{app,etc,overlay,priv-app,lib64,lib,framework} -type f -exec chmod 0644 {} \;
+    sudo find "$MOUNT_DIR"/system/{app,framework,priv-app} -type f -exec chmod 0644 {} \;
+    sudo find "$MOUNT_DIR"/product/{app,etc,overlay,priv-app,lib64,lib,framework} -type f -exec chmod 0644 {} \;
 
-    sudo find $MOUNT_DIR/system/{app,framework,priv-app} -type d -exec chcon --reference=$MOUNT_DIR/system/app {} \;
-    sudo find $MOUNT_DIR/product/{app,etc,overlay,priv-app,lib64,lib,framework} -type d -exec chcon --reference=$MOUNT_DIR/product/app {} \;
+    sudo find "$MOUNT_DIR"/system/{app,framework,priv-app} -type d -exec chcon --reference="$MOUNT_DIR"/system/app {} \;
+    sudo find "$MOUNT_DIR"/product/{app,etc,overlay,priv-app,lib64,lib,framework} -type d -exec chcon --reference="$MOUNT_DIR"/product/app {} \;
 
-    sudo find $MOUNT_DIR/system/{app,framework,priv-app} -type f -exec chcon --reference=$MOUNT_DIR/system/framework/ext.jar {} \;
-    sudo find $MOUNT_DIR/product/{app,etc,overlay,priv-app,lib64,lib,framework} -type f -exec chcon --reference=$MOUNT_DIR/product/etc/permissions/com.android.settings.intelligence.xml {} \;
+    sudo find "$MOUNT_DIR"/system/{app,framework,priv-app} -type f -exec chcon --reference="$MOUNT_DIR"/system/framework/ext.jar {} \;
+    sudo find "$MOUNT_DIR"/product/{app,etc,overlay,priv-app,lib64,lib,framework} -type f -exec chcon --reference="$MOUNT_DIR"/product/etc/permissions/com.android.settings.intelligence.xml {} \;
 
     if [ $GAPPS_BRAND = "OpenGapps" ]; then
-        ls "$WORK_DIR"/gapps/etc/ | xargs -n 1 -I dir sudo find $MOUNT_DIR/system/etc/dir -type f -exec chmod 0644 {} \;
-        ls "$WORK_DIR"/gapps/etc/ | xargs -n 1 -I dir sudo find $MOUNT_DIR/system/etc/dir -type d -exec chcon --reference=$MOUNT_DIR/system/etc/permissions {} \;
-        ls "$WORK_DIR"/gapps/etc/ | xargs -n 1 -I dir sudo find $MOUNT_DIR/system/etc/dir -type f -exec chcon --reference=$MOUNT_DIR/system/etc/permissions {} \;
+        ls "$WORK_DIR"/gapps/etc/ | xargs -n 1 -I dir sudo find "$MOUNT_DIR"/system/etc/dir -type f -exec chmod 0644 {} \;
+        ls "$WORK_DIR"/gapps/etc/ | xargs -n 1 -I dir sudo find "$MOUNT_DIR"/system/etc/dir -type d -exec chcon --reference="$MOUNT_DIR"/system/etc/permissions {} \;
+        ls "$WORK_DIR"/gapps/etc/ | xargs -n 1 -I dir sudo find "$MOUNT_DIR"/system/etc/dir -type f -exec chcon --reference="$MOUNT_DIR"/system/etc/permissions {} \;
     else
-        sudo find $MOUNT_DIR/system_ext/{priv-app,etc} -exec chown root:root {} \;
-        sudo find $MOUNT_DIR/system_ext/{priv-app,etc} -type d -exec chmod 0755 {} \;
-        sudo find $MOUNT_DIR/system_ext/{priv-app,etc} -type f -exec chmod 0644 {} \;
-        sudo find $MOUNT_DIR/system_ext/{priv-app,etc} -type d -exec chcon --reference=$MOUNT_DIR/system_ext/priv-app {} \;
-        sudo find $MOUNT_DIR/system_ext/{priv-app,etc} -type f -exec chcon --reference=$MOUNT_DIR/system_ext/etc/permissions/com.android.settings.xml {} \;
+        sudo find "$MOUNT_DIR"/system_ext/{priv-app,etc} -exec chown root:root {} \;
+        sudo find "$MOUNT_DIR"/system_ext/{priv-app,etc} -type d -exec chmod 0755 {} \;
+        sudo find "$MOUNT_DIR"/system_ext/{priv-app,etc} -type f -exec chmod 0644 {} \;
+        sudo find "$MOUNT_DIR"/system_ext/{priv-app,etc} -type d -exec chcon --reference="$MOUNT_DIR"/system_ext/priv-app {} \;
+        sudo find "$MOUNT_DIR"/system_ext/{priv-app,etc} -type f -exec chcon --reference="$MOUNT_DIR"/system_ext/etc/permissions/com.android.settings.xml {} \;
     fi
 
     sudo patchelf --replace-needed libc.so "../linker/libc.so" "$WORK_DIR"/magisk/magiskpolicy || abort
@@ -398,22 +409,22 @@ if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
     sudo patchelf --replace-needed libdl.so "../linker/libdl.so" "$WORK_DIR"/magisk/magiskpolicy || abort
     sudo patchelf --set-interpreter "../linker/linker64" "$WORK_DIR"/magisk/magiskpolicy || abort
     chmod +x "$WORK_DIR"/magisk/magiskpolicy || abort
-    sudo "$WORK_DIR"/magisk/magiskpolicy --load $MOUNT_DIR/vendor/etc/selinux/precompiled_sepolicy --save $MOUNT_DIR/vendor/etc/selinux/precompiled_sepolicy "allow gmscore_app gmscore_app vsock_socket { create connect write read }" "allow gmscore_app device_config_runtime_native_boot_prop file read" "allow gmscore_app system_server_tmpfs dir search" "allow gmscore_app system_server_tmpfs file open" || abort
+    sudo "$WORK_DIR"/magisk/magiskpolicy --load "$MOUNT_DIR"/vendor/etc/selinux/precompiled_sepolicy --save "$MOUNT_DIR"/vendor/etc/selinux/precompiled_sepolicy "allow gmscore_app gmscore_app vsock_socket { create connect write read }" "allow gmscore_app device_config_runtime_native_boot_prop file read" "allow gmscore_app system_server_tmpfs dir search" "allow gmscore_app system_server_tmpfs file open" || abort
     echo -e "Integrate GApps done\n"
 fi
 
 if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
     echo "Fix GApps prop"
-    sudo python3 fixGappsProp.py $MOUNT_DIR || abort
+    sudo python3 fixGappsProp.py "$MOUNT_DIR" || abort
     echo -e "done\n"
 fi
 
 echo "Umount images"
-sudo find $MOUNT_DIR -exec touch -amt 200901010000.00 {} \; >/dev/null 2>&1
-sudo umount $MOUNT_DIR/vendor
-sudo umount $MOUNT_DIR/product
-sudo umount $MOUNT_DIR/system_ext
-sudo umount $MOUNT_DIR
+sudo find "$MOUNT_DIR" -exec touch -amt 200901010000.00 {} \; >/dev/null 2>&1
+sudo umount "$MOUNT_DIR"/vendor
+sudo umount "$MOUNT_DIR"/product
+sudo umount "$MOUNT_DIR"/system_ext
+sudo umount "$MOUNT_DIR"
 echo -e "done\n"
 
 echo "Shrink images"
@@ -543,7 +554,7 @@ fi
 echo "WSA${name1}${name2}_${ARCH}"
 cat "$WORK_DIR"/ENV
 
-echo -e "\nFinish building"
+echo -e "\nFinishing building...."
 rm -rf "$OUTPUT_DIR" || abort
 mv "$WORK_DIR"/wsa/"$ARCH" "$OUTPUT_DIR" || abort
 echo -e "done\n"

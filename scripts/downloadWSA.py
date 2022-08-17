@@ -33,8 +33,6 @@ out = requests.post(
 doc = minidom.parseString(out.text)
 cookie = doc.getElementsByTagName('EncryptedData')[0].firstChild.nodeValue
 
-print(cookie)
-
 with open(Path.cwd().parent / "xml/WUIDRequest.xml", "r") as f:
     cat_id_content = f.read().format(cookie, cat_id, release_type)
 
