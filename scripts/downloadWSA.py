@@ -20,7 +20,6 @@ release_type_map = {"retail": "Retail", "release preview": "RP",
 release_type = release_type_map[sys.argv[2]] if sys.argv[2] != "" else "Retail"
 
 cat_id = '858014f3-3934-4abe-8078-4aa193e74ca8'
-print("arch=" + arch + " release_type=" + release_type)
 
 with open(Path.cwd().parent / ("xml/GetCookie.xml"), "r") as f:
     cookie_content = f.read()
