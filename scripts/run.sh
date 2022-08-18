@@ -266,7 +266,6 @@ EOF
     SERVER_NAME4=$(Gen_Rand_Str 12)
     sudo tee -a "$MOUNT_DIR"/system/etc/init/hw/init.rc <<EOF
 on post-fs-data
-    start logd
     start adbd
     mkdir /dev/$TMP_PATH
     mount tmpfs tmpfs /dev/$TMP_PATH mode=0755
