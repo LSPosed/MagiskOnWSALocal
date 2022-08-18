@@ -740,7 +740,7 @@ artifact_name="WSA${name1}${name2}_${WSA_VER}_${ARCH}_${WSA_REL}"
 echo "$artifact_name"
 echo -e "\nFinishing building...."
 if [ -f "$OUTPUT_DIR" ]; then
-    sudo rm -rf "${OUTPUT_DIR:?}"
+    sudo rm -rf "${OUTPUT_DIR:?}" || sudo find "${OUTPUT_DIR:?}" -mindepth 1 -delete
 fi
 if [ ! -d "$OUTPUT_DIR" ]; then
     mkdir -p "$OUTPUT_DIR"
@@ -749,7 +749,7 @@ if [ "$COMPRESS_OUTPUT" ]; then
     rm -f "${OUTPUT_DIR:?}"/"$artifact_name.7z" || abort
     7z a "$OUTPUT_DIR"/"$artifact_name.7z" "$WORK_DIR/wsa/$ARCH/" || abort
 else
-    rm -rf "${OUTPUT_DIR:?}/${artifact_name}" || abort
+    (rm -rf "${OUTPUT_DIR:?}/${artifact_name}" || sudo find "${OUTPUT_DIR:?}" -mindepth 1 -delete) || abort
     mv "$WORK_DIR"/wsa/"$ARCH" "$OUTPUT_DIR/$artifact_name" || abort
 fi
 echo -e "done\n"

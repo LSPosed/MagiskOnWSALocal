@@ -52,6 +52,12 @@ python3 -m pip install requests
 cp -r ../wine/.cache/* ~/.cache
 winetricks msxml6 || abort
 
+if [ "$1" = "InstallDependencies" ]; then
+    echo "$COMMAND command requested, tried to install dependencies and exiting" >&2
+
+    exit 0
+fi
+
 ARCH=$(
     Radiolist '([title]="Build arch"
                 [default]="x64")' \
