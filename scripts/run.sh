@@ -179,37 +179,37 @@ fi
 echo "Expand images"
 
 e2fsck -yf "$WORK_DIR"/wsa/"$ARCH"/system_ext.img || abort
-SYSTEM_EXT_SIZE=$(($(du -sB512 "$WORK_DIR"/wsa/"$ARCH"/system_ext.img | cut -f1) + 20000))
+SYSTEM_EXT_SIZE=$(($(du -bsB512 "$WORK_DIR"/wsa/"$ARCH"/system_ext.img | cut -f1) + 20000))
 if [ -d "$WORK_DIR"/gapps/system_ext ]; then
-    SYSTEM_EXT_SIZE=$(( SYSTEM_EXT_SIZE + $(du -sB512 "$WORK_DIR"/gapps/system_ext | cut -f1) ))
+    SYSTEM_EXT_SIZE=$(( SYSTEM_EXT_SIZE + $(du -bsB512 "$WORK_DIR"/gapps/system_ext | cut -f1) ))
 fi
 resize2fs "$WORK_DIR"/wsa/"$ARCH"/system_ext.img "$SYSTEM_EXT_SIZE"s || abort
 
 e2fsck -yf "$WORK_DIR"/wsa/"$ARCH"/product.img || abort
-PRODUCT_SIZE=$(($(du -sB512 "$WORK_DIR"/wsa/"$ARCH"/product.img | cut -f1) + 20000))
+PRODUCT_SIZE=$(($(du -bsB512 "$WORK_DIR"/wsa/"$ARCH"/product.img | cut -f1) + 20000))
 if [ -d "$WORK_DIR"/gapps/product ]; then
-    PRODUCT_SIZE=$(( PRODUCT_SIZE + $(du -sB512 "$WORK_DIR"/gapps/product | cut -f1) ))
+    PRODUCT_SIZE=$(( PRODUCT_SIZE + $(du -bsB512 "$WORK_DIR"/gapps/product | cut -f1) ))
 fi
 resize2fs "$WORK_DIR"/wsa/"$ARCH"/product.img "$PRODUCT_SIZE"s || abort
 
 e2fsck -yf "$WORK_DIR"/wsa/"$ARCH"/system.img || abort
-SYSTEM_SIZE=$(($(du -sB512 "$WORK_DIR"/wsa/"$ARCH"/system.img | cut -f1) + 20000))
+SYSTEM_SIZE=$(($(du -bsB512 "$WORK_DIR"/wsa/"$ARCH"/system.img | cut -f1) + 20000))
 if [ -d "$WORK_DIR"/gapps ]; then
-    SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du -sB512 "$WORK_DIR"/gapps | cut -f1) - $(du -sB512 "$WORK_DIR"/gapps/product | cut -f1) ))
+    SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du -bsB512 "$WORK_DIR"/gapps | cut -f1) - $(du -bsB512 "$WORK_DIR"/gapps/product | cut -f1) ))
     if [ -d "$WORK_DIR"/gapps/system_ext ]; then
-        SYSTEM_SIZE=$(( SYSTEM_SIZE - $(du -sB512 "$WORK_DIR"/gapps/system_ext | cut -f1) ))
+        SYSTEM_SIZE=$(( SYSTEM_SIZE - $(du -bsB512 "$WORK_DIR"/gapps/system_ext | cut -f1) ))
     fi
 fi
 if [ -d "$WORK_DIR"/magisk ]; then
-    SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du -sB512 "$WORK_DIR"/magisk/magisk | cut -f1) ))
+    SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du -bsB512 "$WORK_DIR"/magisk/magisk | cut -f1) ))
 fi
 if [ -f "$DOWNLOAD_DIR"/magisk.zip ]; then
-    SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du -sB512 "$DOWNLOAD_DIR"/magisk.zip | cut -f1) ))
+    SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du -bsB512 "$DOWNLOAD_DIR"/magisk.zip | cut -f1) ))
 fi
 resize2fs "$WORK_DIR"/wsa/"$ARCH"/system.img "$SYSTEM_SIZE"s || abort
 
 e2fsck -yf "$WORK_DIR"/wsa/"$ARCH"/vendor.img || abort
-VENDOR_SIZE=$(($(du -sB512 "$WORK_DIR"/wsa/"$ARCH"/vendor.img | cut -f1) + 20000))
+VENDOR_SIZE=$(($(du -bsB512 "$WORK_DIR"/wsa/"$ARCH"/vendor.img | cut -f1) + 20000))
 resize2fs "$WORK_DIR"/wsa/"$ARCH"/vendor.img "$VENDOR_SIZE"s || abort
 echo -e "Expand images done\n"
 
