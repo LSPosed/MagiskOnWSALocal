@@ -2,7 +2,7 @@
 
 import sys
 
-import urllib.request
+from downloader import Downloader
 import zipfile
 import os
 import json
@@ -32,7 +32,8 @@ arch = sys.argv[1]
 abi_map = {"x64": ["x86_64", "x86"], "arm64": ["arm64-v8a", "armeabi-v7a"]}
 
 if not os.path.isfile(out_file):
-    urllib.request.urlretrieve(magisk_apk, out_file)
+    d = Downloader()
+    d.download(str(magisk_apk), str(out_file))
 
 
 def extract_as(zip, name, as_name, dir):

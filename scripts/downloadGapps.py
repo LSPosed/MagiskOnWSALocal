@@ -3,9 +3,8 @@
 import sys
 
 import requests
-import zipfile
+from downloader import Downloader
 import os
-import urllib.request
 import json
 import re
 from pathlib import Path
@@ -39,4 +38,5 @@ print(f"downloading link: {link}", flush=True)
 out_file = download_dir / "gapps.zip"
 
 if not os.path.isfile(out_file):
-    urllib.request.urlretrieve(link, out_file)
+    d = Downloader()
+    d.download(str(link), str(out_file))

@@ -60,7 +60,7 @@ function Gen_Rand_Str {
 
 echo "Dependencies"
 sudo apt update && sudo apt -y install setools lzip wine winetricks patchelf whiptail e2fsprogs python3-pip
-sudo python3 -m pip install requests
+sudo python3 -m pip install requests psutil reprint
 cp -r ../wine/.cache/* ~/.cache
 winetricks msxml6 || abort
 
