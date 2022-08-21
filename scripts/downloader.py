@@ -124,7 +124,8 @@ class Downloader:
     def download(self, url, filepath, num_connections=20):
         self.completed = False
         self.doneMB = None
-
+        self.remaining = None
+        
         f_path = filepath + '.progress.json'
         bcontinue = Path(f_path).exists()
         self.singlethread = False
@@ -273,6 +274,10 @@ class Downloader:
         # check if still downloading every 10 seconds
         while not self.completed:
             current_download = copy.deepcopy(self.doneMB)
+            current_remaining = copy.deepcopy(self.remaining)
             time.sleep(10)  # check after 10 seconds if download progress
             if current_download == self.doneMB:
                 raise Exception("An error has occurred!")
+            if not self.singlethread: # another check for multi-thread download
+                if current_remaining == self.remaining:
+                    raise Exception("An error has occurred!")

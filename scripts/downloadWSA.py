@@ -83,7 +83,8 @@ def get_data():
         doc = minidom.parseString(out.text)
         for l in doc.getElementsByTagName("FileLocation"):
             url = l.getElementsByTagName("Url")[0].firstChild.nodeValue
-            download_data[i] = (url,str(out_file))
+            if len(url) != 99:
+                download_data[i] = (url,str(out_file))
 
     return download_data
 
@@ -93,7 +94,6 @@ success = False
 for key,value in download_data.items():
     url,out_file = value
     if not os.path.isfile(out_file):
-        if len(url) != 99:
             print(f"downloading link: {url} to {out_file}", flush=True)
             try:
                 d = Downloader() #try to download
