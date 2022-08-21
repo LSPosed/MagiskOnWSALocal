@@ -1,4 +1,4 @@
-##!/usr/bin/python
+#!/usr/bin/python
 
 import sys
 
@@ -99,7 +99,6 @@ for key,value in download_data.items():
                 d = Downloader() #try to download
                 d.download(url,out_file)
             except Exception as ex:
-                # print("download failed getting new url!")
                 for _ in range(10):
                     try:
                         d = Downloader()
@@ -108,7 +107,6 @@ for key,value in download_data.items():
                         success = True
                         break      # as soon as it works, break out of the loop
                     except Exception as ex:
-                        # print("exception occured: ",_)
                         continue
                 if not success:
                     raise

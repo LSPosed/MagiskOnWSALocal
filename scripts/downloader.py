@@ -166,23 +166,29 @@ class Downloader:
                 self.singlethread = True
             else:
                 if bcontinue:
-                    progress = json.loads(Path(f_path).read_text(),
+                    try:
+                        progress = json.loads(Path(f_path).read_text(),
                                           object_hook=lambda d: {int(k) if k.isdigit() else k: v for k, v in d.items()})
+                    except: #if some error happened set bcontinue to False
+                        bcontinue = False
                 segment = total / num_connections
                 self.dic['total'] = total
                 self.dic['connections'] = num_connections
                 for i in range(num_connections):
+                    if bcontinue:
+                        try:
+                            start = progress[i]['start']
+                            end = progress[i]['end']
+                            position = progress[i]['position']
+                            length = progress[i]['length']
+                        except: #if some error happened set bcontinue to False
+                            bcontinue = False
                     if not bcontinue:
                         start = int(segment * i)
                         end = int(segment * (i + 1)) - \
                             (i != num_connections - 1)
                         position = start
                         length = end - start + (i != num_connections - 1)
-                    else:
-                        start = progress[i]['start']
-                        end = progress[i]['end']
-                        position = progress[i]['position']
-                        length = progress[i]['length']
                     self.dic[i] = {
                         'start': start,
                         'position': position,
