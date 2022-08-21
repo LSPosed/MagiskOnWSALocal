@@ -140,6 +140,12 @@ ROOT_SOL=$(
         'none' "" 'off'
 )
 
+if (YesNoBox '([title]="Compress output" [text]="Do you want to compress the output?")'); then
+    COMPRESS_OUTPUT="yes"
+else
+    COMPRESS_OUTPUT="no"
+fi
+
 clear
 echo -e "ARCH=$ARCH\nRELEASE_TYPE=$RELEASE_TYPE\nMAGISK_VER=$MAGISK_VER\nGAPPS_VARIANT=$GAPPS_VARIANT\nREMOVE_AMAZON=$REMOVE_AMAZON\nROOT_SOL=$ROOT_SOL\n"
 
@@ -151,7 +157,7 @@ echo "Extract WSA"
 WSA_WORK_ENV="$WORK_DIR"/ENV
 if [ -f "$WSA_WORK_ENV" ]; then rm -f "$WSA_WORK_ENV"; fi
 export WSA_WORK_ENV
-python3 extractWSA.py "$ARCH" "$WORK_DIR" || abort
+BASE_NAME=$(python3 extractWSA.py "$ARCH" "$WORK_DIR") || abort
 echo -e "Extract done\n"
 
 echo "Download Magisk"
@@ -554,8 +560,14 @@ echo "WSA${name1}${name2}_${ARCH}"
 cat "$WORK_DIR"/ENV
 
 echo -e "\nFinishing building...."
-rm -rf "$OUTPUT_DIR" || abort
-mv "$WORK_DIR"/wsa/"$ARCH" "$OUTPUT_DIR" || abort
+if [ ! -d "$OUTPUT_DIR" ]; then
+    mkdir "$OUTPUT_DIR"
+fi
+if [ "$COMPRESS_OUTPUT" = "yes" ]; then
+    zip -jrm "$OUTPUT_DIR"/"WSA-GApps-$GAPPS_VARIANT-$BASE_NAME.zip" "$WORK_DIR"/wsa/"$ARCH" || abort
+elif [ "$COMPRESS_OUTPUT" = "no" ]; then
+    cp -rf "$WORK_DIR"/wsa/"$ARCH"/* "$OUTPUT_DIR"/"WSA-GApps-$GAPPS_VARIANT-$BASE_NAME" || abort
+fi
 echo -e "done\n"
 
 echo "Cleanup Work Directory"
