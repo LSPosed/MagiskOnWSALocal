@@ -1,6 +1,6 @@
 #!/bin/bash
-
-WORK_DIR=$(mktemp -d -t wsa-build-XXXXXXXXXX_)
+trap 'rm -rf -- "$WORK_DIR"' EXIT
+WORK_DIR=$(mktemp -d -t wsa-build-XXXXXXXXXX_) || exit 1
 DOWNLOAD_DIR=../download
 OUTPUT_DIR=../output
 MOUNT_DIR="$WORK_DIR"/system
@@ -34,6 +34,7 @@ abort() {
     fi
     exit 1
 }
+trap abort EXIT
 
 if [ ! "$BASH_VERSION" ] ; then
     echo "Please do not use sh to run this script, just execute it directly" 1>&2
