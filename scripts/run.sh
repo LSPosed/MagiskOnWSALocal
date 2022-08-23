@@ -34,7 +34,7 @@ abort() {
     fi
     exit 1
 }
-trap abort EXIT
+trap abort INT TERM
 
 if [ ! "$BASH_VERSION" ] ; then
     echo "Please do not use sh to run this script, just execute it directly" 1>&2
