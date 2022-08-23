@@ -241,8 +241,7 @@ class Downloader:
                     self.recentspeeds.append(self.speed)
                     remaining = totalMB - self.doneMB
                     if not self.alive:
-                        dynamic_print.__exit__()
-                        raise Exception("An error has occurred!")
+                        break
                     else:
                         if self.singlethread:
                             dynamic_print[0] = '[ Downloaded: {0:.2f} MB ]'.format(self.doneMB)
@@ -289,11 +288,10 @@ class Downloader:
                     raise Exception("An error has occurred!")
                 elif not self.singlethread: # another check for multi-thread 
                     i = 0
-                    while int(self.speed) == 0:
+                    while not self.completed and int(self.speed) == 0:
                         time.sleep(1)
                         if not self.completed:
                             i+=1
                             if i % 30 == 0: #if speed is 0 MB/s for 30 seconds then raise exception
                                 self.alive = False
                                 raise Exception("An error has occurred due to slow/no-internet connection")
-                        

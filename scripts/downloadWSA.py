@@ -96,19 +96,6 @@ for key,value in download_data.items():
     url,out_file = value
     if not os.path.isfile(out_file):
             print(f"Downloading Link: {url} to {out_file}", flush=True)
-            try:
-                d = Downloader() #try to download
-                d.download(url,out_file)
-            except Exception as ex:
-                for i in range(4):
-                    try:
-                        d = Downloader()
-                        url = get_data()[key][0] #get_data() --> (url,path)
-                        print(f"Download Failed, Downloading Using New Link: {url} to {out_file}", flush=True)
-                        d.download(url,out_file)
-                        success = True
-                        break      # as soon as it works, break out of the loop
-                    except Exception as ex:
-                        continue
-                if not success:
-                    raise
+            #try to download
+            d = Downloader() 
+            d.download(url,out_file)

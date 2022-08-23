@@ -144,7 +144,7 @@ clear
 echo -e "ARCH=$ARCH\nRELEASE_TYPE=$RELEASE_TYPE\nMAGISK_VER=$MAGISK_VER\nGAPPS_VARIANT=$GAPPS_VARIANT\nREMOVE_AMAZON=$REMOVE_AMAZON\nROOT_SOL=$ROOT_SOL\n"
 
 echo "Download WSA"
-python3 downloadWSA.py "$ARCH" "$RELEASE_TYPE"
+python3 downloadWSA.py "$ARCH" "$RELEASE_TYPE" || python3 downloadWSA.py "$ARCH" "$RELEASE_TYPE" || python3 downloadWSA.py "$ARCH" "$RELEASE_TYPE"
 echo -e "Download done\n"
 
 echo "Extract WSA"
