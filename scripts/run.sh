@@ -16,7 +16,7 @@ OUTPUT_DIR=../output
 MOUNT_DIR="$WORK_DIR"/system
 
 abort() {
-    echo "An error occurs, exit"
+    echo "An error has occurred, exit"
     if [ -d "$WORK_DIR" ]; then
         echo "Cleanup Work Directory"
         if [ -d "$MOUNT_DIR" ]; then
