@@ -164,6 +164,7 @@ if [ -f "$WSA_WORK_ENV" ]; then rm -f "${WSA_WORK_ENV:?}"; fi
 export WSA_WORK_ENV
 python3 extractWSA.py "$ARCH" "$WORK_DIR" || abort
 echo -e "Extract done\n"
+source "${WORK_DIR:?}/ENV"
 
 echo "Download Magisk"
 python3 downloadMagisk.py "$ARCH" "$MAGISK_VER" "$WORK_DIR" || abort
@@ -172,7 +173,11 @@ echo -e "done\n"
 if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
     if [ $GAPPS_BRAND = "OpenGapps" ]; then
         echo "Download OpenGApps"
-        python3 downloadGapps.py "$ARCH" "$MAGISK_VER" || abort
+        if [ "$WSA_MAIN_VER" -ge 2204 ]; then
+            python3 downloadGapps.py "$ARCH" "pico" || abort # TODO: Keep it pico since other variants of opengapps are unable to boot successfully
+        else
+            python3 downloadGapps.py "$ARCH" "$GAPPS_VARIANT" || abort
+        fi
         echo -e "Download done\n"
     fi
     echo "Extract GApps"
@@ -546,7 +551,7 @@ EOF
 echo -e "Remove signature and add scripts done\n"
 
 echo "Generate info"
-source "${WORK_DIR:?}/ENV"
+
 if [[ "$ROOT_SOL" = "none" ]]; then
     name1=""
 elif [[ "$ROOT_SOL" = "" ]]; then
