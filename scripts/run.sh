@@ -1,10 +1,19 @@
 #!/bin/bash
-trap 'rm -rf -- "$WORK_DIR"' EXIT
+if [ ! "$BASH_VERSION" ] ; then
+    echo "Please do not use sh to run this script, just execute it directly" 1>&2
+    exit 1
+fi
+HOST_ARCH=$(uname -m)
+if [ "$HOST_ARCH" != "x86_64" ] && [ "$HOST_ARCH" != "aarch64" ]; then
+    echo "Unsupported architectures: $HOST_ARCH"
+    exit 1
+fi
+cd "$(dirname "$0")" || exit 1
+trap 'rm -rf -- "${WORK_DIR:?}"' EXIT
 WORK_DIR=$(mktemp -d -t wsa-build-XXXXXXXXXX_) || exit 1
 DOWNLOAD_DIR=../download
 OUTPUT_DIR=../output
 MOUNT_DIR="$WORK_DIR"/system
-cd "$(dirname "$0")" || exit 1
 
 abort() {
     echo "An error occurs, exit"
@@ -22,24 +31,19 @@ abort() {
             fi
             sudo umount "$MOUNT_DIR"
         fi
-        sudo rm -rf "$WORK_DIR"
+        sudo rm -rf "${WORK_DIR:?}"
     fi
     if [ -d "$DOWNLOAD_DIR" ]; then
         echo "Cleanup Download Directory"
-        sudo rm -rf "$DOWNLOAD_DIR"
+        sudo rm -rf "${DOWNLOAD_DIR:?}"
     fi
     if [ -d "$OUTPUT_DIR" ]; then
         echo "Cleanup Output Directory"
-        sudo rm -rf "$OUTPUT_DIR"
+        sudo rm -rf "${OUTPUT_DIR:?}"
     fi
     exit 1
 }
 trap abort INT TERM
-
-if [ ! "$BASH_VERSION" ] ; then
-    echo "Please do not use sh to run this script, just execute it directly" 1>&2
-    abort
-fi
 
 function Radiolist {
     declare -A o="$1"
@@ -155,8 +159,8 @@ python3 downloadWSA.py "$ARCH" "$RELEASE_TYPE" || abort
 echo -e "Download done\n"
 
 echo "Extract WSA"
-WSA_WORK_ENV="$WORK_DIR"/ENV
-if [ -f "$WSA_WORK_ENV" ]; then rm -f "$WSA_WORK_ENV"; fi
+WSA_WORK_ENV="${WORK_DIR:?}"/ENV
+if [ -f "$WSA_WORK_ENV" ]; then rm -f "${WSA_WORK_ENV:?}"; fi
 export WSA_WORK_ENV
 python3 extractWSA.py "$ARCH" "$WORK_DIR" || abort
 echo -e "Extract done\n"
@@ -178,7 +182,7 @@ if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
     else
         unzip "$DOWNLOAD_DIR"/MindTheGapps/MindTheGapps_"$ARCH".zip "system/*" -x "system/addon.d/*" "system/system_ext/priv-app/SetupWizard/*" -d "$WORK_DIR"/gapps || abort
         mv "$WORK_DIR"/gapps/system/* "$WORK_DIR"/gapps || abort
-        sudo rm -rf "$WORK_DIR"/gapps/system || abort
+        sudo rm -rf "${WORK_DIR:?}"/gapps/system || abort
     fi
     echo -e "Extract done\n"
 fi
@@ -230,7 +234,7 @@ echo -e "done\n"
 
 if [ $REMOVE_AMAZON = 'remove' ]; then
     echo "Remove Amazon AppStore"
-    find "$MOUNT_DIR"/product/{etc/permissions,etc/sysconfig,framework,priv-app} | grep -e amazon -e venezia | sudo xargs rm -rf
+    find "${MOUNT_DIR:?}"/product/{etc/permissions,etc/sysconfig,framework,priv-app} | grep -e amazon -e venezia | sudo xargs rm -rf
     echo -e "done\n"
 fi
 
@@ -258,15 +262,15 @@ EOF
     sudo find "$MOUNT_DIR"/sbin -type f -exec chmod 0755 {} \;
     sudo find "$MOUNT_DIR"/sbin -type f -exec chown root:root {} \;
     sudo find "$MOUNT_DIR"/sbin -type f -exec chcon --reference "$MOUNT_DIR"/product {} \;
-    sudo patchelf --replace-needed libc.so "../linker/libc.so" "$WORK_DIR"/magisk/magiskpolicy || abort
-    sudo patchelf --replace-needed libm.so "../linker/libm.so" "$WORK_DIR"/magisk/magiskpolicy || abort
-    sudo patchelf --replace-needed libdl.so "../linker/libdl.so" "$WORK_DIR"/magisk/magiskpolicy || abort
-    sudo patchelf --set-interpreter "../linker/linker64" "$WORK_DIR"/magisk/magiskpolicy || abort
-    chmod +x "$WORK_DIR"/magisk/magiskpolicy
+    sudo patchelf --replace-needed libc.so "../linker/$HOST_ARCH/libc.so" "$WORK_DIR"/magisk/magiskpolicy || abort
+    sudo patchelf --replace-needed libm.so "../linker/$HOST_ARCH/libm.so" "$WORK_DIR"/magisk/magiskpolicy || abort
+    sudo patchelf --replace-needed libdl.so "../linker/$HOST_ARCH/libdl.so" "$WORK_DIR"/magisk/magiskpolicy || abort
+    sudo patchelf --set-interpreter "../linker/$HOST_ARCH/linker64" "$WORK_DIR"/magisk/magiskpolicy || abort
+    chmod +x "$WORK_DIR"/magisk/magiskpolicy || abort
     TMP_PATH=$(Gen_Rand_Str 8)
     echo "/dev/$TMP_PATH(/.*)?    u:object_r:magisk_file:s0" | sudo tee -a "$MOUNT_DIR"/vendor/etc/selinux/vendor_file_contexts
     echo '/data/adb/magisk(/.*)?   u:object_r:magisk_file:s0' | sudo tee -a "$MOUNT_DIR"/vendor/etc/selinux/vendor_file_contexts
-    sudo "$WORK_DIR"/magisk/magiskpolicy --load "$MOUNT_DIR"/vendor/etc/selinux/precompiled_sepolicy --save "$MOUNT_DIR"/vendor/etc/selinux/precompiled_sepolicy --magisk "allow * magisk_file lnk_file *"
+    sudo "$WORK_DIR"/magisk/magiskpolicy --load "$MOUNT_DIR"/vendor/etc/selinux/precompiled_sepolicy --save "$MOUNT_DIR"/vendor/etc/selinux/precompiled_sepolicy --magisk "allow * magisk_file lnk_file *" || abort
     SERVER_NAME1=$(Gen_Rand_Str 12)
     SERVER_NAME2=$(Gen_Rand_Str 12)
     SERVER_NAME3=$(Gen_Rand_Str 12)
@@ -338,7 +342,7 @@ tee "$WORK_DIR"/wsa/priconfig.xml <<EOF
 </index>
 </resources>
 EOF
-wine64 ../wine/makepri.exe new /pr "$WORK_DIR"/wsa/pri /in MicrosoftCorporationII.WindowsSubsystemForAndroid /cf "$WORK_DIR"/wsa/priconfig.xml /of "$WORK_DIR"/wsa/"$ARCH"/resources.pri /o
+wine64 ../wine/"$HOST_ARCH"/makepri.exe new /pr "$WORK_DIR"/wsa/pri /in MicrosoftCorporationII.WindowsSubsystemForAndroid /cf "$WORK_DIR"/wsa/priconfig.xml /of "$WORK_DIR"/wsa/"$ARCH"/resources.pri /o
 sed -i -zE "s/<Resources.*Resources>/<Resources>\n$(cat "$WORK_DIR"/wsa/xml/* | grep -Po '<Resource [^>]*/>' | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/\$/\\$/g' | sed 's/\//\\\//g')\n<\/Resources>/g" "$WORK_DIR"/wsa/"$ARCH"/AppxManifest.xml
 echo -e "Merge Language Resources done\n"
 
@@ -369,7 +373,7 @@ if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
     done
     shopt -s extglob
     sudo cp --preserve=a -r "$WORK_DIR"/gapps/product/* "$MOUNT_DIR"/product || abort
-    sudo rm -rf "$WORK_DIR"/gapps/product || abort
+    sudo rm -rf "${WORK_DIR:?}"/gapps/product || abort
     if [ $GAPPS_BRAND = "MindTheGapps" ]; then
         mv "$WORK_DIR"/gapps/priv-app/* "$WORK_DIR"/gapps/system_ext/priv-app || abort
         sudo cp --preserve=a -r "$WORK_DIR"/gapps/system_ext/* "$MOUNT_DIR"/system_ext/ || abort
@@ -377,9 +381,9 @@ if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
         ls "$WORK_DIR"/gapps/system_ext/etc/ | xargs -n 1 -I dir sudo find "$MOUNT_DIR"/system_ext/etc/dir -type d -exec chcon --reference="$MOUNT_DIR"/system_ext/etc/permissions {} \;
         ls "$WORK_DIR"/gapps/system_ext/etc/ | xargs -n 1 -I dir sudo find "$MOUNT_DIR"/system_ext/etc/dir -type f -exec chcon --reference="$MOUNT_DIR"/system_ext/etc/permissions {} \;
         if [ -e "$MOUNT_DIR"/system_ext/priv-app/SetupWizard ] ; then
-            rm -rf "$MOUNT_DIR/system_ext/priv-app/Provision"
+            rm -rf "${MOUNT_DIR:?}/system_ext/priv-app/Provision"
         fi
-        sudo rm -rf "$WORK_DIR"/gapps/system_ext || abort
+        sudo rm -rf "${WORK_DIR:?}"/gapps/system_ext || abort
     fi
     sudo cp --preserve=a -r "$WORK_DIR"/gapps/* "$MOUNT_DIR"/system || abort
 
@@ -410,10 +414,10 @@ if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
         sudo find "$MOUNT_DIR"/system_ext/{priv-app,etc} -type f -exec chcon --reference="$MOUNT_DIR"/system_ext/etc/permissions/com.android.settings.xml {} \;
     fi
 
-    sudo patchelf --replace-needed libc.so "../linker/libc.so" "$WORK_DIR"/magisk/magiskpolicy || abort
-    sudo patchelf --replace-needed libm.so "../linker/libm.so" "$WORK_DIR"/magisk/magiskpolicy || abort
-    sudo patchelf --replace-needed libdl.so "../linker/libdl.so" "$WORK_DIR"/magisk/magiskpolicy || abort
-    sudo patchelf --set-interpreter "../linker/linker64" "$WORK_DIR"/magisk/magiskpolicy || abort
+    sudo patchelf --replace-needed libc.so "../linker/$HOST_ARCH/libc.so" "$WORK_DIR"/magisk/magiskpolicy || abort
+    sudo patchelf --replace-needed libm.so "../linker/$HOST_ARCH/libm.so" "$WORK_DIR"/magisk/magiskpolicy || abort
+    sudo patchelf --replace-needed libdl.so "../linker/$HOST_ARCH/libdl.so" "$WORK_DIR"/magisk/magiskpolicy || abort
+    sudo patchelf --set-interpreter "../linker/$HOST_ARCH/linker64" "$WORK_DIR"/magisk/magiskpolicy || abort
     chmod +x "$WORK_DIR"/magisk/magiskpolicy || abort
     sudo "$WORK_DIR"/magisk/magiskpolicy --load "$MOUNT_DIR"/vendor/etc/selinux/precompiled_sepolicy --save "$MOUNT_DIR"/vendor/etc/selinux/precompiled_sepolicy "allow gmscore_app gmscore_app vsock_socket { create connect write read }" "allow gmscore_app device_config_runtime_native_boot_prop file read" "allow gmscore_app system_server_tmpfs dir search" "allow gmscore_app system_server_tmpfs file open" || abort
     echo -e "Integrate GApps done\n"
@@ -445,7 +449,7 @@ resize2fs -M "$WORK_DIR"/wsa/"$ARCH"/system_ext.img || abort
 echo -e "Shrink images done\n"
 
 echo "Remove signature and add scripts"
-sudo rm -rf "$WORK_DIR"/wsa/"$ARCH"/\[Content_Types\].xml "$WORK_DIR"/wsa/"$ARCH"/AppxBlockMap.xml "$WORK_DIR"/wsa/"$ARCH"/AppxSignature.p7x "$WORK_DIR"/wsa/"$ARCH"/AppxMetadata || abort
+sudo rm -rf "${WORK_DIR:?}"/wsa/"$ARCH"/\[Content_Types\].xml "$WORK_DIR"/wsa/"$ARCH"/AppxBlockMap.xml "$WORK_DIR"/wsa/"$ARCH"/AppxSignature.p7x "$WORK_DIR"/wsa/"$ARCH"/AppxMetadata || abort
 cp "$DOWNLOAD_DIR"/vclibs.appx "$DOWNLOAD_DIR"/xaml.appx "$WORK_DIR"/wsa/"$ARCH" || abort
 tee "$WORK_DIR"/wsa/"$ARCH"/Install.ps1 <<EOF
 # Automated Install script by Midonei
@@ -542,7 +546,7 @@ EOF
 echo -e "Remove signature and add scripts done\n"
 
 echo "Generate info"
-source "$WORK_DIR/ENV"
+source "${WORK_DIR:?}/ENV"
 if [[ "$ROOT_SOL" = "none" ]]; then
     name1=""
 elif [[ "$ROOT_SOL" = "" ]]; then
@@ -565,14 +569,14 @@ if [ ! -d "$OUTPUT_DIR" ]; then
     mkdir "$OUTPUT_DIR"
 fi
 if [ "$COMPRESS_OUTPUT" = "yes" ]; then
-    rm -f "$OUTPUT_DIR"/"$artifact_name.7z"
+    rm -f "${OUTPUT_DIR:?}"/"$artifact_name.7z" || abort
     7z a "$OUTPUT_DIR"/"$artifact_name.7z" "$WORK_DIR/wsa/$ARCH/" || abort
 elif [ "$COMPRESS_OUTPUT" = "no" ]; then
-    rm -rf "'$OUTPUT_DIR'/'$artifact_name'" || abort
-    mv "$WORK_DIR"/wsa/"$ARCH" "$OUTPUT_DIR"/"$artifact_name" || abort
+    rm -rf "${OUTPUT_DIR:?}/${artifact_name}" || abort
+    mv "$WORK_DIR"/wsa/"$ARCH" "$OUTPUT_DIR/$artifact_name" || abort
 fi
 echo -e "done\n"
 
 echo "Cleanup Work Directory"
-sudo rm -rf "$WORK_DIR"
+sudo rm -rf "${WORK_DIR:?}"
 echo "done"

@@ -8,8 +8,12 @@ import os
 import json
 import requests
 from pathlib import Path
+import platform
 
 magisk_apk = sys.argv[2]
+
+is_x86_64 = platform.machine() in ("AMD64", "x86_64")
+host_abi = "x64" if is_x86_64 else "arm64"
 
 if not os.path.exists(Path.cwd().parent / "download"):
     os.makedirs(Path.cwd().parent / "download")
@@ -66,10 +70,10 @@ with zipfile.ZipFile(out_file) as zip:
         zip, f"lib/{ abi_map[arch][0] }/libbusybox.so", "busybox", "magisk")
     if standalone_policy:
         extract_as(
-            zip, f"lib/{ abi_map['x64'][0] }/libmagiskpolicy.so", "magiskpolicy", ".")
+            zip, f"lib/{ abi_map[host_abi][0] }/libmagiskpolicy.so", "magiskpolicy", ".")
     else:
         extract_as(
-            zip, f"lib/{ abi_map['x64'][0] }/libmagiskinit.so", "magiskpolicy", ".")
+            zip, f"lib/{ abi_map[host_abi][0] }/libmagiskinit.so", "magiskpolicy", ".")
     extract_as(zip, f"assets/boot_patch.sh", "boot_patch.sh", "magisk")
     extract_as(zip, f"assets/util_functions.sh",
                "util_functions.sh", "magisk")
