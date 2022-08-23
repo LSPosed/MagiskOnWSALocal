@@ -1,14 +1,15 @@
 #!/usr/bin/python
 
+import html
+import os
+import re
 import sys
+import warnings
+from pathlib import Path
+from xml.dom import minidom
 
 import requests
-from xml.dom import minidom
-import html
-import warnings
-import re
-import os
-from pathlib import Path
+
 from downloader import Downloader
 
 warnings.filterwarnings("ignore")
@@ -94,15 +95,16 @@ success = False
 for key,value in download_data.items():
     url,out_file = value
     if not os.path.isfile(out_file):
-            print(f"downloading link: {url} to {out_file}", flush=True)
+            print(f"Downloading Link: {url} to {out_file}", flush=True)
             try:
                 d = Downloader() #try to download
                 d.download(url,out_file)
             except Exception as ex:
-                for _ in range(10):
+                for i in range(4):
                     try:
                         d = Downloader()
                         url = get_data()[key][0] #get_data() --> (url,path)
+                        print(f"Download Failed, Downloading Using New Link: {url} to {out_file}", flush=True)
                         d.download(url,out_file)
                         success = True
                         break      # as soon as it works, break out of the loop

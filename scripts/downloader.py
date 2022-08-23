@@ -1,7 +1,7 @@
 import copy
 import json
 import random
-from threading import Thread
+import threading
 import time
 from collections import deque
 from math import inf
@@ -119,12 +119,15 @@ class Downloader:
         self.dic = dict()
         self.workers = []
 
-    # stops the download in case a thread fails
+    # custom thread exception hook to prevent log spam
+    def custom_excepthook(self, exception):
+        pass #can be used for logging
 
     def download(self, url, filepath, num_connections=20):
         self.completed = False
         self.doneMB = None
-        self.remaining = None
+        self.speed = None
+        self.alive = True
         
         f_path = filepath + '.progress.json'
         bcontinue = Path(f_path).exists()
@@ -148,7 +151,7 @@ class Downloader:
             print(
                 f'Cannot find the total length of the content of {url}, the file will be downloaded using a single thread.')
             sd = Singledown()
-            th = Thread(target=sd.worker, args=(url, path))
+            th = threading.Thread(target=sd.worker, args=(url, path))
             th.daemon = True
             self.workers.append(sd)
             th.start()
@@ -160,7 +163,7 @@ class Downloader:
                 print(
                     'Server does not support the `range` parameter, the file will be downloaded using a single thread.')
                 sd = self.Singledown()
-                th = Thread(target=sd.singledown, args=(url, path))
+                th = threading.Thread(target=sd.singledown, args=(url, path))
                 th.daemon = True
                 self.workers.append(sd)
                 th.start()
@@ -203,14 +206,14 @@ class Downloader:
 
                 for i in range(num_connections):
                     md = Multidown(self.dic, i)
-                    th = Thread(target=md.worker)
+                    threading.excepthook = self.custom_excepthook
+                    th = threading.Thread(target=md.worker)
                     th.daemon = True
                     threads.append(th)
                     th.start()
                     self.workers.append(md)
 
                 Path(f_path).write_text(json.dumps(self.dic, indent=4))
-
         def dynamic_print():
             downloaded = 0
             totalMB = total / 1048576
@@ -226,24 +229,28 @@ class Downloader:
                     self.doneMB = downloaded / 1048576
                     gt0 = len([i for i in self.recent if i])
                     if not gt0:
-                        speed = 0
+                        self.speed = 0
                     else:
                         recent = list(self.recent)[12 - gt0:]
                         if len(recent) == 1:
-                            speed = recent[0] / 1048576 / interval
+                            self.speed = recent[0] / 1048576 / interval
                         else:
                             diff = [b - a for a, b in zip(recent, recent[1:])]
-                            speed = sum(diff) / len(diff) / 1048576 / interval
-                    speeds.append(speed)
-                    self.recentspeeds.append(speed)
-                    self.remaining = totalMB - self.doneMB
-                    if self.singlethread:
-                        dynamic_print[0] = '[ Downloaded: {0:.2f} MB ]'.format(self.doneMB)
+                            self.speed = sum(diff) / len(diff) / 1048576 / interval
+                    speeds.append(self.speed)
+                    self.recentspeeds.append(self.speed)
+                    remaining = totalMB - self.doneMB
+                    if not self.alive:
+                        dynamic_print.__exit__()
+                        raise Exception("An error has occurred!")
                     else:
-                        dynamic_print[0] = '[{0}{1}] {2}'.format(
-                            '\u2588' * done, '\u00b7' * (100 - done), str(done)) + '% completed'
-                        dynamic_print[1] = '{0:.2f} MB downloaded, {1:.2f} MB total, {2:.2f} MB remaining, download speed: {3:.2f} MB/s'.format(
-                            self.doneMB, totalMB, self.remaining, speed)
+                        if self.singlethread:
+                            dynamic_print[0] = '[ Downloaded: {0:.2f} MB ]'.format(self.doneMB)
+                        else:
+                            dynamic_print[0] = '[{0}{1}] {2}'.format(
+                                '\u2588' * done, '\u00b7' * (100 - done), str(done)) + '% completed'
+                            dynamic_print[1] = '{0:.2f} MB downloaded, {1:.2f} MB total, {2:.2f} MB remaining, download speed: {3:.2f} MB/s'.format(
+                                self.doneMB, totalMB, remaining, self.speed)
                     if status == len(self.workers):
                         if not self.singlethread:
                             BLOCKSIZE = 4096
@@ -267,17 +274,26 @@ class Downloader:
                 # download stoped due to some reason!
                 pass
 
-            # prnting the progressbar
-        th = Thread(target=dynamic_print)
+        # printing the progressbar
+        threading.excepthook = self.custom_excepthook
+        th = threading.Thread(target=dynamic_print)
         th.daemon = True
         th.start()
         # check if still downloading every 10 seconds
         while not self.completed:
             current_download = copy.deepcopy(self.doneMB)
-            current_remaining = copy.deepcopy(self.remaining)
-            time.sleep(10)  # check after 10 seconds if download progress
-            if current_download == self.doneMB:
-                raise Exception("An error has occurred!")
-            if not self.singlethread: # another check for multi-thread download
-                if current_remaining == self.remaining:
+            time.sleep(10)# check after 10 seconds if download progress
+            if not self.completed:
+                if current_download == self.doneMB:
+                    self.alive = False
                     raise Exception("An error has occurred!")
+                elif not self.singlethread: # another check for multi-thread 
+                    i = 0
+                    while int(self.speed) == 0:
+                        time.sleep(1)
+                        if not self.completed:
+                            i+=1
+                            if i % 30 == 0: #if speed is 0 MB/s for 30 seconds then raise exception
+                                self.alive = False
+                                raise Exception("An error has occurred due to slow/no-internet connection")
+                        
