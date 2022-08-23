@@ -24,6 +24,7 @@ with zipfile.ZipFile(Path.cwd().parent / "download/wsa.zip") as zip:
     for f in zip.filelist:
         if arch in f.filename.lower():
             zip_name = f.filename
+            output_name = zip_name[11:-5]
             if not os.path.isfile(workdir / zip_name):
                 zip_path = workdir / zip_name
                 print(f"unzipping to {workdir}", flush=True)
@@ -55,5 +56,3 @@ with zipfile.ZipFile(zip_path) as zip:
     if not os.path.isdir(workdir / arch):
         print(f"unzipping from {zip_path}", flush=True)
         zip.extractall(workdir / arch)
-
-print("done", flush=True)

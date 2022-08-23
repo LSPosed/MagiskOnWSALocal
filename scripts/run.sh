@@ -140,8 +140,14 @@ ROOT_SOL=$(
         'none' "" 'off'
 )
 
+if (YesNoBox '([title]="Compress output" [text]="Do you want to compress the output?")'); then
+    COMPRESS_OUTPUT="yes"
+else
+    COMPRESS_OUTPUT="no"
+fi
+
 clear
-echo -e "ARCH=$ARCH\nRELEASE_TYPE=$RELEASE_TYPE\nMAGISK_VER=$MAGISK_VER\nGAPPS_VARIANT=$GAPPS_VARIANT\nREMOVE_AMAZON=$REMOVE_AMAZON\nROOT_SOL=$ROOT_SOL\n"
+echo -e "ARCH=$ARCH\nRELEASE_TYPE=$RELEASE_TYPE\nMAGISK_VER=$MAGISK_VER\nGAPPS_VARIANT=$GAPPS_VARIANT\nREMOVE_AMAZON=$REMOVE_AMAZON\nROOT_SOL=$ROOT_SOL\nCOMPRESS_OUTPUT=$COMPRESS_OUTPUT"
 
 echo "Download WSA"
 python3 downloadWSA.py "$ARCH" "$RELEASE_TYPE" || abort
@@ -179,37 +185,37 @@ fi
 echo "Expand images"
 
 e2fsck -yf "$WORK_DIR"/wsa/"$ARCH"/system_ext.img || abort
-SYSTEM_EXT_SIZE=$(($(du -bsB512 "$WORK_DIR"/wsa/"$ARCH"/system_ext.img | cut -f1) + 20000))
+SYSTEM_EXT_SIZE=$(($(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/system_ext.img | cut -f1) + 20000))
 if [ -d "$WORK_DIR"/gapps/system_ext ]; then
-    SYSTEM_EXT_SIZE=$(( SYSTEM_EXT_SIZE + $(du -bsB512 "$WORK_DIR"/gapps/system_ext | cut -f1) ))
+    SYSTEM_EXT_SIZE=$(( SYSTEM_EXT_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps/system_ext | cut -f1) ))
 fi
 resize2fs "$WORK_DIR"/wsa/"$ARCH"/system_ext.img "$SYSTEM_EXT_SIZE"s || abort
 
 e2fsck -yf "$WORK_DIR"/wsa/"$ARCH"/product.img || abort
-PRODUCT_SIZE=$(($(du -bsB512 "$WORK_DIR"/wsa/"$ARCH"/product.img | cut -f1) + 20000))
+PRODUCT_SIZE=$(($(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/product.img | cut -f1) + 20000))
 if [ -d "$WORK_DIR"/gapps/product ]; then
-    PRODUCT_SIZE=$(( PRODUCT_SIZE + $(du -bsB512 "$WORK_DIR"/gapps/product | cut -f1) ))
+    PRODUCT_SIZE=$(( PRODUCT_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps/product | cut -f1) ))
 fi
 resize2fs "$WORK_DIR"/wsa/"$ARCH"/product.img "$PRODUCT_SIZE"s || abort
 
 e2fsck -yf "$WORK_DIR"/wsa/"$ARCH"/system.img || abort
-SYSTEM_SIZE=$(($(du -bsB512 "$WORK_DIR"/wsa/"$ARCH"/system.img | cut -f1) + 20000))
+SYSTEM_SIZE=$(($(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/system.img | cut -f1) + 20000))
 if [ -d "$WORK_DIR"/gapps ]; then
-    SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du -bsB512 "$WORK_DIR"/gapps | cut -f1) - $(du -bsB512 "$WORK_DIR"/gapps/product | cut -f1) ))
+    SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps | cut -f1) - $(du --apparent-size -sB512 "$WORK_DIR"/gapps/product | cut -f1) ))
     if [ -d "$WORK_DIR"/gapps/system_ext ]; then
-        SYSTEM_SIZE=$(( SYSTEM_SIZE - $(du -bsB512 "$WORK_DIR"/gapps/system_ext | cut -f1) ))
+        SYSTEM_SIZE=$(( SYSTEM_SIZE - $(du --apparent-size -sB512 "$WORK_DIR"/gapps/system_ext | cut -f1) ))
     fi
 fi
 if [ -d "$WORK_DIR"/magisk ]; then
-    SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du -bsB512 "$WORK_DIR"/magisk/magisk | cut -f1) ))
+    SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/magisk/magisk | cut -f1) ))
 fi
 if [ -f "$DOWNLOAD_DIR"/magisk.zip ]; then
-    SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du -bsB512 "$DOWNLOAD_DIR"/magisk.zip | cut -f1) ))
+    SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du --apparent-size -sB512 "$DOWNLOAD_DIR"/magisk.zip | cut -f1) ))
 fi
 resize2fs "$WORK_DIR"/wsa/"$ARCH"/system.img "$SYSTEM_SIZE"s || abort
 
 e2fsck -yf "$WORK_DIR"/wsa/"$ARCH"/vendor.img || abort
-VENDOR_SIZE=$(($(du -bsB512 "$WORK_DIR"/wsa/"$ARCH"/vendor.img | cut -f1) + 20000))
+VENDOR_SIZE=$(($(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/vendor.img | cut -f1) + 20000))
 resize2fs "$WORK_DIR"/wsa/"$ARCH"/vendor.img "$VENDOR_SIZE"s || abort
 echo -e "Expand images done\n"
 
@@ -535,6 +541,7 @@ EOF
 echo -e "Remove signature and add scripts done\n"
 
 echo "Generate info"
+source "$WORK_DIR/ENV"
 if [[ "$ROOT_SOL" = "none" ]]; then
     name1=""
 elif [[ "$ROOT_SOL" = "" ]]; then
@@ -550,12 +557,19 @@ else
     fi
     name2="-GApps-${GAPPS_VARIANT}"
 fi
-echo "WSA${name1}${name2}_${ARCH}"
-cat "$WORK_DIR"/ENV
-
+artifact_name="WSA${name1}${name2}_${WSA_VER}_${ARCH}_${WSA_REL}"
+echo "$artifact_name"
 echo -e "\nFinishing building...."
-rm -rf "$OUTPUT_DIR" || abort
-mv "$WORK_DIR"/wsa/"$ARCH" "$OUTPUT_DIR" || abort
+if [ ! -d "$OUTPUT_DIR" ]; then
+    mkdir "$OUTPUT_DIR"
+fi
+if [ "$COMPRESS_OUTPUT" = "yes" ]; then
+    rm -f "$OUTPUT_DIR"/"$artifact_name.7z"
+    7z a "$OUTPUT_DIR"/"$artifact_name.7z" "$WORK_DIR/wsa/$ARCH/" || abort
+elif [ "$COMPRESS_OUTPUT" = "no" ]; then
+    rm -rf "'$OUTPUT_DIR'/'$artifact_name'" || abort
+    mv "$WORK_DIR"/wsa/"$ARCH" "$OUTPUT_DIR"/"$artifact_name" || abort
+fi
 echo -e "done\n"
 
 echo "Cleanup Work Directory"
