@@ -1,3 +1,22 @@
+# 
+# This file is part of MagiskOnWSALocal.
+#
+# MagiskOnWSALocal is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# MagiskOnWSALocal is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with MagiskOnWSALocal.  If not, see <https://www.gnu.org/licenses/>.
+#
+# Copyright (C) 2022 LSPosed Contributors
+#
+
 #!/bin/bash
 if [ ! "$BASH_VERSION" ] ; then
     echo "Please do not use sh to run this script, just execute it directly" 1>&2
@@ -12,6 +31,7 @@ cd "$(dirname "$0")" || exit 1
 trap 'rm -rf -- "${WORK_DIR:?}"' EXIT
 WORK_DIR=$(mktemp -d -t wsa-build-XXXXXXXXXX_) || exit 1
 DOWNLOAD_DIR=../download
+DOWNLOAD_CONF_NAME=download.list
 OUTPUT_DIR=../output
 MOUNT_DIR="$WORK_DIR"/system
 
@@ -64,7 +84,7 @@ function Gen_Rand_Str {
 }
 
 echo "Dependencies"
-sudo apt update && sudo apt -y install setools lzip wine winetricks patchelf whiptail e2fsprogs python3-pip
+sudo apt update && sudo apt -y install setools lzip wine winetricks patchelf whiptail e2fsprogs python3-pip aria2
 sudo python3 -m pip install requests
 cp -r ../wine/.cache/* ~/.cache
 winetricks msxml6 || abort
@@ -154,9 +174,23 @@ fi
 clear
 echo -e "ARCH=$ARCH\nRELEASE_TYPE=$RELEASE_TYPE\nMAGISK_VER=$MAGISK_VER\nGAPPS_VARIANT=$GAPPS_VARIANT\nREMOVE_AMAZON=$REMOVE_AMAZON\nROOT_SOL=$ROOT_SOL\nCOMPRESS_OUTPUT=$COMPRESS_OUTPUT"
 
-echo "Download WSA"
-python3 downloadWSA.py "$ARCH" "$RELEASE_TYPE" || abort
-echo -e "Download done\n"
+echo "Generate Download Links"
+python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
+python3 generateMagiskLink.py "$MAGISK_VER" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
+if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
+    if [ $GAPPS_BRAND = "OpenGapps" ]; then
+        # TODO: Keep it pico since other variants of opengapps are unable to boot successfully
+        python3 generateGappsLink.py "$ARCH" "pico" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
+        # python3 generateGappsLink.py "$ARCH" "$GAPPS_VARIANT" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
+    fi
+fi
+trap 'rm -f -- "${DOWNLOAD_DIR:?}/${DOWNLOAD_CONF_NAME}"' EXIT
+
+echo "Download Artifacts"
+if ! aria2c --no-conf --log-level=info --log="$DOWNLOAD_DIR/aria2_download.log" -x16 -s16 -j5 -c -R -m0 -d"$DOWNLOAD_DIR" -i"$DOWNLOAD_DIR"/"$DOWNLOAD_CONF_NAME"; then
+  echo "We have encountered an error while downloading files."
+  exit 1
+fi
 
 echo "Extract WSA"
 WSA_WORK_ENV="${WORK_DIR:?}"/ENV
@@ -166,20 +200,11 @@ python3 extractWSA.py "$ARCH" "$WORK_DIR" || abort
 echo -e "Extract done\n"
 source "${WORK_DIR:?}/ENV"
 
-echo "Download Magisk"
-python3 downloadMagisk.py "$ARCH" "$MAGISK_VER" "$WORK_DIR" || abort
+echo "Extract Magisk"
+python3 extractMagisk.py "$ARCH" "$DOWNLOAD_DIR/magisk.zip" "$WORK_DIR" || abort
 echo -e "done\n"
 
 if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
-    if [ $GAPPS_BRAND = "OpenGapps" ]; then
-        echo "Download OpenGApps"
-        if [ "$WSA_MAIN_VER" -ge 2204 ]; then
-            python3 downloadGapps.py "$ARCH" "pico" || abort # TODO: Keep it pico since other variants of opengapps are unable to boot successfully
-        else
-            python3 downloadGapps.py "$ARCH" "$GAPPS_VARIANT" || abort
-        fi
-        echo -e "Download done\n"
-    fi
     echo "Extract GApps"
     mkdir -p "$WORK_DIR"/gapps || abort
     if [ $GAPPS_BRAND = "OpenGapps" ]; then
