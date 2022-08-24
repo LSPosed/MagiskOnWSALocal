@@ -117,24 +117,24 @@ MAGISK_VER=$(
         'debug' "Canary Channel Debug Build" 'off'
 )
 
-if (YesNoBox '([title]="Install Gapps" [text]="Do you want to install gapps?")'); then
+if (YesNoBox '([title]="Install GApps" [text]="Do you want to install GApps?")'); then
     if [ -f "$DOWNLOAD_DIR"/MindTheGapps/MindTheGapps_"$ARCH".zip ]; then
         GAPPS_BRAND=$(
-            Radiolist '([title]="Which gapps do you want to install?"
+            Radiolist '([title]="Which GApps do you want to install?"
                      [default]="OpenGapps")' \
                 \
-                'OpenGapps' "" 'on' \
+                'OpenGApps' "" 'on' \
                 'MindTheGapps' "" 'off'
         )
     else
-        GAPPS_BRAND="OpenGapps"
+        GAPPS_BRAND="OpenGApps"
     fi
 else
     GAPPS_VARIANT="none"
 fi
-if [ $GAPPS_BRAND = "OpenGapps" ]; then
+if [ $GAPPS_BRAND = "OpenGApps" ]; then
     GAPPS_VARIANT=$(
-        Radiolist '([title]="Variants of gapps"
+        Radiolist '([title]="Variants of GApps"
                      [default]="pico")' \
             \
             'super' "" 'off' \
@@ -151,7 +151,7 @@ else
     GAPPS_VARIANT=$GAPPS_BRAND
 fi
 
-if (YesNoBox '([title]="Remove Amazon AppStore" [text]="Do you want to keep amazon appStore?")'); then
+if (YesNoBox '([title]="Remove Amazon AppStore" [text]="Do you want to keep Amazon AppStore?")'); then
     REMOVE_AMAZON="keep"
 else
     REMOVE_AMAZON="remove"
@@ -207,7 +207,7 @@ echo -e "done\n"
 if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
     echo "Extract GApps"
     mkdir -p "$WORK_DIR"/gapps || abort
-    if [ $GAPPS_BRAND = "OpenGapps" ]; then
+    if [ $GAPPS_BRAND = "OpenGApps" ]; then
         unzip -p "$DOWNLOAD_DIR"/gapps.zip {Core,GApps}/'*.lz' | tar --lzip -C "$WORK_DIR"/gapps -xf - -i --strip-components=2 --exclude='setupwizardtablet-x86_64' --exclude='packageinstallergoogle-all' --exclude='speech-common' --exclude='markup-lib-arm' --exclude='markup-lib-arm64' --exclude='markup-all' --exclude='setupwizarddefault-x86_64' --exclude='pixellauncher-all' --exclude='pixellauncher-common' || abort
     else
         unzip "$DOWNLOAD_DIR"/MindTheGapps/MindTheGapps_"$ARCH".zip "system/*" -x "system/addon.d/*" "system/system_ext/priv-app/SetupWizard/*" -d "$WORK_DIR"/gapps || abort
@@ -432,7 +432,7 @@ if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
     sudo find "$MOUNT_DIR"/system/{app,framework,priv-app} -type f -exec chcon --reference="$MOUNT_DIR"/system/framework/ext.jar {} \;
     sudo find "$MOUNT_DIR"/product/{app,etc,overlay,priv-app,lib64,lib,framework} -type f -exec chcon --reference="$MOUNT_DIR"/product/etc/permissions/com.android.settings.intelligence.xml {} \;
 
-    if [ $GAPPS_BRAND = "OpenGapps" ]; then
+    if [ $GAPPS_BRAND = "OpenGApps" ]; then
         ls "$WORK_DIR"/gapps/etc/ | xargs -n 1 -I dir sudo find "$MOUNT_DIR"/system/etc/dir -type f -exec chmod 0644 {} \;
         ls "$WORK_DIR"/gapps/etc/ | xargs -n 1 -I dir sudo find "$MOUNT_DIR"/system/etc/dir -type d -exec chcon --reference="$MOUNT_DIR"/system/etc/permissions {} \;
         ls "$WORK_DIR"/gapps/etc/ | xargs -n 1 -I dir sudo find "$MOUNT_DIR"/system/etc/dir -type f -exec chcon --reference="$MOUNT_DIR"/system/etc/permissions {} \;
