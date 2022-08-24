@@ -121,7 +121,7 @@ if (YesNoBox '([title]="Install GApps" [text]="Do you want to install GApps?")')
     if [ -f "$DOWNLOAD_DIR"/MindTheGapps/MindTheGapps_"$ARCH".zip ]; then
         GAPPS_BRAND=$(
             Radiolist '([title]="Which GApps do you want to install?"
-                     [default]="OpenGapps")' \
+                     [default]="OpenGApps")' \
                 \
                 'OpenGApps' "" 'on' \
                 'MindTheGapps' "" 'off'
@@ -178,7 +178,7 @@ echo "Generate Download Links"
 python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
 python3 generateMagiskLink.py "$MAGISK_VER" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
 if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
-    if [ $GAPPS_BRAND = "OpenGapps" ]; then
+    if [ $GAPPS_BRAND = "OpenGApps" ]; then
         # TODO: Keep it pico since other variants of opengapps are unable to boot successfully
         python3 generateGappsLink.py "$ARCH" "pico" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
         # python3 generateGappsLink.py "$ARCH" "$GAPPS_VARIANT" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
@@ -587,8 +587,8 @@ fi
 if [[ "$GAPPS_VARIANT" = "none" || "$GAPPS_VARIANT" = "" ]]; then
     name2="-NoGApps"
 else
-    if [ "$GAPPS_VARIANT" != "pico" ] && [ $GAPPS_BRAND = "OpenGapps" ]; then
-        echo ":warning: Since OpenGapps doesn't officially support Android 12.1 yet, lock the variant to pico!"
+    if [ "$GAPPS_VARIANT" != "pico" ] && [ $GAPPS_BRAND = "OpenGApps" ]; then
+        echo ":warning: Since OpenGApps doesn't officially support Android 12.1 yet, lock the variant to pico!"
     fi
     name2="-GApps-${GAPPS_VARIANT}"
 fi
