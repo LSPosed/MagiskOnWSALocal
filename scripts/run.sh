@@ -17,7 +17,7 @@
 #
 # Copyright (C) 2022 LSPosed Contributors
 #
-
+# DEBUG=1
 if [ ! "$BASH_VERSION" ] ; then
     echo "Please do not use sh to run this script, just execute it directly" 1>&2
     exit 1
@@ -145,6 +145,8 @@ else
     GAPPS_VARIANT="none"
 fi
 if [ $GAPPS_BRAND = "OpenGApps" ]; then
+    # TODO: Keep it pico since other variants of opengapps are unable to boot successfully
+    if [ "$DEBUG" = "1" ]; then
     GAPPS_VARIANT=$(
         Radiolist '([title]="Variants of GApps"
                      [default]="pico")' \
@@ -159,6 +161,9 @@ if [ $GAPPS_BRAND = "OpenGApps" ]; then
             'tvstock' "" 'off' \
             'tvmini' "" 'off'
     )
+    else
+        GAPPS_VARIANT=pico
+    fi
 else
     GAPPS_VARIANT=$GAPPS_BRAND
 fi
@@ -192,9 +197,7 @@ python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_C
 python3 generateMagiskLink.py "$MAGISK_VER" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
 if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
     if [ $GAPPS_BRAND = "OpenGApps" ]; then
-        # TODO: Keep it pico since other variants of opengapps are unable to boot successfully
-        python3 generateGappsLink.py "$ARCH" "pico" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
-        # python3 generateGappsLink.py "$ARCH" "$GAPPS_VARIANT" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
+        python3 generateGappsLink.py "$ARCH" "$GAPPS_VARIANT" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
     fi
 fi
 
@@ -635,13 +638,13 @@ fi
 if [[ "$GAPPS_VARIANT" = "none" || "$GAPPS_VARIANT" = "" ]]; then
     name2="-NoGApps"
 else
-    if [ "$GAPPS_VARIANT" != "pico" ] && [ $GAPPS_BRAND = "OpenGApps" ]; then
-        echo ":warning: Since OpenGApps doesn't officially support Android 12.1 yet, lock the variant to pico!"
-    fi
     if [ $GAPPS_BRAND = "OpenGApps" ]; then
         name2="-$GAPPS_BRAND-${GAPPS_VARIANT}"
     else
         name2="-$GAPPS_BRAND"
+    fi
+    if [ "$GAPPS_VARIANT" != "pico" ] && [ $GAPPS_BRAND = "OpenGApps" ] && [ "$DEBUG" != "1" ]; then
+        echo ":warning: Since OpenGApps doesn't officially support Android 12.1 yet, lock the variant to pico!"
     fi
 fi
 artifact_name="WSA${name1}${name2}_${WSA_VER}_${ARCH}_${WSA_REL}"
