@@ -377,10 +377,10 @@ sed -i -zE "s/<Resources.*Resources>/<Resources>\n$(cat "$WORK_DIR"/wsa/xml/* | 
 echo -e "Merge Language Resources done\n"
 
 echo "Add extra packages"
-sudo cp -r ../"$ARCH"/system/* "$MOUNT_DIR" || abort
-sudo find "$MOUNT_DIR"/system/priv-app -type d -exec chmod 0755 {} \;
-sudo find "$MOUNT_DIR"/system/priv-app -type f -exec chmod 0644 {} \;
-sudo find "$MOUNT_DIR"/system/priv-app -exec chcon --reference="$MOUNT_DIR"/system/priv-app {} \;
+sudo find ../"$ARCH"/system/system/priv-app -type d -exec chmod 0755 {} \;
+sudo find ../"$ARCH"/system/system/priv-app -type f -exec chmod 0644 {} \;
+sudo find ../"$ARCH"/system/system/priv-app -exec chcon --reference="$MOUNT_DIR"/system/priv-app {} \;
+sudo cp --preserve=a -r ../"$ARCH"/system/* "$MOUNT_DIR" || abort
 echo -e "Add extra packages done\n"
 
 if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
@@ -402,40 +402,42 @@ if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
         sudo chcon --reference="$MOUNT_DIR"/product/etc/permissions/com.android.settings.intelligence.xml "$f"
     done
     shopt -s extglob
+
+    sudo find "$WORK_DIR"/gapps/{app,etc,framework,priv-app} -exec chown root:root {} \;
+    sudo find "$WORK_DIR"/gapps/product/overlay -exec chown root:root {} \;
+
     sudo cp --preserve=a -r "$WORK_DIR"/gapps/product/* "$MOUNT_DIR"/product || abort
     sudo rm -rf "${WORK_DIR:?}"/gapps/product || abort
     if [ $GAPPS_BRAND = "MindTheGapps" ]; then
         mv "$WORK_DIR"/gapps/priv-app/* "$WORK_DIR"/gapps/system_ext/priv-app || abort
         sudo cp --preserve=a -r "$WORK_DIR"/gapps/system_ext/* "$MOUNT_DIR"/system_ext/ || abort
-        ls "$WORK_DIR"/gapps/system_ext/etc/ | xargs -n 1 -I dir sudo find "$MOUNT_DIR"/system_ext/etc/dir -type f -exec chmod 0644 {} \;
-        ls "$WORK_DIR"/gapps/system_ext/etc/ | xargs -n 1 -I dir sudo find "$MOUNT_DIR"/system_ext/etc/dir -type d -exec chcon --reference="$MOUNT_DIR"/system_ext/etc/permissions {} \;
-        ls "$WORK_DIR"/gapps/system_ext/etc/ | xargs -n 1 -I dir sudo find "$MOUNT_DIR"/system_ext/etc/dir -type f -exec chcon --reference="$MOUNT_DIR"/system_ext/etc/permissions {} \;
+        ls "$WORK_DIR"/gapps/system_ext/etc/ | xargs -I dir sudo find "$MOUNT_DIR"/system_ext/etc/dir -type f -exec chmod 0644 {} \;
+        ls "$WORK_DIR"/gapps/system_ext/etc/ | xargs -I dir sudo find "$MOUNT_DIR"/system_ext/etc/dir -type d -exec chcon --reference="$MOUNT_DIR"/system_ext/etc/permissions {} \;
+        ls "$WORK_DIR"/gapps/system_ext/etc/ | xargs -I dir sudo find "$MOUNT_DIR"/system_ext/etc/dir -type f -exec chcon --reference="$MOUNT_DIR"/system_ext/etc/permissions {} \;
         if [ -e "$MOUNT_DIR"/system_ext/priv-app/SetupWizard ] ; then
             rm -rf "${MOUNT_DIR:?}/system_ext/priv-app/Provision"
         fi
         sudo rm -rf "${WORK_DIR:?}"/gapps/system_ext || abort
     fi
+
     sudo cp --preserve=a -r "$WORK_DIR"/gapps/* "$MOUNT_DIR"/system || abort
 
-    sudo find "$MOUNT_DIR"/system/{app,etc,framework,priv-app} -exec chown root:root {} \;
-    sudo find "$MOUNT_DIR"/product/{app,etc,overlay,priv-app,lib64,lib,framework} -exec chown root:root {} \;
-
     sudo find "$MOUNT_DIR"/system/{app,etc,framework,priv-app} -type d -exec chmod 0755 {} \;
-    sudo find "$MOUNT_DIR"/product/{app,etc,overlay,priv-app,lib64,lib,framework} -type d -exec chmod 0755 {} \;
+    sudo find "$MOUNT_DIR"/product/{app,etc,overlay,priv-app,lib64,framework} -type d -exec chmod 0755 {} \;
 
     sudo find "$MOUNT_DIR"/system/{app,framework,priv-app} -type f -exec chmod 0644 {} \;
-    sudo find "$MOUNT_DIR"/product/{app,etc,overlay,priv-app,lib64,lib,framework} -type f -exec chmod 0644 {} \;
+    sudo find "$MOUNT_DIR"/product/{app,etc,overlay,priv-app,lib64,framework} -type f -exec chmod 0644 {} \;
 
     sudo find "$MOUNT_DIR"/system/{app,framework,priv-app} -type d -exec chcon --reference="$MOUNT_DIR"/system/app {} \;
-    sudo find "$MOUNT_DIR"/product/{app,etc,overlay,priv-app,lib64,lib,framework} -type d -exec chcon --reference="$MOUNT_DIR"/product/app {} \;
+    sudo find "$MOUNT_DIR"/product/{app,etc,overlay,priv-app,lib64,framework} -type d -exec chcon --reference="$MOUNT_DIR"/product/app {} \;
 
     sudo find "$MOUNT_DIR"/system/{app,framework,priv-app} -type f -exec chcon --reference="$MOUNT_DIR"/system/framework/ext.jar {} \;
-    sudo find "$MOUNT_DIR"/product/{app,etc,overlay,priv-app,lib64,lib,framework} -type f -exec chcon --reference="$MOUNT_DIR"/product/etc/permissions/com.android.settings.intelligence.xml {} \;
+    sudo find "$MOUNT_DIR"/product/{app,etc,overlay,priv-app,lib64,framework} -type f -exec chcon --reference="$MOUNT_DIR"/product/etc/permissions/com.android.settings.intelligence.xml {} \;
 
     if [ $GAPPS_BRAND = "OpenGApps" ]; then
-        ls "$WORK_DIR"/gapps/etc/ | xargs -n 1 -I dir sudo find "$MOUNT_DIR"/system/etc/dir -type f -exec chmod 0644 {} \;
-        ls "$WORK_DIR"/gapps/etc/ | xargs -n 1 -I dir sudo find "$MOUNT_DIR"/system/etc/dir -type d -exec chcon --reference="$MOUNT_DIR"/system/etc/permissions {} \;
-        ls "$WORK_DIR"/gapps/etc/ | xargs -n 1 -I dir sudo find "$MOUNT_DIR"/system/etc/dir -type f -exec chcon --reference="$MOUNT_DIR"/system/etc/permissions {} \;
+        ls "$WORK_DIR"/gapps/etc/ | xargs -I dir sudo find "$MOUNT_DIR"/system/etc/dir -type f -exec chmod 0644 {} \;
+        ls "$WORK_DIR"/gapps/etc/ | xargs -I dir sudo find "$MOUNT_DIR"/system/etc/dir -type d -exec chcon --reference="$MOUNT_DIR"/system/etc/permissions {} \;
+        ls "$WORK_DIR"/gapps/etc/ | xargs -I dir sudo find "$MOUNT_DIR"/system/etc/dir -type f -exec chcon --reference="$MOUNT_DIR"/system/etc/permissions {} \;
     else
         sudo find "$MOUNT_DIR"/system_ext/{priv-app,etc} -exec chown root:root {} \;
         sudo find "$MOUNT_DIR"/system_ext/{priv-app,etc} -type d -exec chmod 0755 {} \;
