@@ -403,13 +403,16 @@ if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
     done
     shopt -s extglob
 
-    sudo find "$WORK_DIR"/gapps/{app,etc,framework,priv-app} -exec chown root:root {} \;
+    if [ $GAPPS_BRAND = "OpenGApps" ]; then
+        sudo find "$WORK_DIR"/gapps/{app,etc,framework} -exec chown root:root {} \;       
+    fi
+    sudo find "$WORK_DIR"/gapps/priv-app -exec chown root:root {} \;
     sudo find "$WORK_DIR"/gapps/product/overlay -exec chown root:root {} \;
 
     sudo cp --preserve=a -r "$WORK_DIR"/gapps/product/* "$MOUNT_DIR"/product || abort
     sudo rm -rf "${WORK_DIR:?}"/gapps/product || abort
     if [ $GAPPS_BRAND = "MindTheGapps" ]; then
-        mv "$WORK_DIR"/gapps/priv-app/* "$WORK_DIR"/gapps/system_ext/priv-app || abort
+        sudo mv "$WORK_DIR"/gapps/priv-app/* "$WORK_DIR"/gapps/system_ext/priv-app || abort
         sudo cp --preserve=a -r "$WORK_DIR"/gapps/system_ext/* "$MOUNT_DIR"/system_ext/ || abort
         ls "$WORK_DIR"/gapps/system_ext/etc/ | xargs -I dir sudo find "$MOUNT_DIR"/system_ext/etc/dir -type f -exec chmod 0644 {} \;
         ls "$WORK_DIR"/gapps/system_ext/etc/ | xargs -I dir sudo find "$MOUNT_DIR"/system_ext/etc/dir -type d -exec chcon --reference="$MOUNT_DIR"/system_ext/etc/permissions {} \;
@@ -597,8 +600,11 @@ fi
 artifact_name="WSA${name1}${name2}_${WSA_VER}_${ARCH}_${WSA_REL}"
 echo "$artifact_name"
 echo -e "\nFinishing building...."
+if [ -f "$OUTPUT_DIR" ]; then
+    sudo rm -rf "${OUTPUT_DIR:?}"
+fi
 if [ ! -d "$OUTPUT_DIR" ]; then
-    mkdir "$OUTPUT_DIR"
+    mkdir -p "$OUTPUT_DIR"
 fi
 if [ "$COMPRESS_OUTPUT" = "yes" ]; then
     rm -f "${OUTPUT_DIR:?}"/"$artifact_name.7z" || abort
