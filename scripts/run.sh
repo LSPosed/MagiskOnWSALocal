@@ -18,6 +18,7 @@
 # Copyright (C) 2022 LSPosed Contributors
 #
 # DEBUG=1
+# CUSTOM_MAGISK=1
 if [ ! "$BASH_VERSION" ] ; then
     echo "Please do not use sh to run this script, just execute it directly" 1>&2
     exit 1
@@ -118,16 +119,19 @@ RELEASE_TYPE=$(
         'insider slow' "Beta Channel" 'off' \
         'insider fast' "Dev Channel" 'off'
 )
-
-MAGISK_VER=$(
-    Radiolist '([title]="Magisk version"
-                     [default]="stable")' \
-        \
-        'stable' "Stable Channel" 'on' \
-        'beta' "Beta Channel" 'off' \
-        'canary' "Canary Channel" 'off' \
-        'debug' "Canary Channel Debug Build" 'off'
-)
+if [ "$CUSTOM_MAGISK" != "1" ]; then
+    MAGISK_VER=$(
+        Radiolist '([title]="Magisk version"
+                        [default]="stable")' \
+            \
+            'stable' "Stable Channel" 'on' \
+            'beta' "Beta Channel" 'off' \
+            'canary' "Canary Channel" 'off' \
+            'debug' "Canary Channel Debug Build" 'off'
+    )
+else
+    MAGISK_VER=debug
+fi
 
 if (YesNoBox '([title]="Install GApps" [text]="Do you want to install GApps?")'); then
     if [ -f "$DOWNLOAD_DIR"/MindTheGapps-"$ARCH".zip ]; then
@@ -194,7 +198,9 @@ declare -A RELEASE_TYPE_MAP=(["retail"]="Retail" ["release preview"]="RP" ["insi
 trap 'rm -f -- "${DOWNLOAD_DIR:?}/${DOWNLOAD_CONF_NAME}"' EXIT
 echo "Generate Download Links"
 python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
-python3 generateMagiskLink.py "$MAGISK_VER" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
+if [ "$CUSTOM_MAGISK" != "1" ]; then
+    python3 generateMagiskLink.py "$MAGISK_VER" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
+fi
 if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
     if [ $GAPPS_BRAND = "OpenGApps" ]; then
         python3 generateGappsLink.py "$ARCH" "$GAPPS_VARIANT" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
@@ -234,8 +240,11 @@ if [ -f "$MAGISK_PATH" ]; then
         CLEAN_DOWNLOAD_MAGISK=1
         abort
     fi
-else
+elif [ "$CUSTOM_MAGISK" != "1" ]; then
     echo "The Magisk zip package does not exist, is the download incomplete?"
+    exit 1
+else
+    echo "The Magisk zip package does not exist, rename it to magisk-debug.zip and put it in the download folder."
     exit 1
 fi
 echo -e "done\n"
