@@ -643,7 +643,7 @@ else
     else
         name2="-$GAPPS_BRAND"
     fi
-    if [ "$GAPPS_VARIANT" != "pico" ] && [ $GAPPS_BRAND = "OpenGApps" ] && [ "$DEBUG" != "1" ]; then
+    if [ $GAPPS_BRAND = "OpenGApps" ] && [ "$DEBUG" != "1" ]; then
         echo ":warning: Since OpenGApps doesn't officially support Android 12.1 yet, lock the variant to pico!"
     fi
 fi
