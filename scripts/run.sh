@@ -34,6 +34,9 @@ DOWNLOAD_DIR=../download
 DOWNLOAD_CONF_NAME=download.list
 OUTPUT_DIR=../output
 MOUNT_DIR="$WORK_DIR"/system
+CLEAN_DOWNLOAD_WSA=0
+CLEAN_DOWNLOAD_MAGISK=0
+CLEAN_DOWNLOAD_GAPPS=0
 umount_clean(){
     echo "Cleanup Work Directory"
     if [ -d "$MOUNT_DIR" ]; then
@@ -240,12 +243,12 @@ if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
     if [ $GAPPS_BRAND = "OpenGApps" ]; then
         if [ -f "$GAPPS_PATH" ]; then
             if ! unzip -p "$GAPPS_PATH" {Core,GApps}/'*.lz' | tar --lzip -C "$WORK_DIR"/gapps -xf - -i --strip-components=2 --exclude='setupwizardtablet-x86_64' --exclude='packageinstallergoogle-all' --exclude='speech-common' --exclude='markup-lib-arm' --exclude='markup-lib-arm64' --exclude='markup-all' --exclude='setupwizarddefault-x86_64' --exclude='pixellauncher-all' --exclude='pixellauncher-common'; then
-                echo "Unzip GApps failed, is the download incomplete?"
+                echo "Unzip OpenGApps failed, is the download incomplete?"
                 CLEAN_DOWNLOAD_GAPPS=1
                 abort
             fi
         else
-            echo "The WSA zip package does not exist, is the download incomplete?"
+            echo "The OpenGApps zip package does not exist, is the download incomplete?"
             exit 1
         fi
     else

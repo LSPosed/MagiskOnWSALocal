@@ -36,7 +36,6 @@ release_type_map = {"retail": "Retail", "release preview": "RP",
                     "insider slow": "WIS", "insider fast": "WIF"}
 release_type = release_type_map[sys.argv[2]] if sys.argv[2] != "" else "Retail"
 download_dir = Path.cwd().parent / "download" if sys.argv[3] == "" else Path(sys.argv[3]).resolve()
-download_dir
 tempScript = sys.argv[4]
 cat_id = '858014f3-3934-4abe-8078-4aa193e74ca8'
 print(f"Generating WSA download link: arch={arch} release_type={release_type}", flush=True)
