@@ -1,4 +1,5 @@
-# 
+#!/usr/bin/python
+#
 # This file is part of MagiskOnWSALocal.
 #
 # MagiskOnWSALocal is free software: you can redistribute it and/or modify
@@ -17,18 +18,11 @@
 # Copyright (C) 2022 LSPosed Contributors
 #
 
-#!/usr/bin/python
-
 import sys
 
-import requests
-from xml.dom import minidom
-import html
 import warnings
-import re
 import zipfile
 import os
-import urllib.request
 from pathlib import Path
 
 warnings.filterwarnings("ignore")
