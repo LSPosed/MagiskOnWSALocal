@@ -50,12 +50,8 @@ except Exception:
 
 print(f"download link: {link}", flush=True)
 
-out_file = download_dir / "gapps.zip"
-
-if not os.path.isfile(out_file):
-    # urllib.request.urlretrieve(link, out_file)
-    with open(download_dir/tempScript, 'a') as f:
-        f.writelines(f'{link}\n')
-        f.writelines(f'  dir={download_dir}\n')
-        f.writelines(f'  out=gapps.zip\n')
-        f.close
+with open(download_dir/tempScript, 'a') as f:
+    f.writelines(f'{link}\n')
+    f.writelines(f'  dir={download_dir}\n')
+    f.writelines(f'  out=OpenGApps-{arch}-{variant}.zip\n')
+    f.close

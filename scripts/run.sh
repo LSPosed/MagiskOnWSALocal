@@ -34,7 +34,6 @@ DOWNLOAD_DIR=../download
 DOWNLOAD_CONF_NAME=download.list
 OUTPUT_DIR=../output
 MOUNT_DIR="$WORK_DIR"/system
-CLEAN_DOWNLOAD=1
 umount_clean(){
     echo "Cleanup Work Directory"
     if [ -d "$MOUNT_DIR" ]; then
@@ -51,19 +50,26 @@ umount_clean(){
     fi
     sudo rm -rf "${WORK_DIR:?}"
 }
+clean_download(){
+    if [ -d "$DOWNLOAD_DIR" ]; then
+        echo "Cleanup Download Directory"
+        if [ "$CLEAN_DOWNLOAD_WSA" = "1" ]; then
+            rm -f "${WSA_ZIP_PATH:?}"
+        fi
+        if [ "$CLEAN_DOWNLOAD_MAGISK" = "1" ]; then
+            rm -f "${MAGISK_PATH:?}"
+        fi
+        if [ "$CLEAN_DOWNLOAD_GAPPS" = "1" ]; then
+            rm -f "${GAPPS_PATH:?}"
+        fi
+    fi
+}
 abort() {
     echo "An error has occurred, exit"
     if [ -d "$WORK_DIR" ]; then
         umount_clean
     fi
-    if [ -d "$DOWNLOAD_DIR" ] && [ $CLEAN_DOWNLOAD = "1" ]; then
-        echo "Cleanup Download Directory"
-        sudo rm -rf "${DOWNLOAD_DIR:?}"
-    fi
-    if [ -d "$OUTPUT_DIR" ]; then
-        echo "Cleanup Output Directory"
-        sudo rm -rf "${OUTPUT_DIR:?}"
-    fi
+    clean_download
     exit 1
 }
 trap abort INT TERM
@@ -121,7 +127,7 @@ MAGISK_VER=$(
 )
 
 if (YesNoBox '([title]="Install GApps" [text]="Do you want to install GApps?")'); then
-    if [ -f "$DOWNLOAD_DIR"/MindTheGapps/MindTheGapps_"$ARCH".zip ]; then
+    if [ -f "$DOWNLOAD_DIR"/MindTheGapps-"$ARCH".zip ]; then
         GAPPS_BRAND=$(
             Radiolist '([title]="Which GApps do you want to install?"
                      [default]="OpenGApps")' \
@@ -176,7 +182,8 @@ fi
 
 clear
 echo -e "ARCH=$ARCH\nRELEASE_TYPE=$RELEASE_TYPE\nMAGISK_VER=$MAGISK_VER\nGAPPS_VARIANT=$GAPPS_VARIANT\nREMOVE_AMAZON=$REMOVE_AMAZON\nROOT_SOL=$ROOT_SOL\nCOMPRESS_OUTPUT=$COMPRESS_OUTPUT"
-
+declare -A RELEASE_TYPE_MAP=(["retail"]="Retail" ["release preview"]="RP" ["insider slow"]="WIS" ["insider fast"]="WIF")
+trap 'rm -f -- "${DOWNLOAD_DIR:?}/${DOWNLOAD_CONF_NAME}"' EXIT
 echo "Generate Download Links"
 python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
 python3 generateMagiskLink.py "$MAGISK_VER" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
@@ -187,35 +194,65 @@ if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
         # python3 generateGappsLink.py "$ARCH" "$GAPPS_VARIANT" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
     fi
 fi
-trap 'rm -f -- "${DOWNLOAD_DIR:?}/${DOWNLOAD_CONF_NAME}"' EXIT
 
 echo "Download Artifacts"
-if ! aria2c --no-conf --log-level=info --log="$DOWNLOAD_DIR/aria2_download.log" -x16 -s16 -j5 -c -R -m0 -d"$DOWNLOAD_DIR" -i"$DOWNLOAD_DIR"/"$DOWNLOAD_CONF_NAME"; then
+if ! aria2c --no-conf --log-level=info --log="$DOWNLOAD_DIR/aria2_download.log" -x16 -s16 -j5 -c -R -m0 --allow-overwrite=true --conditional-get=true -d"$DOWNLOAD_DIR" -i"$DOWNLOAD_DIR"/"$DOWNLOAD_CONF_NAME"; then
     echo "We have encountered an error while downloading files."
     exit 1
-else
-    CLEAN_DOWNLOAD=0
 fi
+WSA_ZIP_PATH=$DOWNLOAD_DIR/wsa-$ARCH-${RELEASE_TYPE_MAP[$RELEASE_TYPE]}.zip
+MAGISK_PATH=$DOWNLOAD_DIR/magisk-$MAGISK_VER.zip
+GAPPS_PATH="$DOWNLOAD_DIR"/OpenGApps-$ARCH-$GAPPS_VARIANT.zip
 
 echo "Extract WSA"
-WSA_WORK_ENV="${WORK_DIR:?}"/ENV
-if [ -f "$WSA_WORK_ENV" ]; then rm -f "${WSA_WORK_ENV:?}"; fi
-export WSA_WORK_ENV
-python3 extractWSA.py "$ARCH" "$WORK_DIR" || abort
-echo -e "Extract done\n"
-source "${WORK_DIR:?}/ENV" || abort
-
+if [ -f "$WSA_ZIP_PATH" ]; then
+    WSA_WORK_ENV="${WORK_DIR:?}"/ENV
+    if [ -f "$WSA_WORK_ENV" ]; then rm -f "${WSA_WORK_ENV:?}"; fi
+    export WSA_WORK_ENV
+    if ! python3 extractWSA.py "$ARCH" "$WSA_ZIP_PATH" "$WORK_DIR"; then
+        echo "Unzip WSA failed, is the download incomplete?"
+        CLEAN_DOWNLOAD_WSA=1
+        abort
+    fi
+    echo -e "Extract done\n"
+    source "${WORK_DIR:?}/ENV" || abort
+else
+    echo "The WSA zip package does not exist, is the download incomplete?"
+    exit 1
+fi
 echo "Extract Magisk"
-python3 extractMagisk.py "$ARCH" "$DOWNLOAD_DIR/magisk.zip" "$WORK_DIR" || abort
+
+if [ -f "$MAGISK_PATH" ]; then
+    if ! python3 extractMagisk.py "$ARCH" "$MAGISK_PATH" "$WORK_DIR"; then
+        echo "Unzip Magisk failed, is the download incomplete?"
+        CLEAN_DOWNLOAD_MAGISK=1
+        abort
+    fi
+else
+    echo "The Magisk zip package does not exist, is the download incomplete?"
+    exit 1
+fi
 echo -e "done\n"
 
 if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
     echo "Extract GApps"
     mkdir -p "$WORK_DIR"/gapps || abort
     if [ $GAPPS_BRAND = "OpenGApps" ]; then
-        unzip -p "$DOWNLOAD_DIR"/gapps.zip {Core,GApps}/'*.lz' | tar --lzip -C "$WORK_DIR"/gapps -xf - -i --strip-components=2 --exclude='setupwizardtablet-x86_64' --exclude='packageinstallergoogle-all' --exclude='speech-common' --exclude='markup-lib-arm' --exclude='markup-lib-arm64' --exclude='markup-all' --exclude='setupwizarddefault-x86_64' --exclude='pixellauncher-all' --exclude='pixellauncher-common' || abort
+        if [ -f "$GAPPS_PATH" ]; then
+            if ! unzip -p "$GAPPS_PATH" {Core,GApps}/'*.lz' | tar --lzip -C "$WORK_DIR"/gapps -xf - -i --strip-components=2 --exclude='setupwizardtablet-x86_64' --exclude='packageinstallergoogle-all' --exclude='speech-common' --exclude='markup-lib-arm' --exclude='markup-lib-arm64' --exclude='markup-all' --exclude='setupwizarddefault-x86_64' --exclude='pixellauncher-all' --exclude='pixellauncher-common'; then
+                echo "Unzip GApps failed, is the download incomplete?"
+                CLEAN_DOWNLOAD_GAPPS=1
+                abort
+            fi
+        else
+            echo "The WSA zip package does not exist, is the download incomplete?"
+            exit 1
+        fi
     else
-        unzip "$DOWNLOAD_DIR"/MindTheGapps/MindTheGapps_"$ARCH".zip "system/*" -x "system/addon.d/*" "system/system_ext/priv-app/SetupWizard/*" -d "$WORK_DIR"/gapps || abort
+        if ! unzip "$DOWNLOAD_DIR"/MindTheGapps-"$ARCH".zip "system/*" -x "system/addon.d/*" "system/system_ext/priv-app/SetupWizard/*" -d "$WORK_DIR"/gapps; then
+            echo "Unzip MindTheGapps failed, package is corrupted?"
+            abort
+        fi
         mv "$WORK_DIR"/gapps/system/* "$WORK_DIR"/gapps || abort
         rm -rf "${WORK_DIR:?}"/gapps/system || abort
     fi
@@ -444,6 +481,7 @@ if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
         find "$WORK_DIR"/gapps/product/framework/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I item sudo find "$MOUNT_DIR"/product/framework/item -type f -exec chcon --reference="$MOUNT_DIR"/product/etc/permissions/com.android.settings.intelligence.xml {} \;
         find "$WORK_DIR"/gapps/system_ext/etc/permissions/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I file sudo find "$MOUNT_DIR"/system_ext/etc/permissions/file -type f -exec chcon --reference="$MOUNT_DIR"/system_ext/etc/permissions/com.android.systemui.xml {} \;
 
+        sudo chcon --reference="$MOUNT_DIR"/product/lib64/libjni_eglfence.so "$MOUNT_DIR"/product/lib
         find "$WORK_DIR"/gapps/product/lib/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I file sudo find "$MOUNT_DIR"/product/lib/file -exec chcon --reference="$MOUNT_DIR"/product/lib64/libjni_eglfence.so {} \;
         find "$WORK_DIR"/gapps/product/lib64/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I file sudo find "$MOUNT_DIR"/product/lib64/file -type f -exec chcon --reference="$MOUNT_DIR"/product/lib64/libjni_eglfence.so {} \;        
         find "$WORK_DIR"/gapps/system_ext/priv-app/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I dir sudo find "$MOUNT_DIR"/system_ext/priv-app/dir -type d -exec chcon --reference="$MOUNT_DIR"/system_ext/priv-app {} \;
@@ -487,7 +525,7 @@ echo -e "Shrink images done\n"
 
 echo "Remove signature and add scripts"
 sudo rm -rf "${WORK_DIR:?}"/wsa/"$ARCH"/\[Content_Types\].xml "$WORK_DIR"/wsa/"$ARCH"/AppxBlockMap.xml "$WORK_DIR"/wsa/"$ARCH"/AppxSignature.p7x "$WORK_DIR"/wsa/"$ARCH"/AppxMetadata || abort
-cp "$DOWNLOAD_DIR"/vclibs.appx "$DOWNLOAD_DIR"/xaml.appx "$WORK_DIR"/wsa/"$ARCH" || abort
+cp "$DOWNLOAD_DIR"/vclibs-"$ARCH".appx "$DOWNLOAD_DIR"/xaml-"$ARCH".appx "$WORK_DIR"/wsa/"$ARCH" || abort
 tee "$WORK_DIR"/wsa/"$ARCH"/Install.ps1 <<EOF
 # Automated Install script by Midonei
 # http://github.com/doneibcn
@@ -544,8 +582,8 @@ if (\$VMP.State -ne "Enabled") {
     }
 }
 
-Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Path vclibs.appx
-Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Path xaml.appx
+Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Path vclibs-$ARCH.appx
+Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Path xaml-$ARCH.appx
 
 \$Installed = \$null
 \$Installed = Get-AppxPackage -Name 'MicrosoftCorporationII.WindowsSubsystemForAndroid'
@@ -587,9 +625,9 @@ echo "Generate info"
 if [[ "$ROOT_SOL" = "none" ]]; then
     name1=""
 elif [[ "$ROOT_SOL" = "" ]]; then
-    name1="-with-magisk"
+    name1="-with-magisk-$MAGISK_VER"
 else
-    name1="-with-$ROOT_SOL"
+    name1="-with-$ROOT_SOL-$MAGISK_VER"
 fi
 if [[ "$GAPPS_VARIANT" = "none" || "$GAPPS_VARIANT" = "" ]]; then
     name2="-NoGApps"
