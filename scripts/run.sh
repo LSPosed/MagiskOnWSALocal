@@ -294,8 +294,8 @@ fi
 if [ -d "$WORK_DIR"/magisk ]; then
     SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/magisk/magisk | cut -f1) ))
 fi
-if [ -f "$DOWNLOAD_DIR"/magisk.zip ]; then
-    SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du --apparent-size -sB512 "$DOWNLOAD_DIR"/magisk.zip | cut -f1) ))
+if [ -f "$MAGISK_PATH" ]; then
+    SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du --apparent-size -sB512 "$MAGISK_PATH" | cut -f1) ))
 fi
 if [ -d "../$ARCH/system" ]; then
     SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du --apparent-size -sB512 "../$ARCH/system" | cut -f1) ))
@@ -328,7 +328,7 @@ if [ "$ROOT_SOL" = 'magisk' ] || [ "$ROOT_SOL" = '' ]; then
     sudo chown root:root "$MOUNT_DIR"/sbin
     sudo chmod 0700 "$MOUNT_DIR"/sbin
     sudo cp "$WORK_DIR"/magisk/magisk/* "$MOUNT_DIR"/sbin/
-    sudo cp "$DOWNLOAD_DIR"/magisk.zip "$MOUNT_DIR"/sbin/magisk.apk
+    sudo cp "$MAGISK_PATH" "$MOUNT_DIR"/sbin/magisk.apk
     sudo tee -a "$MOUNT_DIR"/sbin/loadpolicy.sh <<EOF
 #!/system/bin/sh
 mkdir -p /data/adb/magisk
