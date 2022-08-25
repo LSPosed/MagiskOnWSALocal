@@ -412,7 +412,6 @@ if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
     done
 
     if [ $GAPPS_BRAND = "OpenGApps" ]; then
-        # cp --preserve=all -r "$WORK_DIR"/gapps/!(product) "$MOUNT_DIR"/system || abort
         find "$WORK_DIR"/gapps/ -maxdepth 1 -mindepth 1 -type d -not -path '*product' -exec sudo cp --preserve=all -r {} "$MOUNT_DIR"/system \; || abort
     elif [ $GAPPS_BRAND = "MindTheGapps" ]; then
         sudo cp --preserve=all -r "$WORK_DIR"/gapps/system_ext/* "$MOUNT_DIR"/system_ext/ || abort
@@ -422,12 +421,9 @@ if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
     fi
     sudo cp --preserve=all -r "$WORK_DIR"/gapps/product/* "$MOUNT_DIR"/product || abort
 
-    # sudo find "$MOUNT_DIR"/product/overlay -type f -exec chcon --reference="$MOUNT_DIR"/product/overlay/FontNotoSerifSource/FontNotoSerifSourceOverlay.apk {} \;
     find "$WORK_DIR"/gapps/product/overlay -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I file sudo find "$MOUNT_DIR"/product/overlay/file -type f -exec chcon --reference="$MOUNT_DIR"/product/overlay/FontNotoSerifSource/FontNotoSerifSourceOverlay.apk {} \;
 
     if [ $GAPPS_BRAND = "OpenGApps" ]; then
-        # sudo find "$MOUNT_DIR"/system/{app,framework,priv-app} -type d -exec chcon --reference="$MOUNT_DIR"/system/app {} \;
-        # sudo find "$MOUNT_DIR"/system/{app,framework,priv-app} -type f -exec chcon --reference="$MOUNT_DIR"/system/framework/ext.jar {} \;
         find "$WORK_DIR"/gapps/app/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I dir sudo find "$MOUNT_DIR"/system/app/dir -type d -exec chcon --reference="$MOUNT_DIR"/system/app {} \;
         find "$WORK_DIR"/gapps/framework/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I dir sudo find "$MOUNT_DIR"/system/framework/dir -type d -exec chcon --reference="$MOUNT_DIR"/system/framework {} \;
         find "$WORK_DIR"/gapps/priv-app/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I dir sudo find "$MOUNT_DIR"/system/priv-app/dir -type d -exec chcon --reference="$MOUNT_DIR"/system/priv-app {} \;
@@ -437,13 +433,11 @@ if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
         find "$WORK_DIR"/gapps/etc/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I dir sudo find "$MOUNT_DIR"/system/etc/dir -type d -exec chcon --reference="$MOUNT_DIR"/system/etc/permissions {} \;
         find "$WORK_DIR"/gapps/etc/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I dir sudo find "$MOUNT_DIR"/system/etc/dir -type f -exec chcon --reference="$MOUNT_DIR"/system/etc/permissions {} \;
     else
-        # sudo find "$MOUNT_DIR"/product/{app,etc,priv-app,framework} -type d -exec chcon --reference="$MOUNT_DIR"/product/app {} \;
         find "$WORK_DIR"/gapps/product/app/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I item sudo find "$MOUNT_DIR"/product/app/item -type d -exec chcon --reference="$MOUNT_DIR"/product/app {} \;
         find "$WORK_DIR"/gapps/product/etc/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I item sudo find "$MOUNT_DIR"/product/etc/item -type d -exec chcon --reference="$MOUNT_DIR"/product/etc {} \;
         find "$WORK_DIR"/gapps/product/priv-app/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I item sudo find "$MOUNT_DIR"/product/priv-app/item -type d -exec chcon --reference="$MOUNT_DIR"/product/priv-app {} \;
         find "$WORK_DIR"/gapps/product/framework/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I item sudo find "$MOUNT_DIR"/product/framework/item -type d -exec chcon --reference="$MOUNT_DIR"/product/framework {} \;
 
-        # sudo find "$MOUNT_DIR"/product/{app,etc,priv-app,framework} -type f -exec chcon --reference="$MOUNT_DIR"/product/etc/permissions/com.android.settings.intelligence.xml {} \;
         find "$WORK_DIR"/gapps/product/app/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I item sudo find "$MOUNT_DIR"/product/app/item -type f -exec chcon --reference="$MOUNT_DIR"/product/app/HomeApp/HomeApp.apk {} \;
         find "$WORK_DIR"/gapps/product/etc/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I item sudo find "$MOUNT_DIR"/product/etc/item -type f -exec chcon --reference="$MOUNT_DIR"/product/etc/permissions/com.android.settings.intelligence.xml {} \;
         find "$WORK_DIR"/gapps/product/priv-app/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I item sudo find "$MOUNT_DIR"/product/priv-app/item -type f -exec chcon --reference="$MOUNT_DIR"/product/priv-app/SettingsIntelligence/SettingsIntelligence.apk {} \;
@@ -452,10 +446,8 @@ if [ $GAPPS_VARIANT != 'none' ] && [ $GAPPS_VARIANT != '' ]; then
 
         find "$WORK_DIR"/gapps/product/lib/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I file sudo find "$MOUNT_DIR"/product/lib/file -exec chcon --reference="$MOUNT_DIR"/product/lib64/libjni_eglfence.so {} \;
         find "$WORK_DIR"/gapps/product/lib64/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I file sudo find "$MOUNT_DIR"/product/lib64/file -type f -exec chcon --reference="$MOUNT_DIR"/product/lib64/libjni_eglfence.so {} \;        
-        # sudo find "$MOUNT_DIR"/system_ext/{priv-app,etc} -type d -exec chcon --reference="$MOUNT_DIR"/system_ext/priv-app {} \;
         find "$WORK_DIR"/gapps/system_ext/priv-app/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I dir sudo find "$MOUNT_DIR"/system_ext/priv-app/dir -type d -exec chcon --reference="$MOUNT_DIR"/system_ext/priv-app {} \;
         find "$WORK_DIR"/gapps/system_ext/etc/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I dir sudo find "$MOUNT_DIR"/system_ext/etc/dir -type d -exec chcon --reference="$MOUNT_DIR"/system_ext/etc {} \;
-        # sudo find "$MOUNT_DIR"/system_ext/{priv-app,etc} -type f -exec chcon --reference="$MOUNT_DIR"/system_ext/etc/permissions/com.android.settings.xml {} \;
         find "$WORK_DIR"/gapps/system_ext/priv-app/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I dir sudo find "$MOUNT_DIR"/system_ext/priv-app/dir -type f -exec chcon --reference="$MOUNT_DIR"/system_ext/priv-app/Settings/Settings.apk {} \;
     fi
 
