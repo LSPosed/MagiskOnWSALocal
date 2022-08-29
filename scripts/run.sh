@@ -146,7 +146,7 @@ fi
 # else
 #     OFF_LINE=""
 # fi
-OFF_LINE="--off-line"
+# OFF_LINE="--off-line"
 clear
 
 COMMAND_LINE=(--arch "$ARCH" --release-type "$RELEASE_TYPE" --magisk-ver "$MAGISK_VER" --gapps-brand "$GAPPS_BRAND" --gapps-variant "$GAPPS_VARIANT" "$REMOVE_AMAZON" --root-sol "$ROOT_SOL" "$COMPRESS_OUTPUT" "$OFF_LINE" "$DEBUG" "$CUSTOM_MAGISK")
