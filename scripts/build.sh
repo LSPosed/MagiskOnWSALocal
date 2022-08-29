@@ -136,7 +136,7 @@ while [[ $# -gt 0 ]]; do
       --remove-amazon   ) REMOVE_AMAZON="remove"; shift ;;
       --root-sol        ) ROOT_SOL="$2"; shift 2 ;;
       --compress        ) COMPRESS_OUTPUT="yes"; shift ;;
-      --offline        ) OFFLINE="1"; shift ;;
+      --offline         ) OFFLINE="1"; shift ;;
       --debug           ) DEBUG="1"; shift ;;
       --magisk-custom   ) CUSTOM_MAGISK="1"; shift ;;
       --                ) shift; break;;
@@ -158,6 +158,8 @@ echo -e "build: ARCH=$ARCH\nRELEASE_TYPE=$RELEASE_TYPE\nMAGISK_VER=$MAGISK_VER\n
 declare -A RELEASE_TYPE_MAP=(["retail"]="Retail" ["release preview"]="RP" ["insider slow"]="WIS" ["insider fast"]="WIF")
 
 WSA_ZIP_PATH=$DOWNLOAD_DIR/wsa-$ARCH-${RELEASE_TYPE_MAP[$RELEASE_TYPE]}.zip
+vclibs_PATH=vclibs-"$ARCH".appx
+xaml_PATH=xaml-"$ARCH".appx
 MAGISK_PATH=$DOWNLOAD_DIR/magisk-$MAGISK_VER.zip
 if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
     GAPPS_PATH="$DOWNLOAD_DIR"/OpenGApps-$ARCH-$GAPPS_VARIANT.zip
@@ -184,8 +186,22 @@ if [ "$OFFLINE" != "1" ]; then
         exit 1
     fi
 else
-    if [ ! -f "$WSA_ZIP_PATH" ] || [ ! -f "$MAGISK_PATH" ] || [ ! -f "$GAPPS_PATH" ]; then
-        echo "Off line: Some of the file missing, please disable offline mode."
+    if [ ! -f "$WSA_ZIP_PATH" ] || [ ! -f "$xaml_PATH" ] || [ ! -f "$vclibs_PATH" ]; then
+        echo "Offline mode: missing WSA files."
+        OFFLINE_ERR="1"
+    fi
+    if [ ! -f "$MAGISK_PATH" ]; then
+        echo "Offline mode: missing Magisk $MAGISK_VER file."
+        OFFLINE_ERR="1"
+    fi
+    if [ "$GAPPS_VARIANT" != 'none' ] && [ "$GAPPS_VARIANT" != '' ]; then
+        if [ ! -f "$GAPPS_PATH" ]; then
+            echo "Offline mode: missing $GAPPS_BRAND file."
+            OFFLINE_ERR="1"
+        fi
+    fi
+    if [ -n "$OFFLINE_ERR" ]; then
+        echo "Offline mode: Some files are missing, please disable offline mode."
         exit 1
     fi
 fi
@@ -515,7 +531,7 @@ echo -e "Shrink images done\n"
 
 echo "Remove signature and add scripts"
 sudo rm -rf "${WORK_DIR:?}"/wsa/"$ARCH"/\[Content_Types\].xml "$WORK_DIR"/wsa/"$ARCH"/AppxBlockMap.xml "$WORK_DIR"/wsa/"$ARCH"/AppxSignature.p7x "$WORK_DIR"/wsa/"$ARCH"/AppxMetadata || abort
-cp "$DOWNLOAD_DIR"/vclibs-"$ARCH".appx "$DOWNLOAD_DIR"/xaml-"$ARCH".appx "$WORK_DIR"/wsa/"$ARCH" || abort
+cp "$DOWNLOAD_DIR"/"$vclibs_PATH" "$DOWNLOAD_DIR"/"$xaml_PATH" "$WORK_DIR"/wsa/"$ARCH" || abort
 tee "$WORK_DIR"/wsa/"$ARCH"/Install.ps1 <<EOF
 # Automated Install script by Midonei
 # http://github.com/doneibcn
