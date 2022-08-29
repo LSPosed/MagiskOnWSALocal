@@ -142,13 +142,13 @@ else
 fi
 
 # if ! (YesNoBox '([title]="Off line mode" [text]="Do you want to enable off line mode?")'); then
-#     OFF_LINE="--OFF-LINE"
+#     OFFLINE="--offline"
 # else
-#     OFF_LINE=""
+#     OFFLINE=""
 # fi
-# OFF_LINE="--off-line"
+# OFFLINE="--offline"
 clear
 
-COMMAND_LINE=(--arch "$ARCH" --release-type "$RELEASE_TYPE" --magisk-ver "$MAGISK_VER" --gapps-brand "$GAPPS_BRAND" --gapps-variant "$GAPPS_VARIANT" "$REMOVE_AMAZON" --root-sol "$ROOT_SOL" "$COMPRESS_OUTPUT" "$OFF_LINE" "$DEBUG" "$CUSTOM_MAGISK")
+COMMAND_LINE=(--arch "$ARCH" --release-type "$RELEASE_TYPE" --magisk-ver "$MAGISK_VER" --gapps-brand "$GAPPS_BRAND" --gapps-variant "$GAPPS_VARIANT" "$REMOVE_AMAZON" --root-sol "$ROOT_SOL" "$COMPRESS_OUTPUT" "$OFFLINE" "$DEBUG" "$CUSTOM_MAGISK")
 echo "COMMAND_LINE=${COMMAND_LINE[*]}"
 ./build.sh "${COMMAND_LINE[@]}"

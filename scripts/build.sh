@@ -39,7 +39,7 @@ CLEAN_DOWNLOAD_MAGISK=0
 CLEAN_DOWNLOAD_GAPPS=0
 REMOVE_AMAZON="keep"
 COMPRESS_OUTPUT="no"
-OFF_LINE=0
+OFFLINE=0
 umount_clean(){
     echo "Cleanup Work Directory"
     if [ -d "$MOUNT_DIR" ]; then
@@ -97,7 +97,7 @@ usage(){
     --root-sol
     --remove-amazon
     --compress
-    --off-line
+    --offline
     --magisk-custom
     --debug
     "
@@ -113,7 +113,7 @@ ARGUMENT_LIST=(
   "root-sol:"
   "remove-amazon"
   "compress"
-  "off-line"
+  "offline"
   "magisk-custom"
   "debug"
 )
@@ -136,7 +136,7 @@ while [[ $# -gt 0 ]]; do
       --remove-amazon   ) REMOVE_AMAZON="remove"; shift ;;
       --root-sol        ) ROOT_SOL="$2"; shift 2 ;;
       --compress        ) COMPRESS_OUTPUT="yes"; shift ;;
-      --off-line        ) OFF_LINE="1"; shift ;;
+      --offline        ) OFFLINE="1"; shift ;;
       --debug           ) DEBUG="1"; shift ;;
       --magisk-custom   ) CUSTOM_MAGISK="1"; shift ;;
       --                ) shift; break;;
@@ -165,7 +165,7 @@ else
     GAPPS_PATH="$DOWNLOAD_DIR"/MindTheGapps-"$ARCH".zip
 fi
 
-if [ "$OFF_LINE" != "1" ]; then
+if [ "$OFFLINE" != "1" ]; then
     trap 'rm -f -- "${DOWNLOAD_DIR:?}/${DOWNLOAD_CONF_NAME}"' EXIT
     echo "Generate Download Links"
     python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
@@ -185,7 +185,7 @@ if [ "$OFF_LINE" != "1" ]; then
     fi
 else
     if [ ! -f "$WSA_ZIP_PATH" ] || [ ! -f "$MAGISK_PATH" ] || [ ! -f "$GAPPS_PATH" ]; then
-        echo "Off line: Some of the file missing, please use online mode."
+        echo "Off line: Some of the file missing, please disable offline mode."
         exit 1
     fi
 fi
