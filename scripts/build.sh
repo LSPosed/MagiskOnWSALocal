@@ -94,6 +94,7 @@ usage(){
     default
     if [ "$1" ]; then
         echo "ERROR: $1"
+        abort
     fi
     echo "Usage:
     --arch          Architecture of WSA, x64 or arm64, default: $ARCH
@@ -108,7 +109,7 @@ usage(){
     --magisk-custom Install custom Magisk, default: false
     --debug         Debug build mode, default: false
     "
-    abort
+    exit 0
 }
 
 ARGUMENT_LIST=(
