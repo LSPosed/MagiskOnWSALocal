@@ -234,19 +234,25 @@ declare -A RELEASE_NAME_MAP=(["retail"]="Retail" ["RP"]="Release Preview" ["WIS"
 RELEASE_NAME=${RELEASE_NAME_MAP[$RELEASE_TYPE]} || abort
 
 echo -e "build: ARCH=$ARCH\nRELEASE_TYPE=$RELEASE_NAME\nMAGISK_VER=$MAGISK_VER\nGAPPS_VARIANT=$GAPPS_VARIANT\nROOT_SOL=$ROOT_SOL"
-if [ "$(sudo whoami)" != "root" ]; then
-    sudo echo ""
-fi
+
 WSA_ZIP_PATH=$DOWNLOAD_DIR/wsa-$ARCH-$RELEASE_TYPE.zip
 vclibs_PATH=$DOWNLOAD_DIR/vclibs-"$ARCH".appx
 xaml_PATH=$DOWNLOAD_DIR/xaml-"$ARCH".appx
 MAGISK_PATH=$DOWNLOAD_DIR/magisk-$MAGISK_VER.zip
+if [ "$CUSTOM_MAGISK" ]; then
+    if [ ! -f "$MAGISK_PATH" ]; then
+        echo "Custom Magisk not found, please rename it to magisk-debug.zip and put it in $DOWNLOAD_DIR"
+        abort
+    fi
+fi
 if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
     GAPPS_PATH="$DOWNLOAD_DIR"/OpenGApps-$ARCH-$GAPPS_VARIANT.zip
 else
     GAPPS_PATH="$DOWNLOAD_DIR"/MindTheGapps-"$ARCH".zip
 fi
-
+if [ "$(sudo whoami)" != "root" ]; then
+    sudo echo "sudo is required to run this script"
+fi
 if [ -z "${OFFLINE+x}" ]; then
     trap 'rm -f -- "${DOWNLOAD_DIR:?}/${DOWNLOAD_CONF_NAME}"' EXIT
     echo "Generate Download Links"
