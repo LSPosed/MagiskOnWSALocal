@@ -47,8 +47,10 @@ umount_clean(){
             sudo umount "$MOUNT_DIR"/system_ext
         fi
         sudo umount "$MOUNT_DIR"
+        sudo rm -rf "${WORK_DIR:?}"
+    else
+        rm -rf "${WORK_DIR:?}"
     fi
-    sudo rm -rf "${WORK_DIR:?}"
 }
 clean_download(){
     if [ -d "$DOWNLOAD_DIR" ]; then
@@ -91,22 +93,22 @@ default(){
 usage(){
     default
     if [ "$1" ]; then
-        echo "Unknown parameter: $1"
+        echo "ERROR: $1"
     fi
     echo "Usage:
     --arch          Architecture of WSA, x64 or arm64, default: $ARCH
-    --release-type  Release type of WSA, retail or debug, default: $RELEASE_TYPE
+    --release-type  Release type of WSA, retail, RP (Release Preview), WIS (Insider Slow) or WIF (Insider Fast), default: $RELEASE_TYPE
     --magisk-ver    Magisk version, stable or canary, default: $MAGISK_VER
     --gapps-brand   GApps brand, OpenGApps or MindTheGApps, default: $GAPPS_BRAND
     --gapps-variant GApps variant, pico or full, etc...., default: $GAPPS_VARIANT
-    --root-sol      Root solution, magisk or null, default: $ROOT_SOL
+    --root-sol      Root solution, magisk or none, default: $ROOT_SOL
     --remove-amazon Remove Amazon from the system, default: false
     --compress      Compress the WSA, default: false
     --offline       Build WSA offline, default: false
     --magisk-custom Install custom Magisk, default: false
     --debug         Debug build mode, default: false
     "
-    exit 1
+    abort
 }
 
 ARGUMENT_LIST=(
@@ -131,7 +133,7 @@ opts=$(getopt \
   --name "$(basename "$0")" \
   --options "" \
   -- "$@"
-)
+) || abort
 
 eval set --"$opts"
 while [[ $# -gt 0 ]]; do
@@ -149,22 +151,87 @@ while [[ $# -gt 0 ]]; do
         --debug           ) DEBUG="on"; shift ;;
         --help            ) usage; shift ;;
         --                ) shift; break;;
-        ?                 ) usage "$2"; break ;;
+        ?                 ) usage "Unknown parameter: $2"; break ;;
    esac
 done
 
-declare -A PARA_CHECK_LIST=([ARCH]="$ARCH" [RELEASE_TYPE]="$RELEASE_TYPE" [MAGISK_VER]="$MAGISK_VER" [GAPPS_VARIANT]="$GAPPS_VARIANT" [ROOT_SOL]="$ROOT_SOL")
-for i in "${PARA_CHECK_LIST[@]}"; do
-    if [ -z "${i+x}" ]; then
-        usage
-    fi
-done
+ARCH_MAP=(
+    "x64"
+    "arm64"
+)
 
-echo -e "build: ARCH=$ARCH\nRELEASE_TYPE=$RELEASE_TYPE\nMAGISK_VER=$MAGISK_VER\nGAPPS_VARIANT=$GAPPS_VARIANT\nROOT_SOL=$ROOT_SOL"
+RELEASE_TYPE_MAP=(
+    "retail"
+    "RP"
+    "WIS"
+    "WIF"
+)
 
-declare -A RELEASE_TYPE_MAP=(["retail"]="Retail" ["release preview"]="RP" ["insider slow"]="WIS" ["insider fast"]="WIF")
+MAGISK_VER_MAP=(
+    "stable"
+    "beta"
+    "canary"
+    "debug"
+)
 
-WSA_ZIP_PATH=$DOWNLOAD_DIR/wsa-$ARCH-${RELEASE_TYPE_MAP[$RELEASE_TYPE]}.zip
+GAPPS_BRAND_MAP=(
+    "OpenGApps"
+    "MindTheGApps"
+)
+
+GAPPS_VARIANT_MAP=(
+    "super"
+    "stock"
+    "full"
+    "mini"
+    "micro"
+    "nano"
+    "pico"
+    "tvstock"
+    "tvmini"
+)
+
+ROOT_SOL_MAP=(
+    "magisk"
+    "none"
+)
+
+check_list(){
+    local input=$1
+    local name=$2
+    shift
+    local arr=("$@")
+    local list_count=${#arr[@]}
+    for i in "${arr[@]}"; do
+        if [ "$input" == "$i" ]; then
+            break
+        fi
+        ((list_count--))
+        if (( "$list_count" <= 0 )); then
+            usage "Invalid $name: $input"
+        fi
+    done
+}
+
+check_list "$ARCH" "Architecture" "${ARCH_MAP[@]}"
+check_list "$RELEASE_TYPE" "Release Type" "${RELEASE_TYPE_MAP[@]}"
+check_list "$MAGISK_VER" "Magisk Version" "${MAGISK_VER_MAP[@]}"
+check_list "$GAPPS_BRAND" "GApps Brand" "${GAPPS_BRAND_MAP[@]}"
+check_list "$GAPPS_VARIANT" "GApps Variant" "${GAPPS_VARIANT_MAP[@]}"
+check_list "$ROOT_SOL" "Root Solution" "${ROOT_SOL_MAP[@]}"
+
+if [ "$DEBUG" ]; then
+    set -x
+fi
+
+declare -A RELEASE_NAME_MAP=(["retail"]="Retail" ["RP"]="Release Preview" ["WIS"]="Insider Slow" ["WIF"]="Insider Fast")
+RELEASE_NAME=${RELEASE_NAME_MAP[$RELEASE_TYPE]} || abort
+
+echo -e "build: ARCH=$ARCH\nRELEASE_TYPE=$RELEASE_NAME\nMAGISK_VER=$MAGISK_VER\nGAPPS_VARIANT=$GAPPS_VARIANT\nROOT_SOL=$ROOT_SOL"
+if [ "$(sudo whoami)" != "root" ]; then
+    sudo echo ""
+fi
+WSA_ZIP_PATH=$DOWNLOAD_DIR/wsa-$ARCH-$RELEASE_TYPE.zip
 vclibs_PATH=$DOWNLOAD_DIR/vclibs-"$ARCH".appx
 xaml_PATH=$DOWNLOAD_DIR/xaml-"$ARCH".appx
 MAGISK_PATH=$DOWNLOAD_DIR/magisk-$MAGISK_VER.zip
