@@ -151,7 +151,6 @@ while [[ $# -gt 0 ]]; do
         --debug           ) DEBUG="on"; shift ;;
         --help            ) usage; shift ;;
         --                ) shift; break;;
-        ?                 ) usage "Unknown parameter: $2"; break ;;
    esac
 done
 
