@@ -35,8 +35,8 @@ DOWNLOAD_CONF_NAME=download.list
 OUTPUT_DIR=../output
 MOUNT_DIR="$WORK_DIR"/system
 umount_clean(){
-    echo "Cleanup Work Directory"
     if [ -d "$MOUNT_DIR" ]; then
+        echo "Cleanup Work Directory"
         if [ -d "$MOUNT_DIR/vendor" ]; then
             sudo umount "$MOUNT_DIR"/vendor
         fi
@@ -90,12 +90,14 @@ default(){
     ROOT_SOL=magisk
 }
 
+exit_with_message(){
+    echo "ERROR: $1"
+    usage
+    abort
+}
+
 usage(){
     default
-    if [ "$1" ]; then
-        echo "ERROR: $1"
-        abort
-    fi
     echo "Usage:
     --arch          Architecture of WSA, x64 or arm64, default: $ARCH
     --release-type  Release type of WSA, retail, RP (Release Preview), WIS (Insider Slow) or WIF (Insider Fast), default: $RELEASE_TYPE
@@ -108,8 +110,12 @@ usage(){
     --offline       Build WSA offline, default: false
     --magisk-custom Install custom Magisk, default: false
     --debug         Debug build mode, default: false
+    --help          Show this help message and exit
+
+    Example: 
+        ./build.sh --arch x64 --release-type retail --magisk-ver stable --gapps-brand OpenGApps --gapps-variant pico --remove-amazon
+        ./build.sh --arch x64 --release-type retail --remove-amazon --magisk-custom --offline
     "
-    exit 0
 }
 
 ARGUMENT_LIST=(
@@ -148,9 +154,9 @@ while [[ $# -gt 0 ]]; do
         --remove-amazon   ) REMOVE_AMAZON="remove"; shift ;;
         --compress        ) COMPRESS_OUTPUT="yes"; shift ;;
         --offline         ) OFFLINE="on"; shift ;;
-        --magisk-custom   ) CUSTOM_MAGISK="debug"; MAGISK_VER=$CUSTOM_MAGISK shift ;;
+        --magisk-custom   ) CUSTOM_MAGISK="debug"; MAGISK_VER=$CUSTOM_MAGISK; shift ;;
         --debug           ) DEBUG="on"; shift ;;
-        --help            ) usage; shift ;;
+        --help            ) usage; exit 0 ;;
         --                ) shift; break;;
    esac
 done
@@ -208,7 +214,7 @@ check_list(){
         fi
         ((list_count--))
         if (( "$list_count" <= 0 )); then
-            usage "Invalid $name: $input"
+            exit_with_message "Invalid $name: $input"
         fi
     done
 }
