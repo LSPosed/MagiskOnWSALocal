@@ -20,6 +20,7 @@
 
 # DEBUG=--debug
 # CUSTOM_MAGISK=--magisk-custom
+
 if [ ! "$BASH_VERSION" ] ; then
     echo "Please do not use sh to run this script, just execute it directly" 1>&2
     exit 1
@@ -68,7 +69,8 @@ RELEASE_TYPE=$(
         'insider slow' "Beta Channel" 'off' \
         'insider fast' "Dev Channel" 'off'
 )
-if [ "$CUSTOM_MAGISK" != "1" ]; then
+
+if [ -z "${CUSTOM_MAGISK+x}" ]; then
     MAGISK_VER=$(
         Radiolist '([title]="Magisk version"
                         [default]="stable")' \
