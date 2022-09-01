@@ -97,7 +97,7 @@ if (YesNoBox '([title]="Install GApps" [text]="Do you want to install GApps?")')
         GAPPS_BRAND="OpenGApps"
     fi
 else
-    GAPPS_VARIANT="none"
+    GAPPS_BRAND="none"
 fi
 if [ $GAPPS_BRAND = "OpenGApps" ]; then
     # TODO: Keep it pico since other variants of opengapps are unable to boot successfully

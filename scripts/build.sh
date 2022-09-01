@@ -115,6 +115,7 @@ usage(){
     Example: 
         ./build.sh --arch x64 --release-type retail --magisk-ver stable --gapps-brand OpenGApps --gapps-variant pico --remove-amazon
         ./build.sh --arch x64 --release-type retail --remove-amazon --magisk-custom --offline
+        ./build.sh --release-type RP
     "
 }
 
@@ -183,6 +184,7 @@ MAGISK_VER_MAP=(
 GAPPS_BRAND_MAP=(
     "OpenGApps"
     "MindTheGApps"
+    "none"
 )
 
 GAPPS_VARIANT_MAP=(
@@ -195,6 +197,7 @@ GAPPS_VARIANT_MAP=(
     "pico"
     "tvstock"
     "tvmini"
+    "none"
 )
 
 ROOT_SOL_MAP=(
