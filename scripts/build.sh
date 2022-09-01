@@ -593,7 +593,7 @@ if [ "$GAPPS_VARIANT" != 'none' ] && [ "$GAPPS_VARIANT" != '' ] && [ "$GAPPS_BRA
     echo -e "Integrate GApps done\n"
 fi
 
-if [ "$GAPPS_VARIANT" != 'none' ] && [ "$GAPPS_VARIANT" != '' ]; then
+if [ "$GAPPS_VARIANT" != 'none' ] && [ "$GAPPS_VARIANT" != '' ] && [ "$GAPPS_BRAND" != 'none' ]; then
     echo "Fix GApps prop"
     sudo python3 fixGappsProp.py "$MOUNT_DIR" || abort
     echo -e "done\n"
@@ -724,7 +724,7 @@ elif [[ "$ROOT_SOL" = "" ]]; then
 else
     name1="-with-$ROOT_SOL-$MAGISK_VER"
 fi
-if [[ "$GAPPS_VARIANT" = "none" || "$GAPPS_VARIANT" = ""  ||  "$GAPPS_BRAND" != "none" ]]; then
+if [[ "$GAPPS_VARIANT" = "none" || "$GAPPS_VARIANT" = ""  ||  "$GAPPS_BRAND" = "none" ]]; then
     name2="-NoGApps"
 else
     if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
