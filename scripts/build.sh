@@ -141,7 +141,7 @@ opts=$(getopt \
   --name "$(basename "$0")" \
   --options "" \
   -- "$@"
-) || abort
+) || exit_with_message "Failed to parse options, please check your input"
 
 eval set --"$opts"
 while [[ $# -gt 0 ]]; do
