@@ -75,6 +75,9 @@
 - How can I get rid of Magisk?
 
     Choose `none` as the root solution.
+- How to install custom OpenGApps?
+
+    [Tutorial](./Custom-OpenGApps.md)
 
 ## Credits
 
