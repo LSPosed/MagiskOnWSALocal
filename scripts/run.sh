@@ -23,13 +23,13 @@
 
 DOWNLOAD_DIR=../download
 
-if [ ! "$BASH_VERSION" ] ; then
+if [ ! "$BASH_VERSION" ]; then
     echo "Please do not use sh to run this script, just execute it directly" 1>&2
     exit 1
 fi
 cd "$(dirname "$0")" || exit 1
 
-abort(){
+abort() {
     echo "Dependencies: an error has occurred, exit"
     exit 1
 }

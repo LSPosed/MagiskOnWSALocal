@@ -18,7 +18,7 @@
 # Copyright (C) 2022 LSPosed Contributors
 #
 
-if [ ! "$BASH_VERSION" ] ; then
+if [ ! "$BASH_VERSION" ]; then
     echo "Please do not use sh to run this script, just execute it directly" 1>&2
     exit 1
 fi
@@ -34,7 +34,7 @@ DOWNLOAD_DIR=../download
 DOWNLOAD_CONF_NAME=download.list
 OUTPUT_DIR=../output
 MOUNT_DIR="$WORK_DIR"/system
-umount_clean(){
+umount_clean() {
     if [ -d "$MOUNT_DIR" ]; then
         echo "Cleanup Work Directory"
         if [ -d "$MOUNT_DIR/vendor" ]; then
@@ -52,7 +52,7 @@ umount_clean(){
         rm -rf "${WORK_DIR:?}"
     fi
 }
-clean_download(){
+clean_download() {
     if [ -d "$DOWNLOAD_DIR" ]; then
         echo "Cleanup Download Directory"
         if [ "$CLEAN_DOWNLOAD_WSA" ]; then
@@ -77,11 +77,10 @@ abort() {
 trap abort INT TERM
 
 function Gen_Rand_Str {
-    tr -dc 'a-zA-Z0-9' < /dev/urandom | fold -w "$1" | head -n 1
+    tr -dc 'a-zA-Z0-9' </dev/urandom | fold -w "$1" | head -n 1
 }
 
-
-default(){
+default() {
     ARCH=x64
     RELEASE_TYPE=retail
     MAGISK_VER=stable
@@ -90,7 +89,7 @@ default(){
     ROOT_SOL=magisk
 }
 
-exit_with_message(){
+exit_with_message() {
     echo "ERROR: $1"
     usage
     exit 1
@@ -137,13 +136,13 @@ ROOT_SOL_MAP=(
     "magisk"
     "none"
 )
-ARR_TO_STR(){
+ARR_TO_STR() {
     local arr=("$@")
     local joined
-    printf -v joined "%s, " "${arr[@]}";
+    printf -v joined "%s, " "${arr[@]}"
     echo "${joined%, }"
 }
-usage(){
+usage() {
     default
     echo "Usage:
     --arch          Architecture of WSA.
@@ -187,36 +186,37 @@ Additional Options:
     --debug         Debug build mode
     --help          Show this help message and exit
 
-Example: 
+Example:
     ./build.sh --release-type RP --magisk-ver beta --gapps-variant pico --remove-amazon
-    ./build.sh --arch arm64 --release-type WIF --gapps-brand MindTheGapps 
+    ./build.sh --arch arm64 --release-type WIF --gapps-brand MindTheGapps
     ./build.sh --release-type WIS --gapps-brand none
     ./build.sh --offline --gapps-variant pico --magisk-custom
     "
 }
 
 ARGUMENT_LIST=(
-  "arch:"
-  "release-type:"
-  "magisk-ver:"
-  "gapps-brand:"
-  "gapps-variant:"
-  "root-sol:"
-  "remove-amazon"
-  "compress"
-  "offline"
-  "magisk-custom"
-  "debug"
-  "help"
+    "arch:"
+    "release-type:"
+    "magisk-ver:"
+    "gapps-brand:"
+    "gapps-variant:"
+    "root-sol:"
+    "remove-amazon"
+    "compress"
+    "offline"
+    "magisk-custom"
+    "debug"
+    "help"
 )
 
 default
 
-opts=$(getopt \
-  --longoptions "$(printf "%s," "${ARGUMENT_LIST[@]}")" \
-  --name "$(basename "$0")" \
-  --options "" \
-  -- "$@"
+opts=$(
+    getopt \
+        --longoptions "$(printf "%s," "${ARGUMENT_LIST[@]}")" \
+        --name "$(basename "$0")" \
+        --options "" \
+        -- "$@"
 ) || exit_with_message "Failed to parse options, please check your input"
 
 eval set --"$opts"
@@ -238,7 +238,7 @@ while [[ $# -gt 0 ]]; do
    esac
 done
 
-check_list(){
+check_list() {
     local input=$1
     local name=$2
     shift
@@ -250,7 +250,7 @@ check_list(){
             break
         fi
         ((list_count--))
-        if (( "$list_count" <= 0 )); then
+        if (("$list_count" <= 0)); then
             exit_with_message "Invalid $name: $input"
         fi
     done
@@ -533,7 +533,7 @@ service $SERVER_NAME4 /dev/$TMP_PATH/magisk --boot-complete
     seclabel u:r:magisk:s0
     oneshot
 EOF
-echo -e "Integrate Magisk done\n"
+    echo -e "Integrate Magisk done\n"
 fi
 
 echo "Merge Language Resources"
@@ -578,7 +578,7 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
         find "$WORK_DIR"/gapps/ -maxdepth 1 -mindepth 1 -type d -not -path '*product' -exec sudo cp --preserve=all -r {} "$MOUNT_DIR"/system \; || abort
     elif [ "$GAPPS_BRAND" = "MindTheGapps" ]; then
         sudo cp --preserve=all -r "$WORK_DIR"/gapps/system_ext/* "$MOUNT_DIR"/system_ext/ || abort
-        if [ -e "$MOUNT_DIR"/system_ext/priv-app/SetupWizard ] ; then
+        if [ -e "$MOUNT_DIR"/system_ext/priv-app/SetupWizard ]; then
             rm -rf "${MOUNT_DIR:?}/system_ext/priv-app/Provision"
         fi
     fi
@@ -609,7 +609,7 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
 
         sudo chcon --reference="$MOUNT_DIR"/product/lib64/libjni_eglfence.so "$MOUNT_DIR"/product/lib
         find "$WORK_DIR"/gapps/product/lib/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I file sudo find "$MOUNT_DIR"/product/lib/file -exec chcon --reference="$MOUNT_DIR"/product/lib64/libjni_eglfence.so {} \;
-        find "$WORK_DIR"/gapps/product/lib64/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I file sudo find "$MOUNT_DIR"/product/lib64/file -type f -exec chcon --reference="$MOUNT_DIR"/product/lib64/libjni_eglfence.so {} \;        
+        find "$WORK_DIR"/gapps/product/lib64/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I file sudo find "$MOUNT_DIR"/product/lib64/file -type f -exec chcon --reference="$MOUNT_DIR"/product/lib64/libjni_eglfence.so {} \;
         find "$WORK_DIR"/gapps/system_ext/priv-app/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I dir sudo find "$MOUNT_DIR"/system_ext/priv-app/dir -type d -exec chcon --reference="$MOUNT_DIR"/system_ext/priv-app {} \;
         find "$WORK_DIR"/gapps/system_ext/etc/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I dir sudo find "$MOUNT_DIR"/system_ext/etc/dir -type d -exec chcon --reference="$MOUNT_DIR"/system_ext/etc {} \;
         find "$WORK_DIR"/gapps/system_ext/priv-app/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I dir sudo find "$MOUNT_DIR"/system_ext/priv-app/dir -type f -exec chcon --reference="$MOUNT_DIR"/system_ext/priv-app/Settings/Settings.apk {} \;

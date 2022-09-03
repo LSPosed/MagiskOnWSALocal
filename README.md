@@ -3,7 +3,7 @@
 ## Pre-request
 
 - Ubuntu (you can use WSL2)
-    - [Search page](https://apps.microsoft.com/store/search?publisher=Canonical%20Group%20Limited)
+  - [Search page](https://apps.microsoft.com/store/search?publisher=Canonical%20Group%20Limited)
 
 ## Features
 
