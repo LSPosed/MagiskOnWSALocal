@@ -383,9 +383,6 @@ if [ -d "$WORK_DIR"/gapps ]; then
     if [ -d "$WORK_DIR"/gapps/system_ext ]; then
         SYSTEM_SIZE=$(( SYSTEM_SIZE - $(du --apparent-size -sB512 "$WORK_DIR"/gapps/system_ext | cut -f1) ))
     fi
-    if [ -d "$WORK_DIR"/gapps/product ]; then
-        PRODUCT_SIZE=$(( PRODUCT_SIZE - $(du --apparent-size -sB512 "$WORK_DIR"/gapps/product | cut -f1) ))
-    fi
 fi
 if [ -d "$WORK_DIR"/magisk ]; then
     SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/magisk/magisk | cut -f1) ))
