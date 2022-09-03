@@ -105,7 +105,7 @@ usage(){
     --gapps-brand   GApps brand, OpenGApps or MindTheGApps, default: $GAPPS_BRAND
     --gapps-variant GApps variant, pico or full, etc...., default: $GAPPS_VARIANT
     --root-sol      Root solution, magisk or none, default: $ROOT_SOL
-    --remove-amazon Remove Amazon from the system, default: false
+    --remove-amazon Remove Amazon Appstore from the system, default: false
     --compress      Compress the WSA, default: false
     --offline       Build WSA offline, default: false
     --magisk-custom Install custom Magisk, default: false

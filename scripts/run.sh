@@ -123,7 +123,7 @@ else
     GAPPS_VARIANT=$GAPPS_BRAND
 fi
 
-if (YesNoBox '([title]="Remove Amazon AppStore" [text]="Do you want to keep Amazon AppStore?")'); then
+if (YesNoBox '([title]="Remove Amazon Appstore" [text]="Do you want to keep Amazon Appstore?")'); then
     REMOVE_AMAZON=""
 else
     REMOVE_AMAZON="--remove-amazon"

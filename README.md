@@ -3,6 +3,7 @@
 ## Pre-request
 
 - Ubuntu (you can use WSL2)
+    - [Search page](https://apps.microsoft.com/store/search?publisher=Canonical%20Group%20Limited)
 
 ## Features
 
@@ -10,7 +11,7 @@
 - Keep each build up to date
 - Support both ARM64 and x64
 - Support all OpenGApps variants except for aroma (aroma does not support x86_64, please use super instead)
-- Remove Amazon AppStore
+- Remove Amazon Appstore
 - Fix VPN dialog not showing (use our [VpnDialogs app](https://github.com/LSPosed/VpnDialogs))
 - Add device management feature
 - Unattended installation
