@@ -21,6 +21,8 @@
 # DEBUG=--debug
 # CUSTOM_MAGISK=--magisk-custom
 
+DOWNLOAD_DIR=../download
+
 if [ ! "$BASH_VERSION" ] ; then
     echo "Please do not use sh to run this script, just execute it directly" 1>&2
     exit 1
