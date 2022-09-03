@@ -93,7 +93,7 @@ default(){
 exit_with_message(){
     echo "ERROR: $1"
     usage
-    abort
+    exit 1
 }
 
 usage(){
