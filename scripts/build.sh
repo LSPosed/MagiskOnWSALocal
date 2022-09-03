@@ -102,7 +102,7 @@ usage(){
     --arch          Architecture of WSA, x64 or arm64, default: $ARCH
     --release-type  Release type of WSA, retail, RP (Release Preview), WIS (Insider Slow) or WIF (Insider Fast), default: $RELEASE_TYPE
     --magisk-ver    Magisk version, stable or canary, default: $MAGISK_VER
-    --gapps-brand   GApps brand, OpenGApps or MindTheGApps, default: $GAPPS_BRAND
+    --gapps-brand   GApps brand, OpenGApps or MindTheGapps, default: $GAPPS_BRAND
     --gapps-variant GApps variant, pico or full, etc...., default: $GAPPS_VARIANT
     --root-sol      Root solution, magisk or none, default: $ROOT_SOL
     --remove-amazon Remove Amazon Appstore from the system, default: false
@@ -183,7 +183,7 @@ MAGISK_VER_MAP=(
 
 GAPPS_BRAND_MAP=(
     "OpenGApps"
-    "MindTheGApps"
+    "MindTheGapps"
     "none"
 )
 
@@ -198,6 +198,7 @@ GAPPS_VARIANT_MAP=(
     "tvstock"
     "tvmini"
     "none"
+    "MindTheGapps"
 )
 
 ROOT_SOL_MAP=(
@@ -381,6 +382,9 @@ if [ -d "$WORK_DIR"/gapps ]; then
     SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps | cut -f1) - $(du --apparent-size -sB512 "$WORK_DIR"/gapps/product | cut -f1) ))
     if [ -d "$WORK_DIR"/gapps/system_ext ]; then
         SYSTEM_SIZE=$(( SYSTEM_SIZE - $(du --apparent-size -sB512 "$WORK_DIR"/gapps/system_ext | cut -f1) ))
+    fi
+    if [ -d "$WORK_DIR"/gapps/product ]; then
+        PRODUCT_SIZE=$(( PRODUCT_SIZE - $(du --apparent-size -sB512 "$WORK_DIR"/gapps/product | cut -f1) ))
     fi
 fi
 if [ -d "$WORK_DIR"/magisk ]; then
