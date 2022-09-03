@@ -34,10 +34,8 @@ tempScript = sys.argv[5]
 print(
     f"Generating {brand} download link: arch={arch} variant={variant}", flush=True)
 abi_map = {"x64": "x86_64", "arm64": "arm64"}
-# TODO: keep it 11.0 since opengapps does not support 12+ yet
-# As soon as opengapps is available for 12+, we need to get the sdk/release from build.prop and
-# download the corresponding version
-release = "11.0"
+# TODO: get the sdk/release from build.prop and download the corresponding version
+release = "12L"
 if brand == "OpenGApps":
     try:
         res = requests.get(f"https://api.opengapps.org/list")

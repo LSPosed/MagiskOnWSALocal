@@ -794,9 +794,6 @@ else
     else
         name2="-$GAPPS_BRAND"
     fi
-    if [ "$GAPPS_BRAND" = "OpenGApps" ] && [ "$DEBUG" ]; then
-        echo ":warning: Since OpenGApps doesn't officially support Android 12.1 yet, lock the variant to pico!"
-    fi
 fi
 artifact_name="WSA${name1}${name2}_${WSA_VER}_${ARCH}_${WSA_REL}"
 echo "$artifact_name"
