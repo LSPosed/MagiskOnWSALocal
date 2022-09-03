@@ -3,8 +3,7 @@
 ## Pre-request
 
 - Ubuntu (you can use WSL2)
-    - [Ubuntu 22.04 LTS](https://apps.microsoft.com/store/detail/9PN20MSR04DW)
-    - [Ubuntu 20.04 LTS](https://apps.microsoft.com/store/detail/9MTTCL66CPXJ)
+    - [Search page](https://apps.microsoft.com/store/search?publisher=Canonical%20Group%20Limited)
 
 ## Features
 
