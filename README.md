@@ -3,6 +3,8 @@
 ## Pre-request
 
 - Ubuntu (you can use WSL2)
+    - [Ubuntu 22.04 LTS](https://apps.microsoft.com/store/detail/9PN20MSR04DW)
+    - [Ubuntu 20.04 LTS](https://apps.microsoft.com/store/detail/9MTTCL66CPXJ)
 
 ## Features
 
@@ -10,7 +12,7 @@
 - Keep each build up to date
 - Support both ARM64 and x64
 - Support all OpenGApps variants except for aroma (aroma does not support x86_64, please use super instead)
-- Remove Amazon AppStore
+- Remove Amazon Appstore
 - Fix VPN dialog not showing (use our [VpnDialogs app](https://github.com/LSPosed/VpnDialogs))
 - Add device management feature
 - Unattended installation

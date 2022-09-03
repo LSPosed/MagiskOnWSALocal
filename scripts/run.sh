@@ -47,7 +47,7 @@ function YesNoBox {
 }
 
 echo "Dependencies"
-sudo apt update && sudo apt -y install setools lzip wine winetricks patchelf whiptail e2fsprogs python3-pip aria2
+sudo apt update && sudo apt -y install setools lzip wine winetricks patchelf whiptail e2fsprogs python3-pip aria2 ca-certificates
 python3 -m pip install requests
 cp -r ../wine/.cache/* ~/.cache
 winetricks msxml6 || abort
@@ -123,7 +123,7 @@ else
     GAPPS_VARIANT=$GAPPS_BRAND
 fi
 
-if (YesNoBox '([title]="Remove Amazon AppStore" [text]="Do you want to keep Amazon AppStore?")'); then
+if (YesNoBox '([title]="Remove Amazon Appstore" [text]="Do you want to keep Amazon Appstore?")'); then
     REMOVE_AMAZON=""
 else
     REMOVE_AMAZON="--remove-amazon"
