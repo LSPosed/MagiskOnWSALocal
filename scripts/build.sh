@@ -96,26 +96,102 @@ exit_with_message(){
     exit 1
 }
 
+ARCH_MAP=(
+    "x64"
+    "arm64"
+)
+
+RELEASE_TYPE_MAP=(
+    "retail"
+    "RP"
+    "WIS"
+    "WIF"
+)
+
+MAGISK_VER_MAP=(
+    "stable"
+    "beta"
+    "canary"
+    "debug"
+)
+
+GAPPS_BRAND_MAP=(
+    "OpenGApps"
+    "MindTheGapps"
+    "none"
+)
+
+GAPPS_VARIANT_MAP=(
+    "super"
+    "stock"
+    "full"
+    "mini"
+    "micro"
+    "nano"
+    "pico"
+    "tvstock"
+    "tvmini"
+)
+
+ROOT_SOL_MAP=(
+    "magisk"
+    "none"
+)
+ARR_TO_STR(){
+    local arr=("$@")
+    local joined
+    printf -v joined "%s, " "${arr[@]}";
+    echo "${joined%, }"
+}
 usage(){
     default
     echo "Usage:
-    --arch          Architecture of WSA. x64 or arm64. default: $ARCH
-    --release-type  Release type of WSA. retail, RP (Release Preview), WIS (Insider Slow) or WIF (Insider Fast). default: $RELEASE_TYPE
-    --magisk-ver    Magisk version, stable or canary, default: $MAGISK_VER
-    --gapps-brand   GApps brand. OpenGApps, MindTheGapps or none for no integration of GApps. default: $GAPPS_BRAND
-    --gapps-variant GApps variant. pico or full, etc...., default: $GAPPS_VARIANT
-    --root-sol      Root solution. magisk or none, default: $ROOT_SOL
-    --remove-amazon Remove Amazon Appstore from the system. default: false
-    --compress      Compress the WSA. default: false
-    --offline       Build WSA offline. default: false
-    --magisk-custom Install custom Magisk. default: false
-    --debug         Debug build mode. default: false
-    --help          Show this help message and exit.
+    --arch          Architecture of WSA.
 
-    Example: 
-        ./build.sh --arch x64 --release-type retail --magisk-ver stable --gapps-brand OpenGApps --gapps-variant pico --remove-amazon
-        ./build.sh --arch x64 --release-type retail --remove-amazon --magisk-custom --offline
-        ./build.sh --release-type RP
+                    Possible values: $(ARR_TO_STR "${ARCH_MAP[@]}")
+                    Default: $ARCH
+
+    --release-type  Release type of WSA.
+                    RP means Release Preview, WIS means Insider Slow, WIF means Insider Fast.
+
+                    Possible values: $(ARR_TO_STR "${RELEASE_TYPE_MAP[@]}")
+                    Default: $RELEASE_TYPE
+
+    --magisk-ver    Magisk version.
+
+                    Possible values: $(ARR_TO_STR "${MAGISK_VER_MAP[@]}")
+                    Default: $MAGISK_VER
+
+    --gapps-brand   GApps brand.
+                    \"none\" for no integration of GApps
+
+                    Possible values: $(ARR_TO_STR "${GAPPS_BRAND_MAP[@]}")
+                    Default: $GAPPS_BRAND
+
+    --gapps-variant GApps variant.
+
+                    Possible values: $(ARR_TO_STR "${GAPPS_VARIANT_MAP[@]}")
+                    Default: $GAPPS_VARIANT
+
+    --root-sol      Root solution.
+                    \"none\" means no root.
+
+                    Possible values: $(ARR_TO_STR "${ROOT_SOL_MAP[@]}")
+                    Default: $ROOT_SOL
+
+Additional Options:
+    --remove-amazon Remove Amazon Appstore from the system
+    --compress      Compress the WSA
+    --offline       Build WSA offline
+    --magisk-custom Install custom Magisk
+    --debug         Debug build mode
+    --help          Show this help message and exit
+
+Example: 
+    ./build.sh --release-type RP --magisk-ver beta --gapps-variant pico --remove-amazon
+    ./build.sh --arch arm64 --release-type WIF --gapps-brand MindTheGapps 
+    ./build.sh --release-type WIS --gapps-brand none
+    ./build.sh --offline --gapps-variant pico --magisk-custom
     "
 }
 
@@ -161,48 +237,6 @@ while [[ $# -gt 0 ]]; do
         --                ) shift; break;;
    esac
 done
-
-ARCH_MAP=(
-    "x64"
-    "arm64"
-)
-
-RELEASE_TYPE_MAP=(
-    "retail"
-    "RP"
-    "WIS"
-    "WIF"
-)
-
-MAGISK_VER_MAP=(
-    "stable"
-    "beta"
-    "canary"
-    "debug"
-)
-
-GAPPS_BRAND_MAP=(
-    "OpenGApps"
-    "MindTheGapps"
-    "none"
-)
-
-GAPPS_VARIANT_MAP=(
-    "super"
-    "stock"
-    "full"
-    "mini"
-    "micro"
-    "nano"
-    "pico"
-    "tvstock"
-    "tvmini"
-)
-
-ROOT_SOL_MAP=(
-    "magisk"
-    "none"
-)
 
 check_list(){
     local input=$1
