@@ -99,18 +99,18 @@ exit_with_message(){
 usage(){
     default
     echo "Usage:
-    --arch          Architecture of WSA, x64 or arm64, default: $ARCH
-    --release-type  Release type of WSA, retail, RP (Release Preview), WIS (Insider Slow) or WIF (Insider Fast), default: $RELEASE_TYPE
+    --arch          Architecture of WSA. x64 or arm64. default: $ARCH
+    --release-type  Release type of WSA. retail, RP (Release Preview), WIS (Insider Slow) or WIF (Insider Fast). default: $RELEASE_TYPE
     --magisk-ver    Magisk version, stable or canary, default: $MAGISK_VER
-    --gapps-brand   GApps brand, OpenGApps or MindTheGapps, default: $GAPPS_BRAND
-    --gapps-variant GApps variant, pico or full, etc...., default: $GAPPS_VARIANT
-    --root-sol      Root solution, magisk or none, default: $ROOT_SOL
-    --remove-amazon Remove Amazon Appstore from the system, default: false
-    --compress      Compress the WSA, default: false
-    --offline       Build WSA offline, default: false
-    --magisk-custom Install custom Magisk, default: false
-    --debug         Debug build mode, default: false
-    --help          Show this help message and exit
+    --gapps-brand   GApps brand. OpenGApps, MindTheGapps or none for no integration of GApps. default: $GAPPS_BRAND
+    --gapps-variant GApps variant. pico or full, etc...., default: $GAPPS_VARIANT
+    --root-sol      Root solution. magisk or none, default: $ROOT_SOL
+    --remove-amazon Remove Amazon Appstore from the system. default: false
+    --compress      Compress the WSA. default: false
+    --offline       Build WSA offline. default: false
+    --magisk-custom Install custom Magisk. default: false
+    --debug         Debug build mode. default: false
+    --help          Show this help message and exit.
 
     Example: 
         ./build.sh --arch x64 --release-type retail --magisk-ver stable --gapps-brand OpenGApps --gapps-variant pico --remove-amazon
@@ -197,8 +197,6 @@ GAPPS_VARIANT_MAP=(
     "pico"
     "tvstock"
     "tvmini"
-    "none"
-    "MindTheGapps"
 )
 
 ROOT_SOL_MAP=(
@@ -265,10 +263,8 @@ if [ -z "${OFFLINE+x}" ]; then
     if [ -z "${CUSTOM_MAGISK+x}" ]; then
         python3 generateMagiskLink.py "$MAGISK_VER" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
     fi
-    if [ "$GAPPS_VARIANT" != 'none' ] && [ "$GAPPS_VARIANT" != '' ]; then
-        if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
-            python3 generateGappsLink.py "$ARCH" "$GAPPS_VARIANT" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
-        fi
+    if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
+        python3 generateGappsLink.py "$ARCH" "$GAPPS_VARIANT" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
     fi
 
     echo "Download Artifacts"
@@ -284,7 +280,7 @@ else
             OFFLINE_ERR="1"
         fi
     done
-    if [ "$GAPPS_VARIANT" != 'none' ] && [ "$GAPPS_VARIANT" != '' ] && [ "$GAPPS_BRAND" != 'none' ]; then
+    if [ "$GAPPS_BRAND" != 'none' ]; then
         if [ ! -f "$GAPPS_PATH" ]; then
             echo "Offline mode: missing [$GAPPS_PATH]."
             OFFLINE_ERR="1"
@@ -330,7 +326,7 @@ else
 fi
 echo -e "done\n"
 
-if [ "$GAPPS_VARIANT" != 'none' ] && [ "$GAPPS_VARIANT" != '' ] && [ "$GAPPS_BRAND" != 'none' ]; then
+if [ "$GAPPS_BRAND" != 'none' ]; then
     echo "Extract GApps"
     mkdir -p "$WORK_DIR"/gapps || abort
     if [ -f "$GAPPS_PATH" ]; then
@@ -533,7 +529,7 @@ find ../"$ARCH"/system/system/etc/permissions/ -maxdepth 1 -mindepth 1 -printf '
 find ../"$ARCH"/system/system/etc/permissions/ -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I file sudo find "$MOUNT_DIR"/system/etc/permissions/file -type f -exec chcon --reference="$MOUNT_DIR"/system/etc/permissions/platform.xml {} \;
 echo -e "Add extra packages done\n"
 
-if [ "$GAPPS_VARIANT" != 'none' ] && [ "$GAPPS_VARIANT" != '' ] && [ "$GAPPS_BRAND" != 'none' ]; then
+if [ "$GAPPS_BRAND" != 'none' ]; then
     echo "Integrate GApps"
 
     find "$WORK_DIR/gapps/" -mindepth 1 -type d -exec sudo chmod 0755 {} \;
@@ -594,7 +590,7 @@ if [ "$GAPPS_VARIANT" != 'none' ] && [ "$GAPPS_VARIANT" != '' ] && [ "$GAPPS_BRA
     echo -e "Integrate GApps done\n"
 fi
 
-if [ "$GAPPS_VARIANT" != 'none' ] && [ "$GAPPS_VARIANT" != '' ] && [ "$GAPPS_BRAND" != 'none' ]; then
+if [ "$GAPPS_BRAND" != 'none' ]; then
     echo "Fix GApps prop"
     sudo python3 fixGappsProp.py "$MOUNT_DIR" || abort
     echo -e "done\n"
@@ -725,7 +721,7 @@ elif [[ "$ROOT_SOL" = "" ]]; then
 else
     name1="-with-$ROOT_SOL-$MAGISK_VER"
 fi
-if [[ "$GAPPS_VARIANT" = "none" || "$GAPPS_VARIANT" = ""  ||  "$GAPPS_BRAND" = "none" ]]; then
+if [ "$GAPPS_BRAND" = "none" ]; then
     name2="-NoGApps"
 else
     if [ "$GAPPS_BRAND" = "OpenGApps" ]; then

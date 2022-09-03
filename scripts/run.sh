@@ -122,7 +122,7 @@ if [ $GAPPS_BRAND = "OpenGApps" ]; then
         GAPPS_VARIANT=pico
     fi
 else
-    GAPPS_VARIANT=$GAPPS_BRAND
+    GAPPS_VARIANT="pico"
 fi
 
 if (YesNoBox '([title]="Remove Amazon Appstore" [text]="Do you want to keep Amazon Appstore?")'); then
