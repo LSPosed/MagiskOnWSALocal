@@ -439,7 +439,7 @@ sudo mount -o loop "$WORK_DIR"/wsa/"$ARCH"/system_ext.img "$MOUNT_DIR"/system_ex
 echo -e "done\n"
 
 if [ "$REMOVE_AMAZON" ]; then
-    echo "Remove Amazon AppStore"
+    echo "Remove Amazon Appstore"
     find "${MOUNT_DIR:?}"/product/{etc/permissions,etc/sysconfig,framework,priv-app} | grep -e amazon -e venezia | sudo xargs rm -rf
     echo -e "done\n"
 fi
@@ -631,7 +631,7 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
 fi
 
 echo "Umount images"
-sudo find "$MOUNT_DIR" -exec touch -amt 200901010000.00 {} \; >/dev/null 2>&1
+sudo find "$MOUNT_DIR" -exec touch -hamt 200901010000.00 {} \;
 sudo umount "$MOUNT_DIR"/vendor
 sudo umount "$MOUNT_DIR"/product
 sudo umount "$MOUNT_DIR"/system_ext
