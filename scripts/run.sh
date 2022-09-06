@@ -86,9 +86,9 @@ check_package_manager
 if [ -n "${NEED_INSTALL[*]}" ]; then
     if [ -z "$PM" ]; then
         echo "Unable to determine package manager: unknown distribution"
-        exit 1
+        abort
     else
-        if ! sudo "$PM" "${UPDATE_OPTION[@]}" && sudo "$PM" "${INSTALL_OPTION[@]}" "${NEED_INSTALL[@]}"; then abort; fi
+        if ! (sudo "$PM" "${UPDATE_OPTION[@]}" && sudo "$PM" "${INSTALL_OPTION[@]}" "${NEED_INSTALL[@]}") then abort; fi
     fi
 fi
 pip list --disable-pip-version-check | grep -E "^requests " >/dev/null 2>&1 || python3 -m pip install requests
