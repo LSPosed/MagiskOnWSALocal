@@ -96,7 +96,7 @@
     Note that there is no x86_64 pre-build, so you need to build it by yourself ([Repository](https://gitlab.com/MindTheGapps/vendor_gapps)).
 - Can I switch OpenGApps to MindTheGapps and keep user data in a previous build?
 
-    No. You should wipe data after changing GApps the brand. Otherwise, you will find that the installed GApps are not recognized.
+    No. You should wipe data after changing the GApps brand. Otherwise, you will find that the installed GApps are not recognized.
 
 ## Credits
 
