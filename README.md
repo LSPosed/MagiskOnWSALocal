@@ -96,7 +96,7 @@
     Note that there is no x86_64 pre-build, so you need to build it by yourself ([Repo](https://gitlab.com/MindTheGapps)).
 - Can I switch OpenGApps to MindTheGapps and keep user data in a previous build?
 
-    No. you shoud wipe data after change GApps brand. Or you will find there no GApps have been recognized.
+    No. You shoud wipe data after change GApps brand. Or you will find there no GApps have been recognized.
 ## Credits
 
 - [StoreLib](https://github.com/StoreDev/StoreLib): API for downloading WSA
