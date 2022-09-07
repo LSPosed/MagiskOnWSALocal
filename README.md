@@ -35,7 +35,7 @@
         Select the [OpenGApps variant](https://github.com/opengapps/opengapps/wiki#variants) you like.
    - MindtheGapps
 
-       There is no other variant we can choose. 
+       There is no other variant we can choose.
 1. Select the root solution (none means no root)
 1. Wait for the script to complete and the artifact will be in the `output` folder
 1. Move the artifact to a place you like
@@ -91,12 +91,13 @@
     [Tutorial](./Custom-OpenGApps.md)
 - Where can I download MindtheGapps?
 
-    You can download in here [MindtheGapps](https://androidfilehost.com/?w=files&flid=322935) ([mirror](http://downloads.codefi.re/jdcteam/javelinanddart/gapps))
+    You can download from here [MindtheGapps](https://androidfilehost.com/?w=files&flid=322935) ([mirror](http://downloads.codefi.re/jdcteam/javelinanddart/gapps))
 
-    Note that there is no x86_64 pre-build, so you need to build it by yourself ([Repo](https://gitlab.com/MindTheGapps)).
+    Note that there is no x86_64 pre-build, so you need to build it by yourself ([Repository](https://gitlab.com/MindTheGapps/vendor_gapps)).
 - Can I switch OpenGApps to MindTheGapps and keep user data in a previous build?
 
-    No. You should wipe data after changing GApps brand. Or you will find there no GApps have been recognized.
+    No. You should wipe data after changing GApps the brand. Otherwise, you will find that the installed GApps are not recognized.
+
 ## Credits
 
 - [StoreLib](https://github.com/StoreDev/StoreLib): API for downloading WSA
