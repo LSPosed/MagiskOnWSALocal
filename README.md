@@ -24,18 +24,18 @@
 
 1. Star (if you like)
 1. Clone the repo to local
-   - If you want to install MindtheGapps, place `MindtheGapps-{arch}.zip` to `download` folder. {arch} can be `x64` or `arm64`.
-   - Run `build.sh --help` to get the usage if you want to use cli.
+   - If you want to install MindtheGapps, place `MindtheGapps-{arch}.zip` in the `download` folder. {arch} can be `x64` or `arm64`.
+   - Run `build.sh --help` to get the usage if you want to use CLI.
 1. Run `scripts/run.sh`
 1. Select the version of Magisk
-1. Choose which brand of GApps you want to install (If the package of Mindthegapps not exist, you will not been asking for this).
+1. Choose which brand of GApps you want to install (If the package of Mindthegapps does not exist, you will not be asking for this).
    - OpenGApps
 
     Select the [OpenGApps variant](https://github.com/opengapps/opengapps/wiki#variants) you like, select the root solution (none means no root), select the WSA version and its architecture (mostly x64)
 
    - MindtheGapps
 
-   There no other variant we can choose. 
+   There is no other variant we can choose. 
 1. Wait for the script to complete and the artifact will be in the `output` folder
 
 1. Move the artifact to a place you like
@@ -93,10 +93,10 @@
 
     You can download in here [MindtheGapps](https://androidfilehost.com/?w=files&flid=322935) ([mirror](http://downloads.codefi.re/jdcteam/javelinanddart/gapps))
 
-    Note that there are no x86_64 pre-build, so you need to build it by yourself ([Repo](https://gitlab.com/MindTheGapps)).
-- Can I switch OpenGApps to MindTheGapps and keep userdata in a previously build?
+    Note that there is no x86_64 pre-build, so you need to build it by yourself ([Repo](https://gitlab.com/MindTheGapps)).
+- Can I switch OpenGApps to MindTheGapps and keep user data in a previous build?
 
-    No, you shoud wipe data after change GApps brand. Or you will find there no GApps been recognized.
+    No, you shoud wipe data after change GApps brand. Or you will find there no GApps have been recognized.
 ## Credits
 
 - [StoreLib](https://github.com/StoreDev/StoreLib): API for downloading WSA
