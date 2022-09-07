@@ -31,11 +31,11 @@
 1. Choose which brand of GApps you want to install (If the package of Mindthegapps does not exist, you will not be asking for this).
    - OpenGApps
 
-    Select the [OpenGApps variant](https://github.com/opengapps/opengapps/wiki#variants) you like, select the root solution (none means no root), select the WSA version and its architecture (mostly x64)
+        Select the [OpenGApps variant](https://github.com/opengapps/opengapps/wiki#variants) you like, select the root solution (none means no root), select the WSA version and its architecture (mostly x64)
 
    - MindtheGapps
 
-   There is no other variant we can choose. 
+       There is no other variant we can choose. 
 1. Wait for the script to complete and the artifact will be in the `output` folder
 
 1. Move the artifact to a place you like
@@ -96,7 +96,7 @@
     Note that there is no x86_64 pre-build, so you need to build it by yourself ([Repo](https://gitlab.com/MindTheGapps)).
 - Can I switch OpenGApps to MindTheGapps and keep user data in a previous build?
 
-    No, you shoud wipe data after change GApps brand. Or you will find there no GApps have been recognized.
+    No. you shoud wipe data after change GApps brand. Or you will find there no GApps have been recognized.
 ## Credits
 
 - [StoreLib](https://github.com/StoreDev/StoreLib): API for downloading WSA
