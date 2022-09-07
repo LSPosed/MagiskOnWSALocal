@@ -92,7 +92,7 @@
 
     You can download in here [MindtheGapps](https://androidfilehost.com/?w=files&flid=322935) ([mirror](http://downloads.codefi.re/jdcteam/javelinanddart/gapps))
 
-    Note that there are no x86_64 pre-build, so you need to build it by yourself.
+    Note that there are no x86_64 pre-build, so you need to build it by yourself ([Repo](https://gitlab.com/MindTheGapps)).
 
 ## Credits
 
