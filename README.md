@@ -27,17 +27,17 @@
    - If you want to install MindtheGapps, place `MindtheGapps-{arch}.zip` in the `download` folder. {arch} can be `x64` or `arm64`.
    - Run `build.sh --help` to get the usage if you want to use CLI.
 1. Run `scripts/run.sh`
+1. Select the WSA version and its architecture (mostly x64)
 1. Select the version of Magisk
 1. Choose which brand of GApps you want to install (If the package of Mindthegapps does not exist, you will not be asking for this).
    - OpenGApps
 
-        Select the [OpenGApps variant](https://github.com/opengapps/opengapps/wiki#variants) you like, select the root solution (none means no root), select the WSA version and its architecture (mostly x64)
-
+        Select the [OpenGApps variant](https://github.com/opengapps/opengapps/wiki#variants) you like.
    - MindtheGapps
 
        There is no other variant we can choose. 
+1. Select the root solution (none means no root)
 1. Wait for the script to complete and the artifact will be in the `output` folder
-
 1. Move the artifact to a place you like
 1. Right-click `Install.ps1` and select `Run with PowerShell`
     - If you previously have a MagiskOnWSA installation, it will automatically uninstall the previous one while **preserving all user data** and install the new one, so don't worry about your data.
