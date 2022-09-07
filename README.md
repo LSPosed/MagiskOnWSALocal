@@ -25,6 +25,7 @@
 1. Star (if you like)
 1. Clone the repo to local
    - If you want to install Mindthegapps, place `Mindthegapps-{arch}.zip` to `download` folder.
+   - Run `build.sh --help` to get the usage if you want to use cli.
 1. Run `scripts/run.sh`
 1. Select the version of Magisk
 1. Choose which brand of GApps you want to install (If the package of Mindthegapps not exist, you will not been asking for this).
