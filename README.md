@@ -7,7 +7,7 @@
 
 ## Features
 
-- Integrate Magisk and OpenGApps in a few clicks within minutes
+- Integrate Magisk and GApps in a few clicks within minutes
 - Keep each build up to date
 - Support both ARM64 and x64
 - Support all OpenGApps variants except for aroma (aroma does not support x86_64, please use super instead)
