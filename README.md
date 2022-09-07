@@ -24,8 +24,17 @@
 
 1. Star (if you like)
 1. Clone the repo to local
+   - If you want to install Mindthegapps, place `Mindthegapps-{arch}.zip` to `download` folder.
 1. Run `scripts/run.sh`
-1. Select the version of Magisk and select the [OpenGApps variant](https://github.com/opengapps/opengapps/wiki#variants) you like, select the root solution (none means no root), select the WSA version and its architecture (mostly x64)
+1. Select the version of Magisk
+1. Choose which brand of GApps you want to install (If the package of Mindthegapps not exist, you will not been asking for this).
+   - OpenGApps
+
+    Select the [OpenGApps variant](https://github.com/opengapps/opengapps/wiki#variants) you like, select the root solution (none means no root), select the WSA version and its architecture (mostly x64)
+
+   - Mindthegapps
+
+   There no other variant we can choose. 
 1. Wait for the script to complete and the artifact will be in the `output` folder
 
 1. Move the artifact to a place you like
@@ -79,6 +88,11 @@
 - How to install custom OpenGApps?
 
     [Tutorial](./Custom-OpenGApps.md)
+- Where can I download Mindthegapps?
+
+    You can download in here [MindtheGapps](https://androidfilehost.com/?w=files&flid=322935) ([mirror](http://downloads.codefi.re/jdcteam/javelinanddart/gapps))
+
+    Note that there are no x86_64 pre-build, so you need to build it by yourself.
 
 ## Credits
 
