@@ -94,7 +94,9 @@
     You can download in here [MindtheGapps](https://androidfilehost.com/?w=files&flid=322935) ([mirror](http://downloads.codefi.re/jdcteam/javelinanddart/gapps))
 
     Note that there are no x86_64 pre-build, so you need to build it by yourself ([Repo](https://gitlab.com/MindTheGapps)).
+- Can I switch OpenGApps to MindTheGapps and keep userdata in a previously build?
 
+    No, you shoud wipe data after change GApps brand. Or you will find there no GApps been recognized.
 ## Credits
 
 - [StoreLib](https://github.com/StoreDev/StoreLib): API for downloading WSA
