@@ -1,9 +1,23 @@
 # Magisk on WSA (with Google Apps)
 
-## Pre-request
+## Support for generating from these systems
 
-- Ubuntu (you can use WSL2)
-  - [Search page](https://apps.microsoft.com/store/search?publisher=Canonical%20Group%20Limited)
+- Linux (x86_64 or arm64)
+
+    The following dependencies are required: `setools lzip wine patchelf e2fsprogs aria2 python3`
+
+    The following components need to be installed using `winetricks`: `msxml6`
+
+    The python3 library `requests` is used.
+  - Recommended Use
+    - Ubuntu (You can use [WSL2](https://apps.microsoft.com/store/search?publisher=Canonical%20Group%20Limited))
+
+        `run.sh` will handle all dependencies automatically.
+        No need to type any commands.
+  - Other Distributions
+
+    Install the dependencies manually.
+    Use the command-line program `build.sh`.
 
 ## Features
 
