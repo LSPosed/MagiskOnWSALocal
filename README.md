@@ -9,6 +9,8 @@
     The following components need to be installed using `winetricks`: `msxml6`
 
     The python3 library `requests` is used.
+
+    Python version ≥ 3.7.
   - Recommended Use
     - Ubuntu (You can use [WSL2](https://apps.microsoft.com/store/search?publisher=Canonical%20Group%20Limited))
 
