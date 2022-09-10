@@ -92,7 +92,7 @@ default() {
     ARCH=x64
     RELEASE_TYPE=retail
     MAGISK_VER=stable
-    GAPPS_BRAND=OpenGApps
+    GAPPS_BRAND=MindTheGapps
     GAPPS_VARIANT=pico
     ROOT_SOL=magisk
 }
