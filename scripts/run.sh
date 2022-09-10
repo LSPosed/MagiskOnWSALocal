@@ -145,17 +145,13 @@ else
 fi
 
 if (YesNoBox '([title]="Install GApps" [text]="Do you want to install GApps?")'); then
-    if [ -f "$DOWNLOAD_DIR"/MindTheGapps-"$ARCH".zip ]; then
-        GAPPS_BRAND=$(
-            Radiolist '([title]="Which GApps do you want to install?"
-                     [default]="OpenGApps")' \
-                \
-                'OpenGApps' "" 'on' \
-                'MindTheGapps' "" 'off'
-        )
-    else
-        GAPPS_BRAND="OpenGApps"
-    fi
+    GAPPS_BRAND=$(
+        Radiolist '([title]="Which GApps do you want to install?"
+                 [default]="OpenGApps")' \
+            \
+            'OpenGApps' "" 'on' \
+            'MindTheGapps' "" 'off'
+    )
 else
     GAPPS_BRAND="none"
 fi
