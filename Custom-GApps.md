@@ -12,4 +12,4 @@
         Place custom MindTheGapps to `download` folder and rename to `MindTheGapps-{arch}.zip` (e.g. `MindTheGapps-x64.zip`)
 1. Build WSA offline
 
-    `./build.sh --offline --gapps-variant {variant}`
+    `./build.sh --offline --gapps-brand {brand} --gapps-variant {variant}`
