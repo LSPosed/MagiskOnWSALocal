@@ -102,9 +102,9 @@
 - How can I get rid of Magisk?
 
     Choose `none` as the root solution.
-- How to install custom OpenGApps?
+- How to install custom GApps?
 
-    [Tutorial](./Custom-OpenGApps.md)
+    [Tutorial](./Custom-GApps.md)
 - Where can I download MindtheGapps?
 
     You can download from here [MindtheGapps](https://androidfilehost.com/?w=files&flid=322935) ([mirror](http://downloads.codefi.re/jdcteam/javelinanddart/gapps))
