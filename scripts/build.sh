@@ -29,8 +29,7 @@ if [ "$HOST_ARCH" != "x86_64" ] && [ "$HOST_ARCH" != "aarch64" ]; then
 fi
 cd "$(dirname "$0")" || exit 1
 trap umount_clean EXIT
-PARENT_DIR="$(dirname "$PWD")"
-# export TMPDIR=$PARENT_DIR/WORK_DIR_
+# export TMPDIR=$(dirname "$PWD")/WORK_DIR_
 if [ "$TMPDIR" ] && [ ! -d "$TMPDIR" ]; then
     mkdir -p "$TMPDIR"
 fi
