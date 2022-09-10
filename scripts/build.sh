@@ -308,6 +308,8 @@ if [ -z "${OFFLINE+x}" ]; then
     fi
     if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
         python3 generateGappsLink.py "$ARCH" "$GAPPS_VARIANT" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
+    elif [ "$GAPPS_BRAND" = "MindTheGapps" ]; then
+        python3 generateMGappsLink.py "$ARCH" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
     fi
 
     echo "Download Artifacts"
