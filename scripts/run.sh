@@ -43,6 +43,7 @@ check_dependencies() {
     command -v resize2fs >/dev/null 2>&1 || NEED_INSTALL+=("e2fsprogs")
     command -v pip >/dev/null 2>&1 || NEED_INSTALL+=("python3-pip")
     command -v aria2c >/dev/null 2>&1 || NEED_INSTALL+=("aria2")
+    command -v 7zip > /dev/null 2>&1 || NEED_INSTALL+=("7zip")
 }
 check_dependencies
 declare -A os_pm_install;
