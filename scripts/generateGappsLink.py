@@ -45,7 +45,6 @@ if brand == "OpenGApps":
         j = json.loads(res.content)
         link = {i["name"]: i for i in j["archs"][abi_map[arch]]
                 ["apis"][release]["variants"]}[variant]["zip"]
-        # print(f"JSON={j}", flush=True)
         DATE=j["archs"][abi_map[arch]]["date"]
         print(f"DATE={DATE}", flush=True)
     except Exception:
