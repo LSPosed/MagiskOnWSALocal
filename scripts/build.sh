@@ -655,10 +655,29 @@ echo -e "Shrink images done\n"
 
 echo "Remove signature and add scripts"
 sudo rm -rf "${WORK_DIR:?}"/wsa/"$ARCH"/\[Content_Types\].xml "$WORK_DIR"/wsa/"$ARCH"/AppxBlockMap.xml "$WORK_DIR"/wsa/"$ARCH"/AppxSignature.p7x "$WORK_DIR"/wsa/"$ARCH"/AppxMetadata || abort
-cp "$vclibs_PATH" "$xaml_PATH" "$WORK_DIR"/wsa/"$ARCH" || abort
-tee "$WORK_DIR"/wsa/"$ARCH"/Install.ps1 <<EOF
-# Automated Install script by Midonei
-# http://github.com/doneibcn
+mkdir -p "$WORK_DIR"/wsa/"$ARCH"/MagiskOnWSA || abort
+cp "$vclibs_PATH" "$xaml_PATH" "$WORK_DIR"/wsa/"$ARCH"/MagiskOnWSA || abort
+tee "$WORK_DIR"/wsa/"$ARCH"/Install.bat <<EOF
+@echo off
+if not exist MagiskOnWSA\Install.ps1 (
+    echo "MagiskOnWSA\Install.ps1" is not found.
+    echo Press any key to exist
+    pause>nul
+    exit 1
+) else (
+    start powershell.exe -File .\MagiskOnWSA\Install.ps1 -ExecutionPolicy Bypass
+    exit
+)
+EOF
+tee "$WORK_DIR"/wsa/"$ARCH"/MagiskOnWSA/Install.ps1 <<EOF
+\$Host.UI.RawUI.WindowTitle = "Installing MagiskOnWSA..."
+
+if ((Test-Path -Path Install.ps1) -eq \$true) {
+    Write-Warning "Please run from \`"Install.bat\`" in the parent directory.\`r\`nPress any key to exit"
+    \$null = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+    exit 1
+}
+
 function Test-Administrator {
     [OutputType([bool])]
     param()
@@ -676,7 +695,7 @@ function Finish {
 
 if (-not (Test-Administrator)) {
     Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass -Force
-    \$proc = Start-Process -PassThru -WindowStyle Hidden -Verb RunAs powershell.exe -Args "-executionpolicy bypass -command Set-Location '\$PSScriptRoot'; &'\$PSCommandPath' EVAL"
+    \$proc = Start-Process -PassThru -WindowStyle Hidden -Verb RunAs powershell.exe -Args "-ExecutionPolicy Bypass -Command Set-Location '\$PSScriptRoot'; &'\$PSCommandPath' EVAL"
     \$proc.WaitForExit()
     if (\$proc.ExitCode -ne 0) {
         Clear-Host
@@ -686,11 +705,11 @@ if (-not (Test-Administrator)) {
     exit
 }
 elseif ((\$args.Count -eq 1) -and (\$args[0] -eq "EVAL")) {
-    Start-Process powershell.exe -Args "-executionpolicy bypass -command Set-Location '\$PSScriptRoot'; &'\$PSCommandPath'"
+    Start-Process powershell.exe -Args "-ExecutionPolicy Bypass -Command Set-Location '\$PSScriptRoot'; &'\$PSCommandPath'"
     exit
 }
 
-if (((Test-Path -Path $(find "$WORK_DIR"/wsa/"$ARCH" -maxdepth 1 -mindepth 1 -printf "\"%P\"\n" | paste -sd "," -)) -eq \$false).Count) {
+if (((Test-Path -Path $((find "$WORK_DIR"/wsa/"$ARCH" -maxdepth 1 -mindepth 1 -printf "\"%P\"\n" && find "$WORK_DIR"/wsa/"$ARCH"/MagiskOnWSA -maxdepth 1 -mindepth 1 -printf "\"%p\"\n") | awk '{sub(".*/MagiskOnWSA/", "\"MagiskOnWSA\\");print $0;}' | paste -sd "," -)) -eq \$false).Count) {
     Write-Error "Some files are missing in the folder. Please try to build again. Press any key to exist"
     \$null = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
     exit 1
@@ -698,45 +717,44 @@ if (((Test-Path -Path $(find "$WORK_DIR"/wsa/"$ARCH" -maxdepth 1 -mindepth 1 -pr
 
 reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
 
-\$VMP = Get-WindowsOptionalFeature -Online -FeatureName 'VirtualMachinePlatform'
-if (\$VMP.State -ne "Enabled") {
+if (\$(Get-WindowsOptionalFeature -Online -FeatureName 'VirtualMachinePlatform').State -ne "Enabled") {
     Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName 'VirtualMachinePlatform'
     Clear-Host
     Write-Warning "Need restart to enable virtual machine platform\`r\`nPress y to restart or press any key to exit"
     \$key = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
-    If ("y" -eq \$key.Character) {
+    if ("y" -eq \$key.Character) {
         Restart-Computer -Confirm
     }
-    Else {
+    else {
         exit 1
     }
 }
 
-Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Path vclibs-$ARCH.appx
-Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Path xaml-$ARCH.appx
+Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Path .\\MagiskOnWSA\\vclibs-$ARCH.appx
+Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Path .\\MagiskOnWSA\\xaml-$ARCH.appx
 
 \$Installed = \$null
 \$Installed = Get-AppxPackage -Name 'MicrosoftCorporationII.WindowsSubsystemForAndroid'
 
-If ((\$null -ne \$Installed) -and (-not (\$Installed.IsDevelopmentMode))) {
+if ((\$null -ne \$Installed) -and (-not (\$Installed.IsDevelopmentMode))) {
     Clear-Host
     Write-Warning "There is already one installed WSA. Please uninstall it first.\`r\`nPress y to uninstall existing WSA or press any key to exit"
     \$key = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
-    If ("y" -eq \$key.Character) {
+    if ("y" -eq \$key.Character) {
         Remove-AppxPackage -Package \$Installed.PackageFullName
     }
-    Else {
+    else {
         exit 1
     }
 }
 Clear-Host
 Write-Host "Installing MagiskOnWSA..."
-Stop-Process -Name "wsaclient" -ErrorAction "silentlycontinue"
+Stop-Process -Name "WsaClient" -ErrorAction SilentlyContinue
 Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Register .\AppxManifest.xml
 if (\$?) {
     Finish
 }
-Elseif (\$null -ne \$Installed) {
+elseif (\$null -ne \$Installed) {
     Clear-Host
     Write-Host "Failed to update, try to uninstall existing installation while preserving userdata..."
     Remove-AppxPackage -PreserveApplicationData -Package \$Installed.PackageFullName
@@ -745,7 +763,7 @@ Elseif (\$null -ne \$Installed) {
         Finish
     }
 }
-Write-Host "All Done\`r\`nPress any key to exit"
+Write-Host "All Done!\`r\`nPress any key to exit"
 \$null = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
 EOF
 echo -e "Remove signature and add scripts done\n"
