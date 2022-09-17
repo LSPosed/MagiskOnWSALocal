@@ -655,33 +655,10 @@ echo -e "Shrink images done\n"
 
 echo "Remove signature and add scripts"
 sudo rm -rf "${WORK_DIR:?}"/wsa/"$ARCH"/\[Content_Types\].xml "$WORK_DIR"/wsa/"$ARCH"/AppxBlockMap.xml "$WORK_DIR"/wsa/"$ARCH"/AppxSignature.p7x "$WORK_DIR"/wsa/"$ARCH"/AppxMetadata || abort
-mkdir -p "$WORK_DIR"/wsa/"$ARCH"/MagiskOnWSA || abort
-cp "$vclibs_PATH" "$xaml_PATH" "$WORK_DIR"/wsa/"$ARCH"/MagiskOnWSA || abort
-tee "$WORK_DIR"/wsa/"$ARCH"/Install.bat <<EOF
-: Automated Install batch script by Syuugo
-
-@echo off
-if not exist MagiskOnWSA\Install.ps1 (
-    echo "MagiskOnWSA\Install.ps1" is not found.
-    echo Press any key to exit
-    pause>nul
-    exit 1
-) else (
-    start powershell.exe -File .\MagiskOnWSA\Install.ps1 -ExecutionPolicy Bypass
-    exit
-)
-EOF
-tee "$WORK_DIR"/wsa/"$ARCH"/MagiskOnWSA/Install.ps1 <<EOF
+cp "$vclibs_PATH" "$xaml_PATH" "$WORK_DIR"/wsa/"$ARCH" || abort
+tee "$WORK_DIR"/wsa/"$ARCH"/Install.ps1 <<EOF
 # Automated Install script by Midonei
-
 \$Host.UI.RawUI.WindowTitle = "Installing MagiskOnWSA..."
-
-If ((Test-Path -Path Install.ps1) -Eq \$true) {
-    Write-Warning "Please run from \`"Install.bat\`" in the parent directory.\`r\`nPress any key to exit"
-    \$null = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
-    exit 1
-}
-
 function Test-Administrator {
     [OutputType([bool])]
     param()
@@ -713,7 +690,7 @@ ElseIf ((\$args.Count -Eq 1) -And (\$args[0] -Eq "EVAL")) {
     exit
 }
 
-If (((Test-Path -Path $((find "$WORK_DIR"/wsa/"$ARCH" -maxdepth 1 -mindepth 1 -printf "\"%P\"\n" && find "$WORK_DIR"/wsa/"$ARCH"/MagiskOnWSA -maxdepth 1 -mindepth 1 -printf "\"%p\"\n") | awk '{sub(".*/MagiskOnWSA/", "\"MagiskOnWSA\\");print $0;}' | paste -sd "," -)) -Eq \$false).Count) {
+If (((Test-Path -Path $(find "$WORK_DIR"/wsa/"$ARCH" -maxdepth 1 -mindepth 1 -printf "\"%P\"\n" | paste -sd "," -)) -Eq \$false).Count) {
     Write-Error "Some files are missing in the folder. Please try to build again. Press any key to exist"
     \$null = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
     exit 1
@@ -734,8 +711,8 @@ If (\$(Get-WindowsOptionalFeature -Online -FeatureName 'VirtualMachinePlatform')
     }
 }
 
-Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Path .\\MagiskOnWSA\\vclibs-$ARCH.appx
-Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Path .\\MagiskOnWSA\\xaml-$ARCH.appx
+Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Path vclibs-$ARCH.appx
+Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Path xaml-$ARCH.appx
 
 \$Installed = \$null
 \$Installed = Get-AppxPackage -Name 'MicrosoftCorporationII.WindowsSubsystemForAndroid'
@@ -769,6 +746,20 @@ ElseIf (\$null -Ne \$Installed) {
 }
 Write-Host "All Done!\`r\`nPress any key to exit"
 \$null = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+EOF
+tee "$WORK_DIR"/wsa/"$ARCH"/Install.bat <<EOF
+:: Automated Install batch script by Syuugo
+
+@echo off
+if not exist Install.ps1 (
+    echo "Install.ps1" is not found.
+    echo Press any key to exit
+    pause>nul
+    exit 1
+) else (
+    start powershell.exe -File .\Install.ps1 -ExecutionPolicy Bypass
+    exit
+)
 EOF
 echo -e "Remove signature and add scripts done\n"
 
