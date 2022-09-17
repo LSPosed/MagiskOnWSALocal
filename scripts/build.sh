@@ -729,7 +729,7 @@ If (\$(Get-WindowsOptionalFeature -Online -FeatureName 'VirtualMachinePlatform')
     If ("y" -Eq \$key.Character) {
         Restart-Computer -Confirm
     }
-Else {
+    Else {
         exit 1
     }
 }
