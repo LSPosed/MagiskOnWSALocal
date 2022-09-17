@@ -747,7 +747,7 @@ ElseIf (\$null -Ne \$Installed) {
 Write-Host "All Done!\`r\`nPress any key to exit"
 \$null = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
 EOF
-tee "$WORK_DIR"/wsa/"$ARCH"/Install.bat <<EOF
+tee "$WORK_DIR"/wsa/"$ARCH"/Run.bat <<EOF
 :: Automated Install batch script by Syuugo
 
 @echo off
