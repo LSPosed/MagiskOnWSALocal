@@ -275,6 +275,12 @@ if [ "$DEBUG" ]; then
     set -x
 fi
 
+require_su() {
+    if [ "$(sudo whoami)" != "root" ]; then
+        sudo echo "sudo is required to run this script"
+    fi
+}
+
 declare -A RELEASE_NAME_MAP=(["retail"]="Retail" ["RP"]="Release Preview" ["WIS"]="Insider Slow" ["WIF"]="Insider Fast")
 RELEASE_NAME=${RELEASE_NAME_MAP[$RELEASE_TYPE]} || abort
 
@@ -295,11 +301,10 @@ if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
 else
     GAPPS_PATH="$DOWNLOAD_DIR"/MindTheGapps-"$ARCH".zip
 fi
-if [ "$(sudo whoami)" != "root" ]; then
-    sudo echo "sudo is required to run this script"
-fi
+
 if [ -z "${OFFLINE+x}" ]; then
     trap 'rm -f -- "${DOWNLOAD_DIR:?}/${DOWNLOAD_CONF_NAME}"' EXIT
+    require_su
     echo "Generate Download Links"
     python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
     if [ -z "${CUSTOM_MAGISK+x}" ]; then
@@ -332,6 +337,7 @@ else
         echo "Offline mode: Some files are missing, please disable offline mode."
         exit 1
     fi
+    require_su
 fi
 
 echo "Extract WSA"
