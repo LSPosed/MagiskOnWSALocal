@@ -338,6 +338,7 @@ echo "Extract WSA"
 if [ -f "$WSA_ZIP_PATH" ]; then
     WSA_WORK_ENV="${WORK_DIR:?}"/ENV
     if [ -f "$WSA_WORK_ENV" ]; then rm -f "${WSA_WORK_ENV:?}"; fi
+    touch "$WSA_WORK_ENV"
     export WSA_WORK_ENV
     if ! python3 extractWSA.py "$ARCH" "$WSA_ZIP_PATH" "$WORK_DIR"; then
         echo "Unzip WSA failed, is the download incomplete?"
@@ -351,8 +352,8 @@ else
     echo "The WSA zip package does not exist, is the download incomplete?"
     exit 1
 fi
-echo "Extract Magisk"
 
+echo "Extract Magisk"
 if [ -f "$MAGISK_PATH" ]; then
     if ! python3 extractMagisk.py "$ARCH" "$MAGISK_PATH" "$WORK_DIR"; then
         echo "Unzip Magisk failed, is the download incomplete?"
