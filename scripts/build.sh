@@ -658,6 +658,8 @@ sudo rm -rf "${WORK_DIR:?}"/wsa/"$ARCH"/\[Content_Types\].xml "$WORK_DIR"/wsa/"$
 mkdir -p "$WORK_DIR"/wsa/"$ARCH"/MagiskOnWSA || abort
 cp "$vclibs_PATH" "$xaml_PATH" "$WORK_DIR"/wsa/"$ARCH"/MagiskOnWSA || abort
 tee "$WORK_DIR"/wsa/"$ARCH"/Install.bat <<EOF
+: Automated Install batch script by Syuugo
+
 @echo off
 if not exist MagiskOnWSA\Install.ps1 (
     echo "MagiskOnWSA\Install.ps1" is not found.
@@ -670,9 +672,11 @@ if not exist MagiskOnWSA\Install.ps1 (
 )
 EOF
 tee "$WORK_DIR"/wsa/"$ARCH"/MagiskOnWSA/Install.ps1 <<EOF
+# Automated Install script by Midonei
+
 \$Host.UI.RawUI.WindowTitle = "Installing MagiskOnWSA..."
 
-if ((Test-Path -Path Install.ps1) -eq \$true) {
+If ((Test-Path -Path Install.ps1) -Eq \$true) {
     Write-Warning "Please run from \`"Install.bat\`" in the parent directory.\`r\`nPress any key to exit"
     \$null = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
     exit 1
@@ -693,23 +697,23 @@ function Finish {
     Start-Process "wsa://com.android.vending"
 }
 
-if (-not (Test-Administrator)) {
+If (-Not (Test-Administrator)) {
     Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass -Force
     \$proc = Start-Process -PassThru -WindowStyle Hidden -Verb RunAs powershell.exe -Args "-ExecutionPolicy Bypass -Command Set-Location '\$PSScriptRoot'; &'\$PSCommandPath' EVAL"
     \$proc.WaitForExit()
-    if (\$proc.ExitCode -ne 0) {
+    If (\$proc.ExitCode -Ne 0) {
         Clear-Host
         Write-Warning "Failed to launch start as Administrator\`r\`nPress any key to exit"
         \$null = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown');
     }
     exit
 }
-elseif ((\$args.Count -eq 1) -and (\$args[0] -eq "EVAL")) {
+ElseIf ((\$args.Count -Eq 1) -And (\$args[0] -Eq "EVAL")) {
     Start-Process powershell.exe -Args "-ExecutionPolicy Bypass -Command Set-Location '\$PSScriptRoot'; &'\$PSCommandPath'"
     exit
 }
 
-if (((Test-Path -Path $((find "$WORK_DIR"/wsa/"$ARCH" -maxdepth 1 -mindepth 1 -printf "\"%P\"\n" && find "$WORK_DIR"/wsa/"$ARCH"/MagiskOnWSA -maxdepth 1 -mindepth 1 -printf "\"%p\"\n") | awk '{sub(".*/MagiskOnWSA/", "\"MagiskOnWSA\\");print $0;}' | paste -sd "," -)) -eq \$false).Count) {
+If (((Test-Path -Path $((find "$WORK_DIR"/wsa/"$ARCH" -maxdepth 1 -mindepth 1 -printf "\"%P\"\n" && find "$WORK_DIR"/wsa/"$ARCH"/MagiskOnWSA -maxdepth 1 -mindepth 1 -printf "\"%p\"\n") | awk '{sub(".*/MagiskOnWSA/", "\"MagiskOnWSA\\");print $0;}' | paste -sd "," -)) -Eq \$false).Count) {
     Write-Error "Some files are missing in the folder. Please try to build again. Press any key to exist"
     \$null = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
     exit 1
@@ -717,15 +721,15 @@ if (((Test-Path -Path $((find "$WORK_DIR"/wsa/"$ARCH" -maxdepth 1 -mindepth 1 -p
 
 reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
 
-if (\$(Get-WindowsOptionalFeature -Online -FeatureName 'VirtualMachinePlatform').State -ne "Enabled") {
+If (\$(Get-WindowsOptionalFeature -Online -FeatureName 'VirtualMachinePlatform').State -Ne "Enabled") {
     Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName 'VirtualMachinePlatform'
     Clear-Host
     Write-Warning "Need restart to enable virtual machine platform\`r\`nPress y to restart or press any key to exit"
     \$key = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
-    if ("y" -eq \$key.Character) {
+    If ("y" -Eq \$key.Character) {
         Restart-Computer -Confirm
     }
-    else {
+Else {
         exit 1
     }
 }
@@ -736,14 +740,14 @@ Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Path .\\Ma
 \$Installed = \$null
 \$Installed = Get-AppxPackage -Name 'MicrosoftCorporationII.WindowsSubsystemForAndroid'
 
-if ((\$null -ne \$Installed) -and (-not (\$Installed.IsDevelopmentMode))) {
+If ((\$null -Ne \$Installed) -And (-Not (\$Installed.IsDevelopmentMode))) {
     Clear-Host
     Write-Warning "There is already one installed WSA. Please uninstall it first.\`r\`nPress y to uninstall existing WSA or press any key to exit"
     \$key = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
-    if ("y" -eq \$key.Character) {
+    If ("y" -Eq \$key.Character) {
         Remove-AppxPackage -Package \$Installed.PackageFullName
     }
-    else {
+    Else {
         exit 1
     }
 }
@@ -751,15 +755,15 @@ Clear-Host
 Write-Host "Installing MagiskOnWSA..."
 Stop-Process -Name "WsaClient" -ErrorAction SilentlyContinue
 Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Register .\AppxManifest.xml
-if (\$?) {
+If (\$?) {
     Finish
 }
-elseif (\$null -ne \$Installed) {
+ElseIf (\$null -Ne \$Installed) {
     Clear-Host
     Write-Host "Failed to update, try to uninstall existing installation while preserving userdata..."
     Remove-AppxPackage -PreserveApplicationData -Package \$Installed.PackageFullName
     Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Register .\AppxManifest.xml
-    if (\$?) {
+    If (\$?) {
         Finish
     }
 }
