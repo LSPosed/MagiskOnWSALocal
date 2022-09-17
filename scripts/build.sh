@@ -661,7 +661,7 @@ tee "$WORK_DIR"/wsa/"$ARCH"/Install.bat <<EOF
 @echo off
 if not exist MagiskOnWSA\Install.ps1 (
     echo "MagiskOnWSA\Install.ps1" is not found.
-    echo Press any key to exist
+    echo Press any key to exit
     pause>nul
     exit 1
 ) else (
