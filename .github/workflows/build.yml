@@ -14,8 +14,11 @@ jobs:
         with:
           python-version: '3.10'
       
-      - name: Install Wine
+      - name: Install Dependencies
         run: |
+          sudo apt-get update
+          sudo apt-get install setools lzip patchelf e2fsprogs aria2 attr
+          
           sudo dpkg --add-architecture i386
 
           curl -fsSL  https://dl.winehq.org/wine-builds/Release.key | sudo apt-key add -
@@ -23,15 +26,13 @@ jobs:
           sudo apt-add-repository https://dl.winehq.org/wine-builds/ubuntu/
 
           sudo apt-add-repository https://dl.winehq.org/wine-builds/ubuntu/
-          sudo apt-get update
+
 
           sudo apt-get install -y --install-recommends winehq-stable
           sudo apt-get install -y winetricks
           sudo apt-get install -y winbind
-
-      - name: Install Dependencies
-        run: |
-          pip install setools lzip patchelf e2fsprogs aria2 python3 attr requests
+          
+          pip install requests
 
       - name: Build WSA
         run: ./scripts/build.sh
