@@ -4,7 +4,7 @@ on: [workflow_dispatch]
 jobs:
   build:
     name: Build WSA
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -17,13 +17,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install setools lzip patchelf e2fsprogs aria2 attr
-          
-          sudo dpkg --add-architecture i386
-
-          sudo apt-get install wine winetricks
-          
-          pip install requests
+          sudo apt-get install setools lzip patchelf e2fsprogs aria2 attr python3-requests wine winetricks
 
       - name: Build WSA
         run: ./scripts/build.sh
