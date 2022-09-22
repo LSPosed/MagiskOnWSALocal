@@ -85,7 +85,7 @@ abort() {
 trap abort INT TERM
 
 function Gen_Rand_Str {
-    tr -dc 'a-zA-Z0-9' </dev/urandom | fold -w "$1" | head -n 1
+    tr -dc 'a-zA-Z0-9' </dev/urandom | head -c "$1"
 }
 
 default() {
