@@ -467,7 +467,7 @@ fi
 if [ "$ROOT_SOL" = 'magisk' ] || [ "$ROOT_SOL" = '' ]; then
     echo "Integrate Magisk"
     sudo mkdir "$MOUNT_DIR"/sbin
-    sudo setfattr -n security.selinux -v "u:object_r:system_file:s0" "$MOUNT_DIR"/sbin || abort
+    sudo setfattr -n security.selinux -v "u:object_r:rootfs:s0" "$MOUNT_DIR"/sbin || abort
     sudo chown root:root "$MOUNT_DIR"/sbin
     sudo chmod 0700 "$MOUNT_DIR"/sbin
     sudo cp "$WORK_DIR"/magisk/magisk/* "$MOUNT_DIR"/sbin/
