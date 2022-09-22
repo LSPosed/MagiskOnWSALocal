@@ -7,22 +7,13 @@ on:
 jobs:
   build:
     name: Build WSA
-    runs-on: windows-latest
-    defaults:
-      run:
-          shell: wsl-bash {0}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         
-      - uses: Vampire/setup-wsl@v1
-        with:
-            distribution: Ubuntu-22.04
-            set-as-default: 'true'
-        
       - name: Build WSA
         run: |
-          wsl.exe --set-default-version 2
           sudo apt-get update
           sudo apt-get install -y whiptail setools lzip wine winetricks patchelf e2fsprogs python3-pip aria2 p7zip-full attr
           pip list --disable-pip-version-check | grep -E "^requests " >/dev/null 2>&1 || python3 -m pip install requests
@@ -38,5 +29,6 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ./output/*
           overwrite: true
+          file_glob: true
 
 
