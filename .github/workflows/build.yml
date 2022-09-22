@@ -18,17 +18,19 @@ jobs:
           sudo apt-get install -y whiptail setools lzip wine winetricks patchelf e2fsprogs python3-pip aria2 p7zip-full attr
           pip list --disable-pip-version-check | grep -E "^requests " >/dev/null 2>&1 || python3 -m pip install requests
           winetricks list-installed | grep -E "^msxml6" >/dev/null 2>&1 || winetricks msxml6 || abort
-          ./scripts/build.sh --arch x64 --release-type retail --magisk-ver stable --gapps-brand MindTheGapps --gapps-variant pico --remove-amazon --root-sol magisk --debug
-#       - name: Get current date
-#         id: date
-#         run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+          ./scripts/build.sh --arch x64 --release-type retail --magisk-ver stable --gapps-brand MindTheGapps --gapps-variant pico --remove-amazon --root-sol magisk --compress --debug
+      
+      - name: Prepare release tag
+        id: date
+        run: echo "::set-output name=date::$(date +'v%Y-%m-%d')"
 
       - name: Upload build to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ./output/*
-          overwrite: true
+          tag: ${{ steps.date.outputs.date }}
+          overwrite: false
           file_glob: true
 
 
