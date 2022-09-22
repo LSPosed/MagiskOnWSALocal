@@ -16,7 +16,7 @@ jobs:
         run: |
           export TERM=xterm
           ./scripts/run.sh 
-          ./scripts/build.sh --arch x64 --release-type retail --magisk-ver stable --gapps-brand none --gapps-variant pico --remove-amazon --root-sol magisk --debug
+          ./scripts/build.sh --arch x64 --release-type retail --magisk-ver stable --gapps-brand none --gapps-variant pico --remove-amazon --root-sol magisk --compress --debug
 #       - name: Get current date
 #         id: date
 #         run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
