@@ -44,6 +44,7 @@ check_dependencies() {
     command -v pip >/dev/null 2>&1 || NEED_INSTALL+=("python3-pip")
     command -v aria2c >/dev/null 2>&1 || NEED_INSTALL+=("aria2")
     command -v 7z > /dev/null 2>&1 || NEED_INSTALL+=("p7zip-full")
+    command -v setfattr > /dev/null 2>&1 || NEED_INSTALL+=("attr")
 }
 check_dependencies
 declare -A os_pm_install;
