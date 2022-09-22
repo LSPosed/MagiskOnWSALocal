@@ -7,7 +7,7 @@ on:
 jobs:
   build:
     name: Build WSA
-    runs-on: macos-latest
+    runs-on: debian-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
