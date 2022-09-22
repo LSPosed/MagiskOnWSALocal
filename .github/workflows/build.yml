@@ -10,12 +10,10 @@ jobs:
         uses: actions/checkout@v3
         
       - name: Setup WSL
-        uses: Vampire/setup-wsl@v1
-        with:
-            wsl-shell-command: bash -c "sudo bash --noprofile --norc -euo pipefail "\
-
-      - shell: wsl-bash {0}
         run: |
+          wsl --install --distribution Ubuntu
+          wsl --list --all
+          wsl --status
           pwd && ls
           ./scripts/run.sh 
           ./scripts/build.sh
