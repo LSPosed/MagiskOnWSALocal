@@ -12,13 +12,13 @@ jobs:
       - name: Setup WSL
         uses: Vampire/setup-wsl@v1
         with:
-            use-cache: 'true'
-            
-      - name: Setup Dependencies
-        run: ./scripts/run.sh
+            wsl-shell-command: bash -c "sudo bash --noprofile --norc -euo pipefail "\
 
-      - name: Build WSA
-        run: ./scripts/build.sh
+      - shell: wsl-bash {0}
+        run: |
+          pwd && ls
+          ./scripts/run.sh 
+          ./scripts/build.sh
 
 #       - name: Get current date
 #         id: date
