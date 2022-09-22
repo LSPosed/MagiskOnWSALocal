@@ -412,21 +412,21 @@ fi
 
 echo "Expand images"
 if [ ! -f /etc/mtab ]; then sudo ln -s /proc/self/mounts /etc/mtab; fi
-e2fsck -yf "$WORK_DIR"/wsa/"$ARCH"/system_ext.img || abort
+e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/system_ext.img || abort
 SYSTEM_EXT_SIZE=$(($(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/system_ext.img | cut -f1) + 20000))
 if [ -d "$WORK_DIR"/gapps/system_ext ]; then
     SYSTEM_EXT_SIZE=$(( SYSTEM_EXT_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps/system_ext | cut -f1) ))
 fi
 resize2fs "$WORK_DIR"/wsa/"$ARCH"/system_ext.img "$SYSTEM_EXT_SIZE"s || abort
 
-e2fsck -yf "$WORK_DIR"/wsa/"$ARCH"/product.img || abort
+e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/product.img || abort
 PRODUCT_SIZE=$(($(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/product.img | cut -f1) + 20000))
 if [ -d "$WORK_DIR"/gapps/product ]; then
     PRODUCT_SIZE=$(( PRODUCT_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps/product | cut -f1) ))
 fi
 resize2fs "$WORK_DIR"/wsa/"$ARCH"/product.img "$PRODUCT_SIZE"s || abort
 
-e2fsck -yf "$WORK_DIR"/wsa/"$ARCH"/system.img || abort
+e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/system.img || abort
 SYSTEM_SIZE=$(($(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/system.img | cut -f1) + 20000))
 if [ -d "$WORK_DIR"/gapps ]; then
     SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps | cut -f1) - $(du --apparent-size -sB512 "$WORK_DIR"/gapps/product | cut -f1) ))
@@ -445,7 +445,7 @@ if [ -d "../$ARCH/system" ]; then
 fi
 resize2fs "$WORK_DIR"/wsa/"$ARCH"/system.img "$SYSTEM_SIZE"s || abort
 
-e2fsck -yf "$WORK_DIR"/wsa/"$ARCH"/vendor.img || abort
+e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/vendor.img || abort
 VENDOR_SIZE=$(($(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/vendor.img | cut -f1) + 20000))
 resize2fs "$WORK_DIR"/wsa/"$ARCH"/vendor.img "$VENDOR_SIZE"s || abort
 echo -e "Expand images done\n"
@@ -650,13 +650,13 @@ sudo umount "$MOUNT_DIR"
 echo -e "done\n"
 
 echo "Shrink images"
-e2fsck -yf "$WORK_DIR"/wsa/"$ARCH"/system.img || abort
+e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/system.img || abort
 resize2fs -M "$WORK_DIR"/wsa/"$ARCH"/system.img || abort
-e2fsck -yf "$WORK_DIR"/wsa/"$ARCH"/vendor.img || abort
+e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/vendor.img || abort
 resize2fs -M "$WORK_DIR"/wsa/"$ARCH"/vendor.img || abort
-e2fsck -yf "$WORK_DIR"/wsa/"$ARCH"/product.img || abort
+e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/product.img || abort
 resize2fs -M "$WORK_DIR"/wsa/"$ARCH"/product.img || abort
-e2fsck -yf "$WORK_DIR"/wsa/"$ARCH"/system_ext.img || abort
+e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/system_ext.img || abort
 resize2fs -M "$WORK_DIR"/wsa/"$ARCH"/system_ext.img || abort
 echo -e "Shrink images done\n"
 
@@ -764,7 +764,7 @@ if not exist Install.ps1 (
     pause>nul
     exit 1
 ) else (
-    start powershell.exe -File .\Install.ps1 -ExecutionPolicy Bypass
+    start powershell.exe -ExecutionPolicy Bypass -File .\Install.ps1
     exit
 )
 EOF
