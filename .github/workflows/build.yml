@@ -17,7 +17,8 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install setools lzip patchelf e2fsprogs aria2 attr python3-requests wine winetricks
+          sudo apt-get install setools lzip patchelf e2fsprogs aria2 attr wine winetricks
+          pip install requests
 
       - name: Build WSA
         run: ./scripts/build.sh
