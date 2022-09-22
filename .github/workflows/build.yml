@@ -26,10 +26,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y whiptail setools lzip wine winetricks patchelf e2fsprogs python3-pip aria2 p7zip-full attr
           pip list --disable-pip-version-check | grep -E "^requests " >/dev/null 2>&1 || python3 -m pip install requests
-          winetricks list-installed | grep -E "^msxml6" >/dev/null 2>&1 || {
-              cp -r ../wine/.cache/* ~/.cache
-              winetricks msxml6 || abort
-          }
+          winetricks list-installed | grep -E "^msxml6" >/dev/null 2>&1 || winetricks msxml6 || abort
           ./scripts/build.sh --arch x64 --release-type retail --magisk-ver stable --gapps-brand none --gapps-variant pico --remove-amazon --root-sol magisk --compress --debug
 #       - name: Get current date
 #         id: date
