@@ -1,0 +1,26 @@
+name: Sync with upstream
+on: 
+  schedule:
+    - cron: '30 22 * * *'
+  workflow_dispatch:
+
+jobs:
+  merge-upstream:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Sync Repo
+        run: gh repo sync ${{ github.repository }} -b main
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+          
+      - name: Create PR on conflicts
+        if: failure()
+        run: |
+          git remote add upstream https://github.com/LSPosed/MagiskOnWSALocal
+          git fetch upstream
+          gh pr create --title "Upstream Merge" --body "Upstream merge conflicts occured" --base origin/main --head upstream/main -r rabilrbl
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+  
