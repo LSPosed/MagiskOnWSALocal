@@ -7,7 +7,7 @@ on:
 jobs:
   build:
     name: Build WSA
-    runs-on: fedora-latest
+    runs-on: macos-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
