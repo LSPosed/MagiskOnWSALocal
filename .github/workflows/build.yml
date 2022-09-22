@@ -7,14 +7,23 @@ on:
 jobs:
   build:
     name: Build WSA
-    runs-on: debian-latest
+    runs-on: windows-latest
+    defaults:
+      run:
+          shell: wsl-bash {0}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         
+      - uses: Vampire/setup-wsl@v1
+        with:
+            distribution: Ubuntu-22.04
+            set-as-default: 'true'
+        
       - name: Build WSA
         run: |
-          export TERM=xterm
+          wsl.exe --set-default-version 2
+          wsl.exe --list
           ./scripts/run.sh 
           ./scripts/build.sh --arch x64 --release-type retail --magisk-ver stable --gapps-brand none --gapps-variant pico --remove-amazon --root-sol magisk --compress --debug
 #       - name: Get current date
