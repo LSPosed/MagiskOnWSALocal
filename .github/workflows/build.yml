@@ -3,26 +3,27 @@ on: [workflow_dispatch]
 
 jobs:
   build:
+    name: Build WSA
     runs-on: ubuntu-latest
-    
-    - name: Checkout
+    steps:
+      - name: Checkout
         uses: actions/checkout@v3
-        
-    - name: Install Dependencies
-      run: ./scripts/run.sh
-      
-    - name: Build WSA
-      run: ./scripts/build.sh
-     
-    - name: Get current date
+
+      - name: Install Dependencies
+        run: ./scripts/run.sh
+
+      - name: Build WSA
+        run: ./scripts/build.sh
+
+      - name: Get current date
         id: date
         run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
-      
-    - name: Upload build to release
+
+      - name: Upload build to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ./output/*
           overwrite: true
-      
-    
+
+
