@@ -43,14 +43,12 @@ body:
   - type: textarea
     attributes:
       label: Linux distribution info/Linux 发行版信息
-      render: shell
     validations:
       required: true
   - type: textarea
     attributes:
       label: Build Parameters/构建参数
-      description: The script prints the build information each time you start a build It looks like this, please copy and paste it./每次开始构建时脚本都会打印构建信息，它看起来是这样的，请复制并粘贴上来。
-      render: shell
+      description: The script prints the build information each time you start a build. It looks like this, please copy and paste it./每次开始构建时脚本都会打印构建信息，它看起来是这样的，请复制并粘贴上来。
       placeholder: |
         COMMAND_LINE=--arch x64 --release-type retail --magisk-ver stable --gapps-brand MindTheGapps --gapps-variant pico  --root-sol magisk
         INFO: Architecture: x64
@@ -73,7 +71,6 @@ body:
     attributes:
       label: Logs/日志
       description: Please copy and paste the error or submit a screenshot. Without log, the issue will be closed. /请复制粘贴错误或提交截图截图。无日志提交会被关闭。
-      render: markdown
       placeholder: |
         <details>
         <summary>Details</summary>
@@ -81,6 +78,5 @@ body:
 
 
         </details>
-
     validations:
       required: true
