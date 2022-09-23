@@ -31,7 +31,7 @@ jobs:
     
       - name: Prepare release tag
         id: date
-        run: echo "::set-output name=date::$(date +'v%Y-%m-%d')-$RANDOM"
+        run: echo "::set-output name=date::$(date +'v%Y-%m-%d')"
 
       - name: Upload build to release
         uses: svenstaro/upload-release-action@v2
@@ -39,7 +39,7 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ./output/*
           tag: ${{ steps.date.outputs.date }}
-          overwrite: false
+          overwrite: true
           file_glob: true
 
 
