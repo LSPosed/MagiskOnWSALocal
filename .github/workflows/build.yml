@@ -42,6 +42,5 @@ jobs:
           file: ./output/*
           tag: ${{ steps.date.outputs.date }}
           overwrite: false
-          file_glob: true
 
 
