@@ -21,19 +21,10 @@ jobs:
           
       - name: Build WSA GAPPS Magisk x64
         run:  ./scripts/build.sh --arch x64 --release-type retail --magisk-ver stable --gapps-brand MindTheGapps --gapps-variant pico --remove-amazon --root-sol magisk --compress --debug
-     
-      - name: Build WSA GAPPS NoRoot x64
-        run:  ./scripts/build.sh --arch x64 --release-type retail --gapps-brand MindTheGapps --gapps-variant pico --root-sol none --compress --debug
-        
-      - name: Build WSA GAPPS Magisk arm64
-        run:  ./scripts/build.sh --arch arm64 --release-type retail --magisk-ver stable --gapps-brand MindTheGapps --gapps-variant pico --remove-amazon --root-sol magisk --compress --debug
-     
-      - name: Build WSA GAPPS NoRoot arm64
-        run:  ./scripts/build.sh --arch arm64 --release-type retail --gapps-brand MindTheGapps --gapps-variant pico --root-sol none --compress --debug
-      
+    
       - name: Prepare release tag
         id: date
-        run: echo "::set-output name=date::$(date +'v%Y-%m-%d')"
+        run: echo "::set-output name=date::$(date +'v%Y-%m-%d')-$RANDOM"
 
       - name: Upload build to release
         uses: svenstaro/upload-release-action@v2
@@ -42,5 +33,6 @@ jobs:
           file: ./output/*
           tag: ${{ steps.date.outputs.date }}
           overwrite: false
+          file_glob: true
 
 
