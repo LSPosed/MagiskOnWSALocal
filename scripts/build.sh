@@ -39,6 +39,9 @@ DOWNLOAD_CONF_NAME=download.list
 OUTPUT_DIR=../output
 MOUNT_DIR="$WORK_DIR"/system
 SUDO="$(which sudo 2>/dev/null)"
+if [ -z "$SUDO" ]; then
+    unset SUDO
+fi
 umount_clean() {
     if [ -d "$MOUNT_DIR" ]; then
         echo "Cleanup Work Directory"
@@ -277,15 +280,18 @@ if [ "$DEBUG" ]; then
 fi
 
 require_su() {
-    if test -z $SUDO && test $(whoami) != "root"; then
-        echo "ROOT/SUDO is required to run this script"
+    if test "$(whoami)" != "root"; then
+        if [ -z "$SUDO" ] && [ "$($SUDO whoami)" != "root" ]; then
+            echo "ROOT/SUDO is required to run this script"
+            abort
+        fi
     fi
 }
 
 declare -A RELEASE_NAME_MAP=(["retail"]="Retail" ["RP"]="Release Preview" ["WIS"]="Insider Slow" ["WIF"]="Insider Fast")
 RELEASE_NAME=${RELEASE_NAME_MAP[$RELEASE_TYPE]} || abort
 
-echo -e "build: RELEASE_TYPE=$RELEASE_NAME"
+echo -e "Build: RELEASE_TYPE=$RELEASE_NAME"
 
 WSA_ZIP_PATH=$DOWNLOAD_DIR/wsa-$ARCH-$RELEASE_TYPE.zip
 vclibs_PATH=$DOWNLOAD_DIR/vclibs-"$ARCH".appx
@@ -803,10 +809,11 @@ if [ ! -d "$OUTPUT_DIR" ]; then
 fi
 if [ "$COMPRESS_OUTPUT" ]; then
     rm -f "${OUTPUT_DIR:?}"/"$artifact_name.7z" || abort
-    7z a "$OUTPUT_DIR"/"$artifact_name.7z" "$WORK_DIR/wsa/$ARCH/" || abort
+    mv "$WORK_DIR/wsa/$ARCH" "$WORK_DIR/wsa/$artifact_name"
+    7z a "$OUTPUT_DIR"/"$artifact_name.7z" "$WORK_DIR/wsa/$artifact_name" || abort
 else
     rm -rf "${OUTPUT_DIR:?}/${artifact_name}" || abort
-    mv "$WORK_DIR"/wsa/"$ARCH" "$OUTPUT_DIR/$artifact_name" || abort
+    cp -r "$WORK_DIR"/wsa/"$ARCH" "$OUTPUT_DIR/$artifact_name" || abort
 fi
 echo -e "done\n"
 
