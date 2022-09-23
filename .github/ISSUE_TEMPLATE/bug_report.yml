@@ -45,6 +45,12 @@ body:
       label: Linux distribution info/Linux 发行版信息
     validations:
       required: true
+  - type: input
+    attributes:
+      label: Windows version/Windows 版本
+      placeholder: 10.0.22000.978
+    validations:
+      required: true
   - type: textarea
     attributes:
       label: Build Parameters/构建参数
