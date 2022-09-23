@@ -281,7 +281,7 @@ fi
 
 require_su() {
     if test "$(whoami)" != "root"; then
-        if [ -z "$SUDO" ] && [ "$($SUDO whoami)" != "root" ]; then
+        if [ -z "$SUDO" ] || [ "$($SUDO whoami)" != "root" ]; then
             echo "ROOT/SUDO is required to run this script"
             abort
         fi

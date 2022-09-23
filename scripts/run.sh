@@ -120,7 +120,7 @@ winetricks list-installed | grep -E "^msxml6" >/dev/null 2>&1 || {
 }
 WHIPTAIL=$(command -v whiptail 2>/dev/null)
 DIALOG=$(command -v dialog 2>/dev/null)
-DIALOG=${WHIPTAIL:DIALOG}
+DIALOG=${WHIPTAIL:-$DIALOG}
 function Radiolist {
     declare -A o="$1"
     shift
