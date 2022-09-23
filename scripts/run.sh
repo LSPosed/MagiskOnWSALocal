@@ -41,7 +41,7 @@ require_su() {
 }
 echo "Checking and ensuring dependencies"
 check_dependencies() {
-    command -v whiptail >/dev/null 2>&1 || command -v dialog >/dev/null 2>&1 || NEED_INSTALL+=("dialog")
+    command -v whiptail >/dev/null 2>&1 || command -v dialog >/dev/null 2>&1 || NEED_INSTALL+=("whiptail")
     command -v seinfo >/dev/null 2>&1 || NEED_INSTALL+=("setools")
     command -v lzip >/dev/null 2>&1 || NEED_INSTALL+=("lzip")
     command -v wine64 >/dev/null 2>&1 || NEED_INSTALL+=("wine")
@@ -104,6 +104,7 @@ if [ -n "${NEED_INSTALL[*]}" ]; then
         if [ "$PM" = "zypper" ]; then
             NEED_INSTALL=${NEED_INSTALL[*]}
             readarray -td ' ' NEED_INSTALL <<<"${NEED_INSTALL//setools/setools-console} "; unset 'NEED_INSTALL[-1]';
+            readarray -td ' ' NEED_INSTALL <<<"${NEED_INSTALL//whiptail/dialog} "; unset 'NEED_INSTALL[-1]';
         elif [ "$PM" = "apk" ]; then
             NEED_INSTALL=${NEED_INSTALL[*]}
             readarray -td ' ' NEED_INSTALL <<<"${NEED_INSTALL//p7zip-full/p7zip} "; unset 'NEED_INSTALL[-1]';
