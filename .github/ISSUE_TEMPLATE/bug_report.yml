@@ -37,7 +37,7 @@ body:
   - type: input
     attributes:
       label: MagiskOnWSALocal commit full SHA/MagiskOnWSALocal 提交的完整哈希
-      description:  Don't use 'latest'. Copy and paste commit SHA, otherwise your issue will be closed./不要填用“最新”。复制并粘贴commit SHA，不然 issue 会被关闭。
+      description:  Don't use 'latest'. Copy and paste full commit SHA, otherwise your issue will be closed./不要填用“最新”。复制并粘贴完整 commit SHA，不然 issue 会被关闭。
     validations:
       required: true
   - type: textarea
