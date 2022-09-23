@@ -70,7 +70,7 @@ body:
   - type: textarea
     attributes:
       label: Logs/日志
-      description: Please copy and paste the error or submit a screenshot. Without log, the issue will be closed. /请复制粘贴错误或提交截图截图。无日志提交会被关闭。
+      description: Please copy and paste the error or submit a screenshot. Without log, the issue will be closed. /请复制粘贴错误或提交截图。无日志提交会被关闭。
       value: |
         <details>
         <summary>Details</summary>
