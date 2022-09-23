@@ -42,7 +42,7 @@ body:
       required: true
   - type: textarea
     attributes:
-      label: Linux distribution name/Linux 发行版名称
+      label: Linux distribution info/Linux 发行版信息
       render: shell
     validations:
       required: true
