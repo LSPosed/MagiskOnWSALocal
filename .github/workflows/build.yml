@@ -13,7 +13,6 @@ jobs:
       matrix:
         arch: [x64, arm64]
         root: [magisk, none]
-        gapps: [MindTheGapps, none]
         
     steps:
       - name: Checkout
@@ -26,8 +25,8 @@ jobs:
           pip list --disable-pip-version-check | grep -E "^requests " >/dev/null 2>&1 || python3 -m pip install requests
           winetricks list-installed | grep -E "^msxml6" >/dev/null 2>&1 || winetricks msxml6 || abort
           
-      - name: Build WSA ${{ matrix.gapps }} ${{ matrix.root }} ${{ matrix.arch }}
-        run:  ./scripts/build.sh --arch ${{ matrix.arch }} --release-type retail --magisk-ver stable --gapps-brand ${{ matrix.gapps }} --remove-amazon --root-sol ${{ matrix.root }} --compress --debug
+      - name: Build WSA GAPPS ${{ matrix.root }} ${{ matrix.arch }}
+        run:  ./scripts/build.sh --arch ${{ matrix.arch }} --release-type retail --magisk-ver stable --remove-amazon --root-sol ${{ matrix.root }} --compress --debug
     
       - name: Prepare release tag
         id: date
