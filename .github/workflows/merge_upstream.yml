@@ -15,12 +15,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
           
-      - name: Create PR on conflicts
-        if: failure()
-        run: |
-          git remote add upstream https://github.com/LSPosed/MagiskOnWSALocal
-          git fetch upstream
-          gh pr create --title "Upstream Merge" --body "Upstream merge conflicts occured" --base origin/main --head upstream/main -r rabilrbl
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT }}
-  
