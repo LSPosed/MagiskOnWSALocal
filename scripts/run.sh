@@ -102,12 +102,13 @@ if [ -n "${NEED_INSTALL[*]}" ]; then
         abort
     else
         if [ "$PM" = "zypper" ]; then
-            NEED_INSTALL=${NEED_INSTALL[*]}
-            readarray -td ' ' NEED_INSTALL <<<"${NEED_INSTALL//setools/setools-console} "; unset 'NEED_INSTALL[-1]';
-            readarray -td ' ' NEED_INSTALL <<<"${NEED_INSTALL//whiptail/dialog} "; unset 'NEED_INSTALL[-1]';
+            NEED_INSTALL_FIX=${NEED_INSTALL[*]}
+            NEED_INSTALL_FIX=${NEED_INSTALL_FIX//setools/setools-console} >> /dev/null 2>&1
+            NEED_INSTALL_FIX=${NEED_INSTALL_FIX//whiptail/dialog} >> /dev/null 2>&1
+            readarray -td ' ' NEED_INSTALL <<<"$NEED_INSTALL_FIX "; unset 'NEED_INSTALL[-1]';
         elif [ "$PM" = "apk" ]; then
-            NEED_INSTALL=${NEED_INSTALL[*]}
-            readarray -td ' ' NEED_INSTALL <<<"${NEED_INSTALL//p7zip-full/p7zip} "; unset 'NEED_INSTALL[-1]';
+            NEED_INSTALL_FIX=${NEED_INSTALL[*]}
+            readarray -td ' ' NEED_INSTALL <<<"${NEED_INSTALL_FIX//p7zip-full/p7zip} "; unset 'NEED_INSTALL[-1]';
         fi
         require_su
         if ! ($SUDO "$PM" "${UPDATE_OPTION[@]}" && $SUDO "$PM" "${INSTALL_OPTION[@]}" "${NEED_INSTALL[@]}") then abort; fi
