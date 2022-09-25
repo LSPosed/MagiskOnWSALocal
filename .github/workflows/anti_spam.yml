@@ -18,11 +18,13 @@ jobs:
             enhancement
           issue-lock-reason: spam
           exclude-pr-labels: |
-            bug
+            bugfix
             enhancement
             do-not-autoclose
           pr-labels: spam
           pr-lock-reason: spam
+          skip-closed-pr-comment: true
+          skip-closed-issue-comment: true
       - name: Delete workflow runs
         uses: Mattraks/delete-workflow-runs@v2
         with:

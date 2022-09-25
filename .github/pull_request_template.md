@@ -4,6 +4,7 @@
   Don't forget to check all base themes and tablet mode for relevant changes.
 
   DELETE THIS SECTION IF YOU HAVE READ AND ACKNOWLEDGED IT.
+  Please set the label to bugfix or enhancement, otherwise it will be closed.
 -->
 
 Checklist
