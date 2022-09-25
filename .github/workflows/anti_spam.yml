@@ -10,7 +10,7 @@ jobs:
   autoclose:
     runs-on: ubuntu-latest
     steps:
-      - name: Anti-spam
+      - name: Check issue
         uses: dessant/repo-lockdown@v2
         with:
           exclude-issue-labels: |
@@ -25,6 +25,22 @@ jobs:
           pr-lock-reason: spam
           skip-closed-pr-comment: true
           skip-closed-issue-comment: true
+          process-only: issues
+      - name: Check pull request
+        uses: tachiyomiorg/issue-moderator-action@v1
+        with:
+          auto-close-rules: |
+            [
+              {
+                "type": "body",
+                "regex": ".*DELETE THIS SECTION IF YOU HAVE READ AND ACKNOWLEDGED IT.*",
+                "message": "The acknowledgment section was not removed."
+              }
+            ]
+          auto-close-ignore-label: |
+            do-not-autoclose
+            bugfix
+            enhancement
       - name: Delete workflow runs
         uses: Mattraks/delete-workflow-runs@v2
         with:
