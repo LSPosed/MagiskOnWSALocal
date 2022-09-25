@@ -2,7 +2,7 @@
 name: Feature request/新特性请求
 description: Suggest an idea./提出建议
 labels: [enhancement]
-title: "[Feature Request] "
+title: "[Feature Request] Short description."
 body:
   - type: textarea
     attributes:

@@ -1,4 +1,4 @@
-name: Anti-spam
+name: Issue moderator
 
 on:
   issues:
@@ -18,20 +18,17 @@ jobs:
           retain_days: 0
           keep_minimum_runs: 0
       - name: Check issue
-        uses: dessant/repo-lockdown@v2
+        uses: tachiyomiorg/issue-moderator-action@v1
         with:
-          exclude-issue-labels: |
-            bug
-            enhancement
-          issue-lock-reason: spam
-          exclude-pr-labels: |
-            bugfix
-            enhancement
-            do-not-autoclose
-          pr-labels: spam
-          pr-lock-reason: spam
-          skip-closed-pr-comment: true
-          skip-closed-issue-comment: true
-          process-only: issues
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-close-rules: |
+            [
+              {
+                "type": "title",
+                "regex": ".*Short description.*",
+                "message": "You did not fill out the description in the title"
+              }
+            ]
+          auto-close-ignore-label: do-not-autoclose
       - name: Check PR
         uses: sumally/github-check-tasklist-action@v1
