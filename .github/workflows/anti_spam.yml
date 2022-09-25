@@ -10,6 +10,13 @@ jobs:
   autoclose:
     runs-on: ubuntu-latest
     steps:
+      - name: Delete workflow runs
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 0
+          keep_minimum_runs: 0
       - name: Check issue
         uses: dessant/repo-lockdown@v2
         with:
@@ -28,10 +35,3 @@ jobs:
           process-only: issues
       - name: Check PR
         uses: sumally/github-check-tasklist-action@v1
-      - name: Delete workflow runs
-        uses: Mattraks/delete-workflow-runs@v2
-        with:
-          token: ${{ github.token }}
-          repository: ${{ github.repository }}
-          retain_days: 0
-          keep_minimum_runs: 0
