@@ -1,0 +1,25 @@
+name: Anti-spam
+
+on:
+  issues:
+    types: [opened]
+  pull_request_target:
+    types: [opened, edited]
+
+jobs:
+  autoclose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Anti-spam
+        uses: dessant/repo-lockdown@v2
+        with:
+          exclude-issue-labels: |
+            bug
+            enhancement
+          issue-lock-reason: spam
+          exclude-pr-labels: |
+            bug
+            enhancement
+            do-not-autoclose
+          pr-labels: spam
+          pr-lock-reason: spam
