@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Sync Repo
-        run: gh repo sync ${{ github.repository }} -b develop
+        run: gh repo sync ${{ github.repository }} -b main
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
           
