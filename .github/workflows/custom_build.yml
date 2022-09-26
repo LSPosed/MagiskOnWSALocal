@@ -1,0 +1,73 @@
+name: Custom Build
+on:
+  workflow_dispatch:
+    inputs:
+      arch:
+        type: choice
+        description: Architecture of WSA.
+        required: true
+        options: [x64, arm64]
+        default: x64
+      release-type:
+        type: choice
+        description: Release type of WSA. RP means Release Preview, WIS means Insider Slow, WIF means Insider Fas
+        required: true
+        options: ["retail","RP","WIS","WIF"]
+        default: "retail"
+      magisk-ver:
+        type: choice
+        description:  Magisk version.
+        required: true
+        options: ["stable","beta","canary","debug"]
+        default: "stable"
+      gapps-brand:
+        type: choice
+        description:  GApps brand. none for no integration of GApps
+        required: true
+        options: ["OpenGApps","MindTheGapps","none"]
+        default: "MindTheGapps"
+      gapps-variant:
+        type: choice
+        description:  GApps variant.
+        required: true
+        options: ["super","stock","full","mini","micro","nano","pico","tvstock","tvmini"]
+        default: "pico"
+      root-sol:
+        type: choice
+        description:  Root solution. none means no root.
+        required: true
+        options: [ "magisk","none"]
+        default: "magisk"
+#       remove-amazon:
+#         description: Remove Amazon Appstore from the system
+#         required: true
+#         type: boolean 
+#         default: true        
+
+jobs:
+  custbuild:
+    name: Build WSA
+    runs-on: ubuntu-latest
+        
+    steps:         
+      - name: Checkout
+        uses: actions/checkout@v3
+        
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y whiptail setools lzip wine winetricks patchelf e2fsprogs python3-pip aria2 p7zip-full attr
+          pip list --disable-pip-version-check | grep -E "^requests " >/dev/null 2>&1 || python3 -m pip install requests
+          winetricks list-installed | grep -E "^msxml6" >/dev/null 2>&1 || winetricks msxml6 || abort
+          
+      - name: Build WSA GAPPS ${{ matrix.root }} ${{ matrix.arch }}
+        run:  ./scripts/build.sh --arch ${{ inputs.arch }} --release-type ${{ inputs.release-type }} --magisk-ver ${{ inputs.magisk-ver }} --gapps-brand ${{ inputs.gapps-brand }} --gapps-variant ${{ inputs.gapps-variant }} --root-sol ${{ inputs.root-sol }} --remove-amazon --compress --debug
+    
+      - name: Prepare release tag
+        id: date
+        run: echo "::set-output name=date::$(date +'v%Y-%m-%d')"
+
+      - name: 
+        uses: actions/upload-artifact@v3
+        with:
+          path: ./output/*
