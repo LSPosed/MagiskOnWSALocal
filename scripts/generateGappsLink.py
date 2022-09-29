@@ -67,4 +67,3 @@ with open(download_dir/tempScript, 'a') as f:
         f.writelines(f'  out={brand}-{arch}-{variant}.zip\n')
     elif brand == "MindTheGapps":
         f.writelines(f'  out={brand}-{arch}.zip\n')
-    f.close
