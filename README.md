@@ -42,7 +42,7 @@
 - Support all OpenGApps variants except for aroma (aroma does not support x86_64, please use super instead)
 - Remove Amazon Appstore
 - Fix VPN dialog not showing (use our [VpnDialogs app](https://github.com/LSPosed/VpnDialogs))
-- Add device management feature
+- Add device administration feature
 - Unattended installation
 - Automatically activates developers mode in Windows 11
 - Update to the new version while preserving data with a one-click script
