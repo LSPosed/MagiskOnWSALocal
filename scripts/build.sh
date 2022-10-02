@@ -472,7 +472,7 @@ if [ "$REMOVE_AMAZON" ]; then
     echo -e "done\n"
 fi
 
-echo "Add device management features"
+echo "Add device administration features"
 $SUDO sed -i -e '/cts/a \ \ \ \ <feature name="android.software.device_admin" />' -e '/print/i \ \ \ \ <feature name="android.software.managed_users" />' "$MOUNT_DIR"/vendor/etc/permissions/windows.permissions.xml
 echo -e "done\n"
 
