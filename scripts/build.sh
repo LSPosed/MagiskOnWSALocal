@@ -685,8 +685,6 @@ function Test-Administrator {
     }
 }
 
-function Test-WindowsTerminal { test-path env:WT_SESSION }
-
 function Get-InstalledDependencyVersion {
     param (
         [string]\$Name,
@@ -703,7 +701,7 @@ function Finish {
     Start-Process "wsa://com.android.vending"
 }
 
-If (-Not (Test-Administrator) -Or (Test-WindowsTerminal)) {
+If (-Not (Test-Administrator)) {
     Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass -Force
     \$proc = Start-Process -PassThru -WindowStyle Hidden -Verb RunAs ConHost.exe -Args "powershell -ExecutionPolicy Bypass -Command Set-Location '\$PSScriptRoot'; &'\$PSCommandPath' EVAL"
     \$proc.WaitForExit()
