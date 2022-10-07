@@ -5,7 +5,9 @@ We are not against forks, but please detach them from our repository. If you do 
 
 <details>
     <summary>How to detach your fork from this upstream repository (a visual guide):</summary>
-    ![How to detach form using GitHub Support virtual assistant chatbot](https://user-images.githubusercontent.com/96967473/194208623-194e5926-feb9-4172-b57f-a82179245d02.png)
+    <p>
+        <img src="https://user-images.githubusercontent.com/96967473/194208623-194e5926-feb9-4172-b57f-a82179245d02.png" title="How to detach form using GitHub Support virtual assistant chatbot">
+            </p>
  </details>
 
 
