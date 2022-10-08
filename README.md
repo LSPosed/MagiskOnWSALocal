@@ -1,6 +1,7 @@
 # Magisk on WSA (with Google Apps)
 
-:warning: For fork developers: Please [use the GitHub Support virtual assistant chatbot](https://support.github.com/contact?flow=detach_fork&subject=Detach%20Fork&tags=rr-forks) to detach your fork from [upstream](https://github.com/LSPosed/MagiskOnWSALocal) before building with GitHub Actions, as GitHub will count your forked GitHub Actions usage agasint this upstream repository GitHub Actions usage, which causes this upstream repository gets disabled by GitHub employee(s) due to numerous forks building GitHub Actions, and counting the forks' GitHub Action builds agasint this upstream repository GitHub Actions usage as abusing GitHub Actions.
+:warning: For fork developers: Please [use the GitHub Support virtual assistant chatbot](https://support.github.com/contact?flow=detach_fork&subject=Detach%20Fork&tags=rr-forks) to detach your fork from [upstream](https://github.com/LSPosed/MagiskOnWSALocal) before building with GitHub Actions, as GitHub will count your forked GitHub Actions usage against this upstream repository, which may cause this upstream repository gets disabled by GitHub staff because of numerous forks building GitHub Actions, and counting the forks' Action usage against this upstream repository.
+
 We are not against forks, but please detach them from our repository. If you do not make changes one day after receiving the detachment request, our organization will ban you.
 
 <details>
@@ -9,7 +10,6 @@ We are not against forks, but please detach them from our repository. If you do 
         <img src="https://user-images.githubusercontent.com/96967473/194208623-194e5926-feb9-4172-b57f-a82179245d02.png" title="How to detach form using GitHub Support virtual assistant chatbot">
             </p>
  </details>
-
 
 ## Support for generating from these systems
 
