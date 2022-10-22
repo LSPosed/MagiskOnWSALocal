@@ -152,6 +152,7 @@ ROOT_SOL_MAP=(
 COMPRESS_FORMAT_MAP=(
     "7z"
     "xz"
+    "zip"
 )
 
 ARR_TO_STR() {
@@ -853,23 +854,34 @@ fi
 if [ ! -d "$OUTPUT_DIR" ]; then
     mkdir -p "$OUTPUT_DIR"
 fi
+OUTPUT_NAME="${OUTPUT_DIR:?}/$artifact_name"
 if [ "$COMPRESS_OUTPUT" ] || [ -n "$COMPRESS_FORMAT" ]; then
     mv "$WORK_DIR/wsa/$ARCH" "$WORK_DIR/wsa/$artifact_name"
-    if [ "$COMPRESS_FORMAT" = "7z" ]; then
-        rm -f "${OUTPUT_DIR:?}"/"$artifact_name.7z" || abort
-        echo "Compressing with 7z"
-        7z a "$OUTPUT_DIR"/"$artifact_name.7z" "$WORK_DIR/wsa/$artifact_name" || abort
-    elif [ "$COMPRESS_FORMAT" = "xz" ]; then
-        rm -f "${OUTPUT_DIR:?}"/"$artifact_name.tar.xz" || abort
-        echo "Compressing with tar xz"
-        if ! (tar -cP -I 'xz -9 -T0' -f "$OUTPUT_DIR"/"$artifact_name.tar.xz" "$WORK_DIR/wsa/$artifact_name"); then
-            echo "Out of memory? Trying again with single threads..."
-            tar -cPJvf "$OUTPUT_DIR"/"$artifact_name.tar.xz" "$WORK_DIR/wsa/$artifact_name" || abort
+    if [ -z "$COMPRESS_FORMAT" ]; then
+        COMPRESS_FORMAT="7z"
+    fi
+    if [ -n "$COMPRESS_FORMAT" ]; then
+        FILE_EXT=".$COMPRESS_FORMAT"
+        if [ "$FILE_EXT" = ".xz" ]; then
+            FILE_EXT=".tar$FILE_EXT"
         fi
     fi
+    rm -f "${OUTPUT_NAME:?}$FILE_EXT" || abort
+    if [ "$COMPRESS_FORMAT" = "7z" ]; then
+        echo "Compressing with 7z"
+        7z a "${OUTPUT_NAME:?}$FILE_EXT" "$WORK_DIR/wsa/$artifact_name" || abort
+    elif [ "$COMPRESS_FORMAT" = "xz" ]; then
+        echo "Compressing with tar xz"
+        if ! (tar -cP -I 'xz -9 -T0' -f "${OUTPUT_NAME:?}$FILE_EXT" "$WORK_DIR/wsa/$artifact_name"); then
+            echo "Out of memory? Trying again with single threads..."
+            tar -cPJvf "${OUTPUT_NAME:?}$FILE_EXT" "$WORK_DIR/wsa/$artifact_name" || abort
+        fi
+    elif [ "$COMPRESS_FORMAT" = "zip" ]; then
+        7z -tzip a "${OUTPUT_NAME:?}$FILE_EXT" "$WORK_DIR/wsa/$artifact_name" || abort
+    fi
 else
-    rm -rf "${OUTPUT_DIR:?}/${artifact_name}" || abort
-    cp -r "$WORK_DIR"/wsa/"$ARCH" "$OUTPUT_DIR/$artifact_name" || abort
+    rm -rf "${OUTPUT_NAME:?}" || abort
+    cp -r "$WORK_DIR"/wsa/"$ARCH" "$OUTPUT_NAME" || abort
 fi
 echo -e "done\n"
 

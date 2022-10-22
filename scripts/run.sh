@@ -234,7 +234,8 @@ if [ "$COMPRESS_OUTPUT" = "--compress" ]; then
                         [default]="7z")' \
             \
             '7z' "7-Zip" 'on' \
-            'xz' "tar.xz" 'off'
+            'xz' "tar.xz" 'off' \
+            'zip' "Zip" 'off'
         )
 fi
 # if ! (YesNoBox '([title]="Off line mode" [text]="Do you want to enable off line mode?")'); then
