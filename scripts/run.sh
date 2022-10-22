@@ -53,6 +53,7 @@ check_dependencies() {
     command -v 7z > /dev/null 2>&1 || NEED_INSTALL+=("p7zip-full")
     command -v setfattr > /dev/null 2>&1 || NEED_INSTALL+=("attr")
     command -v xz > /dev/null 2>&1 || NEED_INSTALL+=("xz-utils")
+    command -v unzip > /dev/null 2>&1 || NEED_INSTALL+=("unzip")
 }
 check_dependencies
 osrel=$(sed -n '/^ID_LIKE=/s/^.*=//p' /etc/os-release);
