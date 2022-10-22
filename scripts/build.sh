@@ -854,7 +854,7 @@ fi
 if [ ! -d "$OUTPUT_DIR" ]; then
     mkdir -p "$OUTPUT_DIR"
 fi
-OUTPUT_NAME="${OUTPUT_DIR:?}/$artifact_name"
+OUTPUT_PATH="${OUTPUT_DIR:?}/$artifact_name"
 if [ "$COMPRESS_OUTPUT" ] || [ -n "$COMPRESS_FORMAT" ]; then
     mv "$WORK_DIR/wsa/$ARCH" "$WORK_DIR/wsa/$artifact_name"
     if [ -z "$COMPRESS_FORMAT" ]; then
@@ -866,22 +866,22 @@ if [ "$COMPRESS_OUTPUT" ] || [ -n "$COMPRESS_FORMAT" ]; then
             FILE_EXT=".tar$FILE_EXT"
         fi
     fi
-    rm -f "${OUTPUT_NAME:?}$FILE_EXT" || abort
+    rm -f "${OUTPUT_PATH:?}$FILE_EXT" || abort
     if [ "$COMPRESS_FORMAT" = "7z" ]; then
         echo "Compressing with 7z"
-        7z a "${OUTPUT_NAME:?}$FILE_EXT" "$WORK_DIR/wsa/$artifact_name" || abort
+        7z a "${OUTPUT_PATH:?}$FILE_EXT" "$WORK_DIR/wsa/$artifact_name" || abort
     elif [ "$COMPRESS_FORMAT" = "xz" ]; then
         echo "Compressing with tar xz"
-        if ! (tar -cP -I 'xz -9 -T0' -f "${OUTPUT_NAME:?}$FILE_EXT" "$WORK_DIR/wsa/$artifact_name"); then
+        if ! (tar -cP -I 'xz -9 -T0' -f "${OUTPUT_PATH:?}$FILE_EXT" "$WORK_DIR/wsa/$artifact_name"); then
             echo "Out of memory? Trying again with single threads..."
-            tar -cPJvf "${OUTPUT_NAME:?}$FILE_EXT" "$WORK_DIR/wsa/$artifact_name" || abort
+            tar -cPJvf "${OUTPUT_PATH:?}$FILE_EXT" "$WORK_DIR/wsa/$artifact_name" || abort
         fi
     elif [ "$COMPRESS_FORMAT" = "zip" ]; then
-        7z -tzip a "${OUTPUT_NAME:?}$FILE_EXT" "$WORK_DIR/wsa/$artifact_name" || abort
+        7z -tzip a "${OUTPUT_PATH:?}$FILE_EXT" "$WORK_DIR/wsa/$artifact_name" || abort
     fi
 else
-    rm -rf "${OUTPUT_NAME:?}" || abort
-    cp -r "$WORK_DIR"/wsa/"$ARCH" "$OUTPUT_NAME" || abort
+    rm -rf "${OUTPUT_PATH:?}" || abort
+    cp -r "$WORK_DIR"/wsa/"$ARCH" "$OUTPUT_PATH" || abort
 fi
 echo -e "done\n"
 
