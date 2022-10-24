@@ -2,13 +2,6 @@
 
 :warning: For fork developers: Please don't build using GitHub Actions, as GitHub will count your forked GitHub Actions usage against this upstream repository, which may cause this upstream repository gets disabled by GitHub staff because of numerous forks building GitHub Actions, and counting the forks' Action usage against this upstream repository.
 
-<details>
-    <summary>How to detach your fork from this upstream repository (a visual guide):</summary>
-    <p>
-        <img src="https://user-images.githubusercontent.com/96967473/194208623-194e5926-feb9-4172-b57f-a82179245d02.png" title="How to detach form using GitHub Support virtual assistant chatbot">
-            </p>
- </details>
-
 ## Support for generating from these systems
 
 - Linux (x86_64 or arm64)
