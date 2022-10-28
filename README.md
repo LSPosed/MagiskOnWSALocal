@@ -54,8 +54,8 @@
 1. Star (if you like)
 1. Clone the repo to local
    - Run `cd scripts`
-   - Then run `build.sh --help` (optional) to get the usage if you want to use CLI.
-1. Run `run.sh` under scripts directory.
+   - Then run `./build.sh --help` (optional) to get the usage if you want to use CLI.
+1. Run `./run.sh` under scripts directory.
 1. Select the WSA version and its architecture (mostly x64).
 1. Select the version of Magisk.
 1. Choose which brand of GApps you want to install
