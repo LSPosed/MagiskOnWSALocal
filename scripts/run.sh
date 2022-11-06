@@ -234,9 +234,9 @@ if [ "$COMPRESS_OUTPUT" = "--compress" ]; then
         Radiolist '([title]="Compress format"
                         [default]="7z")' \
             \
+            'zip' "Zip" 'off' \
             '7z' "7-Zip" 'on' \
-            'xz' "tar.xz" 'off' \
-            'zip' "Zip" 'off'
+            'xz' "tar.xz" 'off'
         )
 fi
 # if ! (YesNoBox '([title]="Off line mode" [text]="Do you want to enable off line mode?")'); then
