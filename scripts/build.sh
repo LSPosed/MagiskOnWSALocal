@@ -258,13 +258,19 @@ while [[ $# -gt 0 ]]; do
         --remove-amazon   ) REMOVE_AMAZON="remove"; shift ;;
         --compress        ) COMPRESS_OUTPUT="yes"; shift ;;
         --offline         ) OFFLINE="on"; shift ;;
-        --magisk-custom   ) CUSTOM_MAGISK="debug"; MAGISK_VER=$CUSTOM_MAGISK; shift ;;
+        --magisk-custom   ) CUSTOM_MAGISK="debug"; shift ;;
         --magisk-ver      ) MAGISK_VER="$2"; shift 2 ;;
         --debug           ) DEBUG="on"; shift ;;
         --help            ) usage; exit 0 ;;
         --                ) shift; break;;
    esac
 done
+
+if [ "$CUSTOM_MAGISK" ]; then
+    if [ -z "$MAGISK_VER" ]; then
+        MAGISK_VER=$CUSTOM_MAGISK
+    fi
+fi
 
 check_list() {
     local input=$1
