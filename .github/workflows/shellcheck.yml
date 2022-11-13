@@ -20,4 +20,4 @@ jobs:
       id: check
       uses: ludeeus/action-shellcheck@master
       with:
-       scandir: './scripts'
+       scandir: './scripts/*.sh'
