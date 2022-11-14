@@ -164,7 +164,8 @@ ARR_TO_STR() {
 }
 usage() {
     default
-    echo "Usage:
+    echo -e "
+Usage:
     --arch          Architecture of WSA.
 
                     Possible values: $(ARR_TO_STR "${ARCH_MAP[@]}")
@@ -192,8 +193,6 @@ usage() {
                     Possible values: $(ARR_TO_STR "${GAPPS_VARIANT_MAP[@]}")
                     Default: $GAPPS_VARIANT
 
-    --nofix-props   No fix \"build.prop\"
-
     --root-sol      Root solution.
                     \"none\" means no root.
 
@@ -213,6 +212,13 @@ Additional Options:
     --magisk-custom Install custom Magisk
     --debug         Debug build mode
     --help          Show this help message and exit
+    --nofix-props   No fix \"build.prop\"
+                    \033[0;31m
+                    WARNING: Services such as the Play Store may stop working properly.
+                    We are not responsible for any problems caused by using this option !
+                    \033[0m
+                    Info:
+                    https://support.google.com/android/answer/10248227?hl=en#zippy=%2Cdevice-isnt-certified
 
 Example:
     ./build.sh --release-type RP --magisk-ver beta --gapps-variant pico --remove-amazon
