@@ -192,6 +192,8 @@ usage() {
                     Possible values: $(ARR_TO_STR "${GAPPS_VARIANT_MAP[@]}")
                     Default: $GAPPS_VARIANT
 
+    --nofix-props   No fix \"build.prop\"
+
     --root-sol      Root solution.
                     \"none\" means no root.
 
@@ -215,7 +217,7 @@ Additional Options:
 Example:
     ./build.sh --release-type RP --magisk-ver beta --gapps-variant pico --remove-amazon
     ./build.sh --arch arm64 --release-type WIF --gapps-brand MindTheGapps
-    ./build.sh --release-type WIS --gapps-brand none
+    ./build.sh --release-type WIS --gapps-brand none --nofix-props
     ./build.sh --offline --gapps-variant pico --magisk-custom
     "
 }
@@ -226,6 +228,7 @@ ARGUMENT_LIST=(
     "magisk-ver:"
     "gapps-brand:"
     "gapps-variant:"
+    "nofix-props"
     "root-sol:"
     "compress-format:"
     "remove-amazon"
@@ -253,9 +256,10 @@ while [[ $# -gt 0 ]]; do
         --release-type    ) RELEASE_TYPE="$2"; shift 2 ;;
         --gapps-brand     ) GAPPS_BRAND="$2"; shift 2 ;;
         --gapps-variant   ) GAPPS_VARIANT="$2"; shift 2 ;;
+        --nofix-props     ) NOFIX_PROPS="yes"; shift ;;
         --root-sol        ) ROOT_SOL="$2"; shift 2 ;;
         --compress-format ) COMPRESS_FORMAT="$2"; shift 2 ;;
-        --remove-amazon   ) REMOVE_AMAZON="remove"; shift ;;
+        --remove-amazon   ) REMOVE_AMAZON="yes"; shift ;;
         --compress        ) COMPRESS_OUTPUT="yes"; shift ;;
         --offline         ) OFFLINE="on"; shift ;;
         --magisk-custom   ) CUSTOM_MAGISK="debug"; shift ;;
@@ -679,7 +683,7 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
     echo -e "Integrate $GAPPS_BRAND done\n"
 fi
 
-if [ "$GAPPS_BRAND" != 'none' ]; then
+if [ "$GAPPS_BRAND" != 'none' ] && [ ! "$NOFIX_PROPS" ]; then
     echo "Fix $GAPPS_BRAND prop"
     $SUDO python3 fixGappsProp.py "$MOUNT_DIR" || abort
     echo -e "done\n"
