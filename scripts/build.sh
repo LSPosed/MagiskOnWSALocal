@@ -222,8 +222,8 @@ Additional Options:
 
 Example:
     ./build.sh --release-type RP --magisk-ver beta --gapps-variant pico --remove-amazon
-    ./build.sh --arch arm64 --release-type WIF --gapps-brand MindTheGapps
-    ./build.sh --release-type WIS --gapps-brand none --nofix-props
+    ./build.sh --arch arm64 --release-type WIF --gapps-brand OpenGApps --nofix-props
+    ./build.sh --release-type WIS --gapps-brand none
     ./build.sh --offline --gapps-variant pico --magisk-custom
     "
 }
