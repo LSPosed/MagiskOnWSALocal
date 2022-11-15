@@ -110,7 +110,7 @@ if [ -n "${NEED_INSTALL[*]}" ]; then
                 NEED_INSTALL_FIX=${NEED_INSTALL_FIX//whiptail/dialog} 2>&1
                 NEED_INSTALL_FIX=${NEED_INSTALL_FIX//xz-utils/xz} 2>&1
             }  >> /dev/null
-            
+
             readarray -td ' ' NEED_INSTALL <<<"$NEED_INSTALL_FIX "; unset 'NEED_INSTALL[-1]';
         elif [ "$PM" = "apk" ]; then
             NEED_INSTALL_FIX=${NEED_INSTALL[*]}
