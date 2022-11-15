@@ -162,6 +162,9 @@ ARR_TO_STR() {
     printf -v joined "%s, " "${arr[@]}"
     echo "${joined%, }"
 }
+GAPPS_PROPS_MSG1="\033[0;31mWARNING: Services such as the Play Store may stop working properly."
+GAPPS_PROPS_MSG2="We are not responsible for any problems caused by this!\033[0m"
+GAPPS_PROPS_MSG3="Info: https://support.google.com/android/answer/10248227"
 usage() {
     default
     echo -e "
@@ -213,12 +216,9 @@ Additional Options:
     --debug         Debug build mode
     --help          Show this help message and exit
     --nofix-props   No fix \"build.prop\"
-                    \033[0;31m
-                    WARNING: Services such as the Play Store may stop working properly.
-                    We are not responsible for any problems caused by using this option !
-                    \033[0m
-                    Info:
-                    https://support.google.com/android/answer/10248227?hl=en#zippy=%2Cdevice-isnt-certified
+                    $GAPPS_PROPS_MSG1
+                    $GAPPS_PROPS_MSG2
+                    $GAPPS_PROPS_MSG3
 
 Example:
     ./build.sh --release-type RP --magisk-ver beta --gapps-variant pico --remove-amazon
@@ -689,10 +689,14 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
     echo -e "Integrate $GAPPS_BRAND done\n"
 fi
 
-if [ "$GAPPS_BRAND" != 'none' ] && [ ! "$NOFIX_PROPS" ]; then
-    echo "Fix $GAPPS_BRAND prop"
-    $SUDO python3 fixGappsProp.py "$MOUNT_DIR" || abort
-    echo -e "done\n"
+if [ "$GAPPS_BRAND" != 'none' ]; then
+    if [ "$NOFIX_PROPS" ]; then
+        echo -e "Skip fix $GAPPS_BRAND prop!\n$GAPPS_PROPS_MSG1\n$GAPPS_PROPS_MSG2\n$GAPPS_PROPS_MSG3\n"
+    else
+        echo "Fix $GAPPS_BRAND prop"
+        $SUDO python3 fixGappsProp.py "$MOUNT_DIR" || abort
+        echo -e "done\n"
+    fi
 fi
 
 echo "Umount images"
