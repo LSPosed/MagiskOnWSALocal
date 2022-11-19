@@ -1,0 +1,27 @@
+name: Issue moderator
+
+on:
+  issues:
+    types: [opened]
+  pull_request:
+    types: [opened, edited]
+
+jobs:
+  autoclose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check issue
+        uses: tachiyomiorg/issue-moderator-action@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-close-rules: |
+            [
+              {
+                "type": "title",
+                "regex": ".*Short description.*",
+                "message": "You did not fill out the description in the title"
+              }
+            ]
+          auto-close-ignore-label: do-not-autoclose
+      - name: Check PR
+        uses: sumally/github-check-tasklist-action@v1

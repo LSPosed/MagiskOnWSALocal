@@ -1,0 +1,88 @@
+name: Bug report/反馈 Bug
+description: Report errors or unexpected behavior./反馈错误或异常行为。
+labels: [bug]
+title: "[Bug] Short description."
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting issues of MagiskOnWSALocal!
+
+        To make it easier for us to help you please enter detailed information below.
+        
+        感谢给 MagiskOnWSALocal 汇报问题！
+        为了使我们更好地帮助你，请提供以下信息。
+        为了防止重复汇报，标题请务必使用英文。
+  - type: textarea
+    attributes:
+      label: Steps to reproduce/复现步骤
+      value: |
+        1. 
+        2. 
+        3. 
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Expected behaviour/预期行为
+      placeholder: Tell us what should happen/正常情况下应该发生什么
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Actual behaviour/实际行为
+      placeholder: Tell us what happens instead/实际上发生了什么
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: MagiskOnWSALocal commit full SHA/MagiskOnWSALocal 提交的完整哈希
+      description:  Don't use 'latest'. Copy and paste full commit SHA, otherwise your issue will be closed./不要填用“最新”。复制并粘贴完整 commit SHA，不然 issue 会被关闭。
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Linux distribution info/Linux 发行版信息
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Windows version/Windows 版本
+      placeholder: 10.0.22000.978
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Build Parameters/构建参数
+      description: The script prints the build information each time you start a build. It looks like this, please copy and paste it./每次开始构建时脚本都会打印构建信息，它看起来是这样的，请复制并粘贴上来。
+      placeholder: |
+        COMMAND_LINE=--arch x64 --release-type retail --magisk-ver stable --gapps-brand MindTheGapps --gapps-variant pico  --root-sol magisk
+        INFO: Architecture: x64
+        INFO: Release Type: retail
+        INFO: Magisk Version: stable
+        INFO: GApps Brand: MindTheGapps
+        INFO: GApps Variant: pico
+        INFO: Root Solution: magisk
+        Build: RELEASE_TYPE=Retail
+    validations:
+      required: true
+  - type: checkboxes
+    id: latest
+    attributes:
+      label: Version requirement/版本要求
+      options:
+        - label: I am using latest commit of MagiskOnWSALocal/我正在使用最新 commit 的版本
+          required: true
+  - type: textarea
+    attributes:
+      label: Logs/日志
+      description: Please copy and paste the error or submit a screenshot. Without log, the issue will be closed. /请复制粘贴错误或提交截图。无日志提交会被关闭。
+      value: |
+        <details>
+        <summary>Details</summary>
+
+
+
+        </details>
+    validations:
+      required: true

@@ -26,15 +26,22 @@ if [ ! "$BASH_VERSION" ]; then
     exit 1
 fi
 cd "$(dirname "$0")" || exit 1
-
+SUDO="$(which sudo 2>/dev/null)"
 abort() {
     echo "Dependencies: an error has occurred, exit"
     exit 1
 }
-
+require_su() {
+    if test "$(whoami)" != "root"; then
+        if [ -z "$SUDO" ] && [ "$($SUDO whoami)" != "root" ]; then
+            echo "ROOT/SUDO is required to run this script"
+            abort
+        fi
+    fi
+}
 echo "Checking and ensuring dependencies"
 check_dependencies() {
-    command -v whiptail >/dev/null 2>&1 || NEED_INSTALL+=("whiptail")
+    command -v whiptail >/dev/null 2>&1 || command -v dialog >/dev/null 2>&1 || NEED_INSTALL+=("whiptail")
     command -v seinfo >/dev/null 2>&1 || NEED_INSTALL+=("setools")
     command -v lzip >/dev/null 2>&1 || NEED_INSTALL+=("lzip")
     command -v wine64 >/dev/null 2>&1 || NEED_INSTALL+=("wine")
@@ -43,13 +50,18 @@ check_dependencies() {
     command -v resize2fs >/dev/null 2>&1 || NEED_INSTALL+=("e2fsprogs")
     command -v pip >/dev/null 2>&1 || NEED_INSTALL+=("python3-pip")
     command -v aria2c >/dev/null 2>&1 || NEED_INSTALL+=("aria2")
+    command -v 7z > /dev/null 2>&1 || NEED_INSTALL+=("p7zip-full")
+    command -v setfattr > /dev/null 2>&1 || NEED_INSTALL+=("attr")
+    command -v xz > /dev/null 2>&1 || NEED_INSTALL+=("xz-utils")
+    command -v unzip > /dev/null 2>&1 || NEED_INSTALL+=("unzip")
 }
 check_dependencies
+osrel=$(sed -n '/^ID_LIKE=/s/^.*=//p' /etc/os-release);
 declare -A os_pm_install;
 # os_pm_install["/etc/redhat-release"]=yum
 # os_pm_install["/etc/arch-release"]=pacman
 # os_pm_install["/etc/gentoo-release"]=emerge
-# os_pm_install["/etc/SuSE-release"]=zypp
+os_pm_install["/etc/SuSE-release"]=zypper
 os_pm_install["/etc/debian_version"]=apt-get
 # os_pm_install["/etc/alpine-release"]=apk
 
@@ -57,7 +69,7 @@ declare -A PM_UPDATE_MAP;
 PM_UPDATE_MAP["yum"]="check-update"
 PM_UPDATE_MAP["pacman"]="-Syu --noconfirm"
 PM_UPDATE_MAP["emerge"]="-auDN @world"
-PM_UPDATE_MAP["zypp"]="update -y"
+PM_UPDATE_MAP["zypper"]="ref"
 PM_UPDATE_MAP["apt-get"]="update"
 PM_UPDATE_MAP["apk"]="update"
 
@@ -65,7 +77,7 @@ declare -A PM_INSTALL_MAP;
 PM_INSTALL_MAP["yum"]="install -y"
 PM_INSTALL_MAP["pacman"]="-S --noconfirm --needed"
 PM_INSTALL_MAP["emerge"]="-a"
-PM_INSTALL_MAP["zypp"]="install -y"
+PM_INSTALL_MAP["zypper"]="in -y"
 PM_INSTALL_MAP["apt-get"]="install -y"
 PM_INSTALL_MAP["apk"]="add"
 
@@ -73,20 +85,39 @@ check_package_manager() {
     for f in "${!os_pm_install[@]}"; do
         if [[ -f $f ]]; then
             PM="${os_pm_install[$f]}"
-            readarray -td ' ' UPDATE_OPTION <<<"${PM_UPDATE_MAP[$PM]} "; unset 'UPDATE_OPTION[-1]';
-            readarray -td ' ' INSTALL_OPTION <<<"${PM_INSTALL_MAP[$PM]} "; unset 'INSTALL_OPTION[-1]';
             break
         fi
     done
+    if [[ "$osrel" = *"suse"* ]]; then
+        PM="zypper"
+    fi
+    if [ -n "$PM" ]; then
+        readarray -td ' ' UPDATE_OPTION <<<"${PM_UPDATE_MAP[$PM]} "; unset 'UPDATE_OPTION[-1]';
+        readarray -td ' ' INSTALL_OPTION <<<"${PM_INSTALL_MAP[$PM]} "; unset 'INSTALL_OPTION[-1]';
+    fi
 }
 
 check_package_manager
 if [ -n "${NEED_INSTALL[*]}" ]; then
     if [ -z "$PM" ]; then
-        echo "Unable to determine package manager: unknown distribution"
+        echo "Unable to determine package manager: Unsupported distros"
         abort
     else
-        if ! (sudo "$PM" "${UPDATE_OPTION[@]}" && sudo "$PM" "${INSTALL_OPTION[@]}" "${NEED_INSTALL[@]}") then abort; fi
+        if [ "$PM" = "zypper" ]; then
+            NEED_INSTALL_FIX=${NEED_INSTALL[*]}
+            {
+                NEED_INSTALL_FIX=${NEED_INSTALL_FIX//setools/setools-console} 2>&1
+                NEED_INSTALL_FIX=${NEED_INSTALL_FIX//whiptail/dialog} 2>&1
+                NEED_INSTALL_FIX=${NEED_INSTALL_FIX//xz-utils/xz} 2>&1
+            }  >> /dev/null
+
+            readarray -td ' ' NEED_INSTALL <<<"$NEED_INSTALL_FIX "; unset 'NEED_INSTALL[-1]';
+        elif [ "$PM" = "apk" ]; then
+            NEED_INSTALL_FIX=${NEED_INSTALL[*]}
+            readarray -td ' ' NEED_INSTALL <<<"${NEED_INSTALL_FIX//p7zip-full/p7zip} "; unset 'NEED_INSTALL[-1]';
+        fi
+        require_su
+        if ! ($SUDO "$PM" "${UPDATE_OPTION[@]}" && $SUDO "$PM" "${INSTALL_OPTION[@]}" "${NEED_INSTALL[@]}") then abort; fi
     fi
 fi
 pip list --disable-pip-version-check | grep -E "^requests " >/dev/null 2>&1 || python3 -m pip install requests
@@ -95,11 +126,13 @@ winetricks list-installed | grep -E "^msxml6" >/dev/null 2>&1 || {
     cp -r ../wine/.cache/* ~/.cache
     winetricks msxml6 || abort
 }
-
+WHIPTAIL=$(command -v whiptail 2>/dev/null)
+DIALOG=$(command -v dialog 2>/dev/null)
+DIALOG=${WHIPTAIL:-$DIALOG}
 function Radiolist {
     declare -A o="$1"
     shift
-    if ! whiptail --nocancel --radiolist "${o[title]}" 0 0 0 "$@" 3>&1 1>&2 2>&3; then
+    if ! $DIALOG --nocancel --radiolist "${o[title]}" 0 0 0 "$@" 3>&1 1>&2 2>&3; then
         echo "${o[default]}"
     fi
 }
@@ -107,7 +140,7 @@ function Radiolist {
 function YesNoBox {
     declare -A o="$1"
     shift
-    whiptail --title "${o[title]}" --yesno "${o[text]}" 0 0
+    $DIALOG --title "${o[title]}" --yesno "${o[text]}" 0 0
 }
 
 ARCH=$(
@@ -196,7 +229,16 @@ if (YesNoBox '([title]="Compress output" [text]="Do you want to compress the out
 else
     COMPRESS_OUTPUT=""
 fi
-
+if [ "$COMPRESS_OUTPUT" = "--compress" ]; then
+    COMPRESS_FORMAT=$(
+        Radiolist '([title]="Compress format"
+                        [default]="7z")' \
+            \
+            'zip' "Zip" 'off' \
+            '7z' "7-Zip" 'on' \
+            'xz' "tar.xz" 'off'
+        )
+fi
 # if ! (YesNoBox '([title]="Off line mode" [text]="Do you want to enable off line mode?")'); then
 #     OFFLINE="--offline"
 # else
@@ -205,6 +247,6 @@ fi
 # OFFLINE="--offline"
 clear
 declare -A RELEASE_TYPE_MAP=(["retail"]="retail" ["release preview"]="RP" ["insider slow"]="WIS" ["insider fast"]="WIF")
-COMMAND_LINE=(--arch "$ARCH" --release-type "${RELEASE_TYPE_MAP[$RELEASE_TYPE]}" --magisk-ver "$MAGISK_VER" --gapps-brand "$GAPPS_BRAND" --gapps-variant "$GAPPS_VARIANT" "$REMOVE_AMAZON" --root-sol "$ROOT_SOL" "$COMPRESS_OUTPUT" "$OFFLINE" "$DEBUG" "$CUSTOM_MAGISK")
+COMMAND_LINE=(--arch "$ARCH" --release-type "${RELEASE_TYPE_MAP[$RELEASE_TYPE]}" --magisk-ver "$MAGISK_VER" --gapps-brand "$GAPPS_BRAND" --gapps-variant "$GAPPS_VARIANT" "$REMOVE_AMAZON" --root-sol "$ROOT_SOL" "$COMPRESS_OUTPUT" "$OFFLINE" "$DEBUG" "$CUSTOM_MAGISK" --compress-format "$COMPRESS_FORMAT")
 echo "COMMAND_LINE=${COMMAND_LINE[*]}"
 ./build.sh "${COMMAND_LINE[@]}"
