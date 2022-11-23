@@ -61,7 +61,7 @@
    - OpenGApps
 
         Select the [OpenGApps variant](https://github.com/opengapps/opengapps/wiki#variants) you like.
-   - MindtheGapps
+   - MindTheGapps
 
        There is no other variant we can choose.
 1. Select the root solution (none means no root)
@@ -117,11 +117,13 @@
 - How to install custom GApps?
 
     [Tutorial](./Custom-GApps.md)
-- Where can I download MindtheGapps?
+- Where can I download MindTheGapps?
 
-    You can download from here [MindtheGapps](https://androidfilehost.com/?w=files&flid=322935) ([mirror](http://downloads.codefi.re/jdcteam/javelinanddart/gapps))
+    You can download from here [MindTheGapps](https://androidfilehost.com/?w=files&flid=322935) ([mirror](http://downloads.codefi.re/jdcteam/javelinanddart/gapps))
 
     Note that there is no x86_64 pre-build, so you need to build it by yourself ([Repository](https://gitlab.com/MindTheGapps/vendor_gapps)).
+
+    Or you can download the built package for 12.1-x86_64 from the [this page](https://sourceforge.net/projects/wsa-mtg/files/x86_64/).
 - Can I switch OpenGApps to MindTheGapps and keep user data in a previous build?
 
     No. You should wipe data after changing the GApps brand. Otherwise, you will find that the installed GApps are not recognized.
