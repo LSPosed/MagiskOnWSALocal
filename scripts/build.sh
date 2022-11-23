@@ -449,10 +449,6 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
             rm -rf "${WORK_DIR:?}"/gapps/system || abort
         fi
         cp -r ../"$ARCH"/gapps/* "$WORK_DIR"/gapps || abort
-        if [ "$GAPPS_BRAND" = "MindTheGapps" ]; then
-            mv "$WORK_DIR"/gapps/priv-app/* "$WORK_DIR"/gapps/system_ext/priv-app || abort
-            rm -rf "${WORK_DIR:?}"/gapps/priv-app || abort
-        fi
     else
         echo "The $GAPPS_BRAND zip package does not exist."
         abort
