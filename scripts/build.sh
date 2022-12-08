@@ -42,6 +42,10 @@ SUDO="$(which sudo 2>/dev/null)"
 if [ -z "$SUDO" ]; then
     unset SUDO
 fi
+WSA_WORK_ENV="${WORK_DIR:?}"/ENV
+if [ -f "$WSA_WORK_ENV" ]; then rm -f "${WSA_WORK_ENV:?}"; fi
+touch "$WSA_WORK_ENV"
+export WSA_WORK_ENV
 umount_clean() {
     if [ -d "$MOUNT_DIR" ]; then
         echo "Cleanup Work Directory"
@@ -88,7 +92,7 @@ abort() {
 }
 trap abort INT TERM
 
-function Gen_Rand_Str {
+Gen_Rand_Str() {
     tr -dc 'a-zA-Z0-9' </dev/urandom | fold -w "$1" | head -n 1
 }
 
@@ -324,6 +328,7 @@ require_su() {
 }
 
 declare -A RELEASE_NAME_MAP=(["retail"]="Retail" ["RP"]="Release Preview" ["WIS"]="Insider Slow" ["WIF"]="Insider Fast")
+declare -A ANDROID_API_MAP=(["30"]="11.0" ["32"]="12.1" ["33"]="13.0")
 RELEASE_NAME=${RELEASE_NAME_MAP[$RELEASE_TYPE]} || abort
 
 echo -e "Build: RELEASE_TYPE=$RELEASE_NAME"
@@ -345,22 +350,33 @@ if [ "$CUSTOM_MAGISK" ]; then
         fi
     fi
 fi
-if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
-    GAPPS_PATH="$DOWNLOAD_DIR"/OpenGApps-$ARCH-$GAPPS_VARIANT.zip
-else
-    GAPPS_PATH="$DOWNLOAD_DIR"/MindTheGapps-"$ARCH".zip
-fi
-
+ANDROID_API=32
+update_gapps_zip_name() {
+    if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
+        ANDROID_API=30
+        GAPPS_ZIP_NAME="$GAPPS_BRAND-$ARCH-${ANDROID_API_MAP[$ANDROID_API]}-$GAPPS_VARIANT".zip
+    else
+        GAPPS_ZIP_NAME="$GAPPS_BRAND-$ARCH-${ANDROID_API_MAP[$ANDROID_API]}".zip
+    fi
+    GAPPS_PATH=$DOWNLOAD_DIR/$GAPPS_ZIP_NAME
+}
+update_gapps_zip_name
 if [ -z "${OFFLINE+x}" ]; then
     trap 'rm -f -- "${DOWNLOAD_DIR:?}/${DOWNLOAD_CONF_NAME}"' EXIT
     require_su
     echo "Generate Download Links"
     python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
+    # shellcheck disable=SC1091
+    source "${WORK_DIR:?}/ENV" || abort
+    if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2211 ]]; then
+        ANDROID_API=33
+        update_gapps_zip_name
+    fi
     if [ -z "${CUSTOM_MAGISK+x}" ]; then
         python3 generateMagiskLink.py "$MAGISK_VER" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
     fi
     if [ "$GAPPS_BRAND" != "none" ]; then
-        python3 generateGappsLink.py "$ARCH" "$GAPPS_BRAND" "$GAPPS_VARIANT" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
+        python3 generateGappsLink.py "$ARCH" "$GAPPS_BRAND" "$GAPPS_VARIANT" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" "$ANDROID_API" "$GAPPS_ZIP_NAME" || abort
     fi
 
     echo "Download Artifacts"
@@ -391,10 +407,6 @@ fi
 
 echo "Extract WSA"
 if [ -f "$WSA_ZIP_PATH" ]; then
-    WSA_WORK_ENV="${WORK_DIR:?}"/ENV
-    if [ -f "$WSA_WORK_ENV" ]; then rm -f "${WSA_WORK_ENV:?}"; fi
-    touch "$WSA_WORK_ENV"
-    export WSA_WORK_ENV
     if ! python3 extractWSA.py "$ARCH" "$WSA_ZIP_PATH" "$WORK_DIR"; then
         echo "Unzip WSA failed, is the download incomplete?"
         CLEAN_DOWNLOAD_WSA=1
@@ -403,6 +415,10 @@ if [ -f "$WSA_ZIP_PATH" ]; then
     echo -e "Extract done\n"
     # shellcheck disable=SC1091
     source "${WORK_DIR:?}/ENV" || abort
+    if [[ "$WSA_MAIN_VER" -ge 2211 ]]; then
+        ANDROID_API=33
+        update_gapps_zip_name
+    fi
 else
     echo "The WSA zip package does not exist, is the download incomplete?"
     exit 1
