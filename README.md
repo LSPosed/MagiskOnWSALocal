@@ -135,3 +135,7 @@
 - [The Open GApps Project](https://opengapps.org): One of the most famous Google Apps packages solution
 - [WSA-Kernel-SU](https://github.com/LSPosed/WSA-Kernel-SU) and [kernel-assisted-superuser](https://git.zx2c4.com/kernel-assisted-superuser/): The kernel `su` for debugging Magisk Integration
 - [WSAGAScript](https://github.com/ADeltaX/WSAGAScript): The first GApps integration script for WSA
+
+_The repository is provided as a utility._
+
+_Android is a trademark of Google LLC. Windows is a trademark of Microsoft LLC._
