@@ -459,6 +459,7 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
         else
             if ! unzip "$GAPPS_PATH" "system/*" -x "system/addon.d/*" "system/system_ext/priv-app/SetupWizard/*" -d "$WORK_DIR"/gapps; then
                 echo "Unzip MindTheGapps failed, package is corrupted?"
+                CLEAN_DOWNLOAD_GAPPS=1
                 abort
             fi
             mv "$WORK_DIR"/gapps/system/* "$WORK_DIR"/gapps || abort
