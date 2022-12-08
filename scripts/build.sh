@@ -731,6 +731,10 @@ e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/system_ext.img || abort
 resize2fs -M "$WORK_DIR"/wsa/"$ARCH"/system_ext.img || abort
 echo -e "Shrink images done\n"
 
+echo "Make link for WsaRes to Reduce system space"
+mkdir "$WORK_DIR"/wsa/"$ARCH"/WsaRes
+echo "link for WsaRes had done"
+
 echo "Remove signature and add scripts"
 $SUDO rm -rf "${WORK_DIR:?}"/wsa/"$ARCH"/\[Content_Types\].xml "$WORK_DIR"/wsa/"$ARCH"/AppxBlockMap.xml "$WORK_DIR"/wsa/"$ARCH"/AppxSignature.p7x "$WORK_DIR"/wsa/"$ARCH"/AppxMetadata || abort
 cp "$vclibs_PATH" "$xaml_PATH" "$WORK_DIR"/wsa/"$ARCH" || abort
@@ -754,6 +758,21 @@ function Get-InstalledDependencyVersion {
     process {
         return Get-AppxPackage -Name \$Name | ForEach-Object { if (\$_.Architecture -eq \$ProcessorArchitecture) { \$_ } } | Sort-Object -Property Version | Select-Object -ExpandProperty Version -Last 1;
     }
+}
+
+function Make-link {
+    param(
+        [string]\$link,
+        [string]\$target
+    )
+    if (Test-Path -Path \$link){
+        Write-Host "The given folder exists."
+        remove-Item -Recurse -Force \$link
+    }
+    else {
+        Write-Host "The given folder does not exist."
+    }
+    New-Item -Path \$link -ItemType SymbolicLink -Value \$target
 }
 
 function Finish {
@@ -835,6 +854,7 @@ If ((\$null -Ne \$Installed) -And (-Not (\$Installed.IsDevelopmentMode))) {
 Clear-Host
 Write-Host "Installing MagiskOnWSA..."
 Stop-Process -Name "WsaClient" -ErrorAction SilentlyContinue
+Make-link -link "\$(\$env:LOCALAPPDATA)\Packages\MicrosoftCorporationII.WindowsSubsystemForAndroid_8wekyb3d8bbwe" -target "\$PSScriptRoot\WsaRes"
 Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Register .\AppxManifest.xml
 If (\$?) {
     Finish
@@ -843,6 +863,7 @@ ElseIf (\$null -Ne \$Installed) {
     Clear-Host
     Write-Host "Failed to update, try to uninstall existing installation while preserving userdata..."
     Remove-AppxPackage -PreserveApplicationData -Package \$Installed.PackageFullName
+    Make-link -link "\$(\$env:LOCALAPPDATA)\Packages\MicrosoftCorporationII.WindowsSubsystemForAndroid_8wekyb3d8bbwe" -target "\$PSScriptRoot\WsaRes"
     Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Register .\AppxManifest.xml
     If (\$?) {
         Finish
