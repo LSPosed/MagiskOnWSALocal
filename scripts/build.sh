@@ -217,9 +217,9 @@ Additional Options:
     --compress          Compress the WSA, The default format is 7z, you can use the format specified by --compress-format
     --offline           Build WSA offline
     --magisk-custom     Install custom Magisk
+    --skip-download-wsa Skip download WSA
     --debug             Debug build mode
     --help              Show this help message and exit
-    --skip-download-wsa Skip download WSA
     --nofix-props       No fix \"build.prop\"
                         $GAPPS_PROPS_MSG1
                         $GAPPS_PROPS_MSG2
