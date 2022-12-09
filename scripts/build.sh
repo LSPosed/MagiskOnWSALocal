@@ -219,7 +219,7 @@ Additional Options:
     --magisk-custom     Install custom Magisk
     --debug             Debug build mode
     --help              Show this help message and exit
-    --skip-download-wsa
+    --skip-download-wsa Skip download WSA
     --nofix-props       No fix \"build.prop\"
                         $GAPPS_PROPS_MSG1
                         $GAPPS_PROPS_MSG2
