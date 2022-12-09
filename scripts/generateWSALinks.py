@@ -93,6 +93,7 @@ for i, v, f in identities:
     #     out_file = download_dir / out_file_name
     elif re.match(f"MicrosoftCorporationII\.WindowsSubsystemForAndroid_.*\.msixbundle", f):
         wsa_long_ver = re.search(u'\d{4}.\d{5}.\d{1,}.\d{1,}', f).group()
+        print(f'WSA Version={wsa_long_ver}\n')
         main_ver = wsa_long_ver.split(".")[0]
         with open(os.environ['WSA_WORK_ENV'], 'a') as environ_file:
             environ_file.write(f"DOWN_WSA_VERSION={wsa_long_ver}\n")
