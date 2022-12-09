@@ -634,9 +634,9 @@ EOF
 fi
 
 echo "Merge Language Resources"
-cp "$WORK_DIR"/wsa/"$ARCH"/resources.pri "$WORK_DIR"/wsa/pri/en-us.pri
-cp "$WORK_DIR"/wsa/"$ARCH"/AppxManifest.xml "$WORK_DIR"/wsa/xml/en-us.xml
-tee "$WORK_DIR"/wsa/priconfig.xml <<EOF
+cp "$WORK_DIR"/wsa/"$ARCH"/resources.pri "$WORK_DIR"/wsa/pri/en-us.pri \
+&& cp "$WORK_DIR"/wsa/"$ARCH"/AppxManifest.xml "$WORK_DIR"/wsa/xml/en-us.xml && {
+    tee "$WORK_DIR"/wsa/priconfig.xml <<EOF
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <resources targetOsVersion="10.0.0" majorVersion="1">
 <index root="\" startIndexAt="\">
@@ -645,9 +645,10 @@ tee "$WORK_DIR"/wsa/priconfig.xml <<EOF
 </index>
 </resources>
 EOF
-wine64 ../wine/"$HOST_ARCH"/makepri.exe new /pr "$WORK_DIR"/wsa/pri /in MicrosoftCorporationII.WindowsSubsystemForAndroid /cf "$WORK_DIR"/wsa/priconfig.xml /of "$WORK_DIR"/wsa/"$ARCH"/resources.pri /o
-sed -i -zE "s/<Resources.*Resources>/<Resources>\n$(cat "$WORK_DIR"/wsa/xml/* | grep -Po '<Resource [^>]*/>' | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/\$/\\$/g' | sed 's/\//\\\//g')\n<\/Resources>/g" "$WORK_DIR"/wsa/"$ARCH"/AppxManifest.xml
-echo -e "Merge Language Resources done\n"
+    wine64 ../wine/"$HOST_ARCH"/makepri.exe new /pr "$WORK_DIR"/wsa/pri /in MicrosoftCorporationII.WindowsSubsystemForAndroid /cf "$WORK_DIR"/wsa/priconfig.xml /of "$WORK_DIR"/wsa/"$ARCH"/resources.pri /o
+    sed -i -zE "s/<Resources.*Resources>/<Resources>\n$(cat "$WORK_DIR"/wsa/xml/* | grep -Po '<Resource [^>]*/>' | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/\$/\\$/g' | sed 's/\//\\\//g')\n<\/Resources>/g" "$WORK_DIR"/wsa/"$ARCH"/AppxManifest.xml
+    echo -e "Merge Language Resources done\n"
+} || echo -e "Merge Language Resources failed\n"
 
 echo "Add extra packages"
 $SUDO cp -r ../"$ARCH"/system/* "$MOUNT_DIR" || abort
