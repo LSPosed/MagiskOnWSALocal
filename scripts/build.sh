@@ -426,11 +426,15 @@ fi
 
 echo "Extract Magisk"
 if [ -f "$MAGISK_PATH" ]; then
+	version=""
+	versionCode=0
     if ! python3 extractMagisk.py "$ARCH" "$MAGISK_PATH" "$WORK_DIR"; then
         echo "Unzip Magisk failed, is the download incomplete?"
         CLEAN_DOWNLOAD_MAGISK=1
         abort
     fi
+	# shellcheck disable=SC1091
+    source "${WORK_DIR:?}/ENV" || abort
     $SUDO patchelf --replace-needed libc.so "../linker/$HOST_ARCH/libc.so" "$WORK_DIR"/magisk/magiskpolicy || abort
     $SUDO patchelf --replace-needed libm.so "../linker/$HOST_ARCH/libm.so" "$WORK_DIR"/magisk/magiskpolicy || abort
     $SUDO patchelf --replace-needed libdl.so "../linker/$HOST_ARCH/libdl.so" "$WORK_DIR"/magisk/magiskpolicy || abort
@@ -871,8 +875,8 @@ echo "Generate info"
 
 if [[ "$ROOT_SOL" = "none" ]]; then
     name1=""
-elif [[ "$ROOT_SOL" = "" ]]; then
-    name1="-with-magisk-$MAGISK_VER"
+elif [ "$ROOT_SOL" = "" ] || [ "$ROOT_SOL" = "magisk" ]; then
+    name1="-with-magisk-$version($versionCode)-$MAGISK_VER"
 else
     name1="-with-$ROOT_SOL-$MAGISK_VER"
 fi
@@ -880,15 +884,15 @@ if [ "$GAPPS_BRAND" = "none" ]; then
     name2="-NoGApps"
 else
     if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
-        name2="-$GAPPS_BRAND-${GAPPS_VARIANT}"
+        name2="-$GAPPS_BRAND-${ANDROID_API_MAP[$ANDROID_API]}-${GAPPS_VARIANT}"
     else
-        name2="-$GAPPS_BRAND"
+        name2="-$GAPPS_BRAND-${ANDROID_API_MAP[$ANDROID_API]}"
     fi
     if [ "$GAPPS_BRAND" = "OpenGApps" ] && [ "$DEBUG" ]; then
         echo ":warning: Since OpenGApps doesn't officially support Android 12.1 yet, lock the variant to pico!"
     fi
 fi
-artifact_name="WSA${name1}${name2}_${WSA_VER}_${ARCH}_${WSA_REL}"
+artifact_name="WSA_${WSA_VER}_${ARCH}_${WSA_REL}${name1}${name2}"
 echo "$artifact_name"
 echo -e "\nFinishing building...."
 if [ -f "$OUTPUT_DIR" ]; then
