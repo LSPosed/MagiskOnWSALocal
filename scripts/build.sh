@@ -173,56 +173,57 @@ usage() {
     default
     echo -e "
 Usage:
-    --arch          Architecture of WSA.
+    --arch              Architecture of WSA.
 
-                    Possible values: $(ARR_TO_STR "${ARCH_MAP[@]}")
-                    Default: $ARCH
+                        Possible values: $(ARR_TO_STR "${ARCH_MAP[@]}")
+                        Default: $ARCH
 
-    --release-type  Release type of WSA.
-                    RP means Release Preview, WIS means Insider Slow, WIF means Insider Fast.
+    --release-type      Release type of WSA.
+                        RP means Release Preview, WIS means Insider Slow, WIF means Insider Fast.
 
-                    Possible values: $(ARR_TO_STR "${RELEASE_TYPE_MAP[@]}")
-                    Default: $RELEASE_TYPE
+                        Possible values: $(ARR_TO_STR "${RELEASE_TYPE_MAP[@]}")
+                        Default: $RELEASE_TYPE
 
-    --magisk-ver    Magisk version.
+    --magisk-ver        Magisk version.
 
-                    Possible values: $(ARR_TO_STR "${MAGISK_VER_MAP[@]}")
-                    Default: $MAGISK_VER
+                        Possible values: $(ARR_TO_STR "${MAGISK_VER_MAP[@]}")
+                        Default: $MAGISK_VER
 
-    --gapps-brand   GApps brand.
-                    \"none\" for no integration of GApps
+    --gapps-brand       GApps brand.
+                        \"none\" for no integration of GApps
 
-                    Possible values: $(ARR_TO_STR "${GAPPS_BRAND_MAP[@]}")
-                    Default: $GAPPS_BRAND
+                        Possible values: $(ARR_TO_STR "${GAPPS_BRAND_MAP[@]}")
+                        Default: $GAPPS_BRAND
 
-    --gapps-variant GApps variant.
+    --gapps-variant     GApps variant.
 
-                    Possible values: $(ARR_TO_STR "${GAPPS_VARIANT_MAP[@]}")
-                    Default: $GAPPS_VARIANT
+                        Possible values: $(ARR_TO_STR "${GAPPS_VARIANT_MAP[@]}")
+                        Default: $GAPPS_VARIANT
 
-    --root-sol      Root solution.
-                    \"none\" means no root.
+    --root-sol          Root solution.
+                        \"none\" means no root.
 
-                    Possible values: $(ARR_TO_STR "${ROOT_SOL_MAP[@]}")
-                    Default: $ROOT_SOL
+                        Possible values: $(ARR_TO_STR "${ROOT_SOL_MAP[@]}")
+                        Default: $ROOT_SOL
 
     --compress-format
-                    Compress format of output file.
-                    If this option is not specified and --compress is not specified, the generated file will not be compressed
+                        Compress format of output file.
+                        If this option is not specified and --compress is not specified, the generated file will not be compressed
 
-                    Possible values: $(ARR_TO_STR "${COMPRESS_FORMAT_MAP[@]}")
+                        Possible values: $(ARR_TO_STR "${COMPRESS_FORMAT_MAP[@]}")
 
 Additional Options:
-    --remove-amazon Remove Amazon Appstore from the system
-    --compress      Compress the WSA, The default format is 7z, you can use the format specified by --compress-format
-    --offline       Build WSA offline
-    --magisk-custom Install custom Magisk
-    --debug         Debug build mode
-    --help          Show this help message and exit
-    --nofix-props   No fix \"build.prop\"
-                    $GAPPS_PROPS_MSG1
-                    $GAPPS_PROPS_MSG2
-                    $GAPPS_PROPS_MSG3
+    --remove-amazon     Remove Amazon Appstore from the system
+    --compress          Compress the WSA, The default format is 7z, you can use the format specified by --compress-format
+    --offline           Build WSA offline
+    --magisk-custom     Install custom Magisk
+    --skip-download-wsa Skip download WSA
+    --debug             Debug build mode
+    --help              Show this help message and exit
+    --nofix-props       No fix \"build.prop\"
+                        $GAPPS_PROPS_MSG1
+                        $GAPPS_PROPS_MSG2
+                        $GAPPS_PROPS_MSG3
 
 Example:
     ./build.sh --release-type RP --magisk-ver beta --gapps-variant pico --remove-amazon
@@ -247,6 +248,7 @@ ARGUMENT_LIST=(
     "magisk-custom"
     "debug"
     "help"
+    "skip-download-wsa"
 )
 
 default
@@ -262,21 +264,22 @@ opts=$(
 eval set --"$opts"
 while [[ $# -gt 0 ]]; do
    case "$1" in
-        --arch            ) ARCH="$2"; shift 2 ;;
-        --release-type    ) RELEASE_TYPE="$2"; shift 2 ;;
-        --gapps-brand     ) GAPPS_BRAND="$2"; shift 2 ;;
-        --gapps-variant   ) GAPPS_VARIANT="$2"; shift 2 ;;
-        --nofix-props     ) NOFIX_PROPS="yes"; shift ;;
-        --root-sol        ) ROOT_SOL="$2"; shift 2 ;;
-        --compress-format ) COMPRESS_FORMAT="$2"; shift 2 ;;
-        --remove-amazon   ) REMOVE_AMAZON="yes"; shift ;;
-        --compress        ) COMPRESS_OUTPUT="yes"; shift ;;
-        --offline         ) OFFLINE="on"; shift ;;
-        --magisk-custom   ) CUSTOM_MAGISK="debug"; shift ;;
-        --magisk-ver      ) MAGISK_VER="$2"; shift 2 ;;
-        --debug           ) DEBUG="on"; shift ;;
-        --help            ) usage; exit 0 ;;
-        --                ) shift; break;;
+        --arch              ) ARCH="$2"; shift 2 ;;
+        --release-type      ) RELEASE_TYPE="$2"; shift 2 ;;
+        --gapps-brand       ) GAPPS_BRAND="$2"; shift 2 ;;
+        --gapps-variant     ) GAPPS_VARIANT="$2"; shift 2 ;;
+        --nofix-props       ) NOFIX_PROPS="yes"; shift ;;
+        --root-sol          ) ROOT_SOL="$2"; shift 2 ;;
+        --compress-format   ) COMPRESS_FORMAT="$2"; shift 2 ;;
+        --remove-amazon     ) REMOVE_AMAZON="yes"; shift ;;
+        --compress          ) COMPRESS_OUTPUT="yes"; shift ;;
+        --offline           ) OFFLINE="on"; shift ;;
+        --magisk-custom     ) CUSTOM_MAGISK="debug"; shift ;;
+        --magisk-ver        ) MAGISK_VER="$2"; shift 2 ;;
+        --debug             ) DEBUG="on"; shift ;;
+        --skip-download-wsa ) DOWN_WSA="no"; shift ;;
+        --help              ) usage; exit 0 ;;
+        --                  ) shift; break;;
    esac
 done
 
@@ -364,10 +367,14 @@ update_gapps_zip_name
 if [ -z "${OFFLINE+x}" ]; then
     trap 'rm -f -- "${DOWNLOAD_DIR:?}/${DOWNLOAD_CONF_NAME}"' EXIT
     require_su
-    echo "Generate Download Links"
-    python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
-    # shellcheck disable=SC1091
-    source "${WORK_DIR:?}/ENV" || abort
+    if [ "${DOWN_WSA}" != "no" ]; then
+        echo "Generate Download Links"
+        python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
+        # shellcheck disable=SC1091
+        source "${WORK_DIR:?}/ENV" || abort
+    else
+        DOWN_WSA_MAIN_VERSION=2211
+    fi
     if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2211 ]]; then
         ANDROID_API=33
         update_gapps_zip_name
@@ -426,14 +433,14 @@ fi
 
 echo "Extract Magisk"
 if [ -f "$MAGISK_PATH" ]; then
-	version=""
-	versionCode=0
+    version=""
+    versionCode=0
     if ! python3 extractMagisk.py "$ARCH" "$MAGISK_PATH" "$WORK_DIR"; then
         echo "Unzip Magisk failed, is the download incomplete?"
         CLEAN_DOWNLOAD_MAGISK=1
         abort
     fi
-	# shellcheck disable=SC1091
+    # shellcheck disable=SC1091
     source "${WORK_DIR:?}/ENV" || abort
     $SUDO patchelf --replace-needed libc.so "../linker/$HOST_ARCH/libc.so" "$WORK_DIR"/magisk/magiskpolicy || abort
     $SUDO patchelf --replace-needed libm.so "../linker/$HOST_ARCH/libm.so" "$WORK_DIR"/magisk/magiskpolicy || abort
