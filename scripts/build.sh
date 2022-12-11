@@ -93,7 +93,7 @@ abort() {
 trap abort INT TERM
 
 Gen_Rand_Str() {
-    tr -dc 'a-zA-Z0-9' </dev/urandom | fold -w "$1" | head -n 1
+    tr -dc 'a-z' </dev/urandom | fold -w "$1" | head -n 1
 }
 
 default() {
@@ -574,10 +574,9 @@ EOF
     echo "/dev/$TMP_PATH(/.*)?    u:object_r:magisk_file:s0" | $SUDO tee -a "$MOUNT_DIR"/vendor/etc/selinux/vendor_file_contexts
     echo '/data/adb/magisk(/.*)?   u:object_r:magisk_file:s0' | $SUDO tee -a "$MOUNT_DIR"/vendor/etc/selinux/vendor_file_contexts
     $SUDO "$WORK_DIR"/magisk/magiskpolicy --load "$MOUNT_DIR"/vendor/etc/selinux/precompiled_sepolicy --save "$MOUNT_DIR"/vendor/etc/selinux/precompiled_sepolicy --magisk "allow * magisk_file lnk_file *" || abort
-    SERVER_NAME1=$(Gen_Rand_Str 12)
-    SERVER_NAME2=$(Gen_Rand_Str 12)
-    SERVER_NAME3=$(Gen_Rand_Str 12)
-    SERVER_NAME4=$(Gen_Rand_Str 12)
+    LOAD_POLICY_SVC_NAME=$(Gen_Rand_Str 12)
+    PFD_SVC_NAME=$(Gen_Rand_Str 12)
+    LS_SVC_NAME=$(Gen_Rand_Str 12)
     $SUDO tee -a "$MOUNT_DIR"/system/etc/init/hw/init.rc <<EOF
 on post-fs-data
     start adbd
@@ -600,22 +599,22 @@ on post-fs-data
     copy /sbin/magisk.apk /dev/$TMP_PATH/stub.apk
     chmod 0644 /dev/$TMP_PATH/stub.apk
     rm /dev/.magisk_unblock
-    exec_start $SERVER_NAME1
-    start $SERVER_NAME2
+    exec_start $LOAD_POLICY_SVC_NAME
+    start $PFD_SVC_NAME
     wait /dev/.magisk_unblock 40
     rm /dev/.magisk_unblock
 
-service $SERVER_NAME1 /system/bin/sh /sbin/loadpolicy.sh
+service $LOAD_POLICY_SVC_NAME /system/bin/sh /sbin/loadpolicy.sh
     user root
     seclabel u:r:magisk:s0
     oneshot
 
-service $SERVER_NAME2 /dev/$TMP_PATH/magisk --post-fs-data
+service $PFD_SVC_NAME /dev/$TMP_PATH/magisk --post-fs-data
     user root
     seclabel u:r:magisk:s0
     oneshot
 
-service $SERVER_NAME3 /dev/$TMP_PATH/magisk --service
+service $LS_SVC_NAME /dev/$TMP_PATH/magisk --service
     class late_start
     user root
     seclabel u:r:magisk:s0
@@ -624,12 +623,14 @@ service $SERVER_NAME3 /dev/$TMP_PATH/magisk --service
 on property:sys.boot_completed=1
     mkdir /data/adb/magisk 755
     copy /sbin/magisk.apk /data/adb/magisk/magisk.apk
-    start $SERVER_NAME4
+    exec /dev/$TMP_PATH/magisk --boot-complete
 
-service $SERVER_NAME4 /dev/$TMP_PATH/magisk --boot-complete
-    user root
-    seclabel u:r:magisk:s0
-    oneshot
+on property:init.svc.zygote=restarting
+    exec /dev/$TMP_PATH/magisk --zygote-restart
+
+on property:init.svc.zygote=stopped
+    exec /dev/$TMP_PATH/magisk --zygote-restart
+
 EOF
     echo -e "Integrate Magisk done\n"
 fi
