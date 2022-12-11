@@ -433,8 +433,8 @@ fi
 
 echo "Extract Magisk"
 if [ -f "$MAGISK_PATH" ]; then
-    version=""
-    versionCode=0
+    MAGISK_VERSION_NAME=""
+    MAGISK_VERSION_CODE=0
     if ! python3 extractMagisk.py "$ARCH" "$MAGISK_PATH" "$WORK_DIR"; then
         echo "Unzip Magisk failed, is the download incomplete?"
         CLEAN_DOWNLOAD_MAGISK=1
@@ -886,7 +886,7 @@ echo "Generate info"
 if [[ "$ROOT_SOL" = "none" ]]; then
     name1=""
 elif [ "$ROOT_SOL" = "" ] || [ "$ROOT_SOL" = "magisk" ]; then
-    name1="-with-magisk-$version($versionCode)-$MAGISK_VER"
+    name1="-with-magisk-$MAGISK_VERSION_NAME($MAGISK_VERSION_CODE)-$MAGISK_VER"
 else
     name1="-with-$ROOT_SOL-$MAGISK_VER"
 fi
