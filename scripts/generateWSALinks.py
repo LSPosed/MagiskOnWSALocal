@@ -34,7 +34,7 @@ class Prop(OrderedDict):
         super().__init__()
         for i, line in enumerate(props.splitlines(False)):
             if '=' in line:
-                k, v = line.split('=', 2)
+                k, v = line.split('=', 1)
                 self[k] = v
             else:
                 self[f".{i}"] = line
