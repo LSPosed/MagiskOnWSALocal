@@ -47,7 +47,6 @@
 - Automatically activates developers mode in Windows 11
 - Update to the new version while preserving data with a one-click script
 - Merged all language packs
-- Support managing start menu icons (manually installing [WSAHelper](https://github.com/LSPosed/WSAHelper/releases/latest) to use this feature)
 
 ## Text Guide
 
@@ -62,7 +61,7 @@
    - OpenGApps
 
         Select the [OpenGApps variant](https://github.com/opengapps/opengapps/wiki#variants) you like.
-   - MindtheGapps
+   - MindTheGapps
 
        There is no other variant we can choose.
 1. Select the root solution (none means no root)
@@ -70,7 +69,7 @@
 1. Extract the compressed file and open the folder created after the extraction of the file.
 1. Here look for file `Run.bat` and run it.
     - If you previously have a MagiskOnWSA installation, it will automatically uninstall the previous one while **preserving all user data** and install the new one, so don't worry about your data.
-    - If you have an official WSA installation, you should uninstall it first. (In case you want to preserve your data, you can backup `%LOCALAPPDATA%\Packages\MicrosoftCorporationII.WindowsSubsystemForAndroid_8wekyb3d8bbwe\LocalCache\userdata.vhdx` before uninstallation and restore it after installation.) (If you want to restore the icons to the start menu, please install and use [WSAHelper](https://github.com/LSPosed/WSAHelper/releases/latest).)
+    - If you have an official WSA installation, you should uninstall it first. (In case you want to preserve your data, you can backup `%LOCALAPPDATA%\Packages\MicrosoftCorporationII.WindowsSubsystemForAndroid_8wekyb3d8bbwe\LocalCache\userdata.vhdx` before uninstallation and restore it after installation.)
     - If the popup windows disappear **without asking administrative permission** and WSA is not installed successfully, you should manually run `Install.ps1` as administrator:
         1. Press `Win+x` and select `Windows Terminal (Admin)`
         2. Input `cd "{X:\path\to\your\extracted\folder}"` and press `enter`, and remember to replace `{X:\path\to\your\extracted\folder}` including the `{}`, for example `cd "D:\wsa"`
@@ -118,11 +117,13 @@
 - How to install custom GApps?
 
     [Tutorial](./Custom-GApps.md)
-- Where can I download MindtheGapps?
+- Where can I download MindTheGapps?
 
-    You can download from here [MindtheGapps](https://androidfilehost.com/?w=files&flid=322935) ([mirror](http://downloads.codefi.re/jdcteam/javelinanddart/gapps))
+    You can download from here [MindTheGapps](https://androidfilehost.com/?w=files&flid=322935) ([mirror](http://downloads.codefi.re/jdcteam/javelinanddart/gapps))
 
     Note that there is no x86_64 pre-build, so you need to build it by yourself ([Repository](https://gitlab.com/MindTheGapps/vendor_gapps)).
+
+    Or you can download the built package for 12.1-x86_64 from [this page](https://sourceforge.net/projects/wsa-mtg/files/x86_64/).
 - Can I switch OpenGApps to MindTheGapps and keep user data in a previous build?
 
     No. You should wipe data after changing the GApps brand. Otherwise, you will find that the installed GApps are not recognized.
@@ -134,3 +135,7 @@
 - [The Open GApps Project](https://opengapps.org): One of the most famous Google Apps packages solution
 - [WSA-Kernel-SU](https://github.com/LSPosed/WSA-Kernel-SU) and [kernel-assisted-superuser](https://git.zx2c4.com/kernel-assisted-superuser/): The kernel `su` for debugging Magisk Integration
 - [WSAGAScript](https://github.com/ADeltaX/WSAGAScript): The first GApps integration script for WSA
+
+_The repository is provided as a utility._
+
+_Android is a trademark of Google LLC. Windows is a trademark of Microsoft LLC._

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # This file is part of MagiskOnWSALocal.
 #
@@ -19,10 +19,24 @@
 #
 
 import sys
-
 import zipfile
 from pathlib import Path
 import platform
+import os
+from typing import OrderedDict
+
+class Prop(OrderedDict):
+    def __init__(self, props: str=...) -> None:
+        super().__init__()
+        for i, line in enumerate(props.splitlines(False)):
+            if '=' in line:
+                k, v = line.split('=', 1)
+                self[k] = v
+            else:
+                self[f".{i}"] = line
+
+    def get(self, key: str) -> str:
+        return self[key]
 
 is_x86_64 = platform.machine() in ("AMD64", "x86_64")
 host_abi = "x64" if is_x86_64 else "arm64"
@@ -40,6 +54,13 @@ def extract_as(zip, name, as_name, dir):
     zip.extract(info, workdir / dir)
 
 with zipfile.ZipFile(magisk_zip) as zip:
+    props = Prop(zip.comment.decode().replace('\000', '\n'))
+    versionName = props.get("version")
+    versionCode = props.get("versionCode")
+    print(f"Magisk version: {versionName} ({versionCode})", flush=True)
+    with open(os.environ['WSA_WORK_ENV'], 'a') as environ_file:
+        environ_file.write(f'MAGISK_VERSION_NAME={versionName}\n')
+        environ_file.write(f'MAGISK_VERSION_CODE={versionCode}\n')
     extract_as(
         zip, f"lib/{ abi_map[arch][0] }/libmagisk64.so", "magisk64", "magisk")
     extract_as(

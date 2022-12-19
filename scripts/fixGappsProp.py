@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # This file is part of MagiskOnWSALocal.
 #
@@ -28,7 +28,7 @@ class Prop(OrderedDict):
         super().__init__()
         for i, line in enumerate(file.read().splitlines(False)):
             if '=' in line:
-                k, v = line.split('=', 2)
+                k, v = line.split('=', 1)
                 self[k] = v
             else:
                 self[f".{i}"] = line

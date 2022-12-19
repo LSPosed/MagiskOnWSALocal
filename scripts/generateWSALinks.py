@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # This file is part of MagiskOnWSALocal.
 #
@@ -26,6 +26,21 @@ import html
 import warnings
 import re
 from pathlib import Path
+import os
+from typing import OrderedDict
+
+class Prop(OrderedDict):
+    def __init__(self, props: str=...) -> None:
+        super().__init__()
+        for i, line in enumerate(props.splitlines(False)):
+            if '=' in line:
+                k, v = line.split('=', 1)
+                self[k] = v
+            else:
+                self[f".{i}"] = line
+
+    def get(self, key: str) -> str:
+        return self[key]
 
 warnings.filterwarnings("ignore")
 
@@ -36,11 +51,17 @@ release_name_map = {"retail": "Retail", "RP": "Release Preview",
 release_type = sys.argv[2] if sys.argv[2] != "" else "Retail"
 release_name = release_name_map[release_type]
 download_dir = Path.cwd().parent / "download" if sys.argv[3] == "" else Path(sys.argv[3]).resolve()
+ms_account_conf = download_dir/".ms_account"
 tempScript = sys.argv[4]
 cat_id = '858014f3-3934-4abe-8078-4aa193e74ca8'
+user = ''
+if ms_account_conf.is_file():
+    with open(ms_account_conf, "r") as f:
+        conf = Prop(f.read())
+        user = conf.get('user_code')
 print(f"Generating WSA download link: arch={arch} release_type={release_name}", flush=True)
 with open(Path.cwd().parent / ("xml/GetCookie.xml"), "r") as f:
-    cookie_content = f.read()
+    cookie_content = f.read().format(user)
 
 out = requests.post(
     'https://fe3.delivery.mp.microsoft.com/ClientWebService/client.asmx',
@@ -52,7 +73,7 @@ doc = minidom.parseString(out.text)
 cookie = doc.getElementsByTagName('EncryptedData')[0].firstChild.nodeValue
 
 with open(Path.cwd().parent / "xml/WUIDRequest.xml", "r") as f:
-    cat_id_content = f.read().format(cookie, cat_id, release_type)
+    cat_id_content = f.read().format(user, cookie, cat_id, release_type)
 
 out = requests.post(
     'https://fe3.delivery.mp.microsoft.com/ClientWebService/client.asmx',
@@ -78,7 +99,7 @@ for node in doc.getElementsByTagName('SecuredFragment'):
                     update_identity.attributes['RevisionNumber'].value, filename)]
 
 with open(Path.cwd().parent / "xml/FE3FileUrl.xml", "r") as f:
-    file_content = f.read()
+    FE3_file_content = f.read()
 
 if not download_dir.is_dir():
     download_dir.mkdir()
@@ -91,13 +112,19 @@ for i, v, f in identities:
     #     out_file_name = f"Microsoft.VCLibs.140.00.UWPDesktop_{arch}.appx"
     #     out_file = download_dir / out_file_name
     elif re.match(f"MicrosoftCorporationII\.WindowsSubsystemForAndroid_.*\.msixbundle", f):
-        out_file_name = f"wsa-{arch}-{release_type}.zip"
+        wsa_long_ver = re.search(u'\d{4}.\d{5}.\d{1,}.\d{1,}', f).group()
+        print(f'WSA Version={wsa_long_ver}\n', flush=True)
+        main_ver = wsa_long_ver.split(".")[0]
+        with open(os.environ['WSA_WORK_ENV'], 'a') as environ_file:
+            environ_file.write(f"DOWN_WSA_VERSION={wsa_long_ver}\n")
+            environ_file.write(f"DOWN_WSA_MAIN_VERSION={main_ver}\n")
+        out_file_name = f"wsa-{release_type}.zip"
         out_file = download_dir / out_file_name
     else:
         continue
     out = requests.post(
         'https://fe3.delivery.mp.microsoft.com/ClientWebService/client.asmx/secured',
-        data=file_content.format(i, v, release_type),
+        data=FE3_file_content.format(user, i, v, release_type),
         headers={'Content-Type': 'application/soap+xml; charset=utf-8'},
         verify=False
     )
