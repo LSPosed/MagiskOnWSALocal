@@ -322,8 +322,8 @@ if [ "$DEBUG" ]; then
 fi
 
 require_su() {
-    if test "$(whoami)" != "root"; then
-        if [ -z "$SUDO" ] || [ "$($SUDO whoami)" != "root" ]; then
+    if test "$(id -u)" != "0"; then
+        if [ -z "$SUDO" ] || [ "$($SUDO id -u)" != "0" ]; then
             echo "ROOT/SUDO is required to run this script"
             abort
         fi
@@ -651,10 +651,12 @@ EOF
         ../wine/"$HOST_ARCH"/makepri.exe new /pr "$(wslpath -w "$WORK_DIR"/wsa/pri)" /in MicrosoftCorporationII.WindowsSubsystemForAndroid /cf "$(wslpath -w "$WORK_DIR"/wsa/priconfig.xml)" /of "$(wslpath -w "$WORK_DIR"/wsa/"$ARCH"/resources.pri)" /o
     elif which wine64 > /dev/null; then
         wine64 ../wine/"$HOST_ARCH"/makepri.exe new /pr "$WORK_DIR"/wsa/pri /in MicrosoftCorporationII.WindowsSubsystemForAndroid /cf "$WORK_DIR"/wsa/priconfig.xml /of "$WORK_DIR"/wsa/"$ARCH"/resources.pri /o
+    else
+        res_merge_failed=1
     fi
-    sed -i -zE "s/<Resources.*Resources>/<Resources>\n$(cat "$WORK_DIR"/wsa/xml/* | grep -Po '<Resource [^>]*/>' | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/\$/\\$/g' | sed 's/\//\\\//g')\n<\/Resources>/g" "$WORK_DIR"/wsa/"$ARCH"/AppxManifest.xml
+    [ -z "$res_merge_failed" ] || sed -i -zE "s/<Resources.*Resources>/<Resources>\n$(cat "$WORK_DIR"/wsa/xml/* | grep -Po '<Resource [^>]*/>' | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/\$/\\$/g' | sed 's/\//\\\//g')\n<\/Resources>/g" "$WORK_DIR"/wsa/"$ARCH"/AppxManifest.xml && \
     echo -e "Merge Language Resources done\n"
-} || echo -e "Merge Language Resources failed\n"
+} && [ -z "$res_merge_failed" ] || echo -e "Merge Language Resources failed\n" && unset res_merge_failed
 
 echo "Add extra packages"
 $SUDO cp -r ../"$ARCH"/system/* "$MOUNT_DIR" || abort

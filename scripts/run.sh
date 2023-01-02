@@ -32,8 +32,8 @@ abort() {
     exit 1
 }
 require_su() {
-    if test "$(whoami)" != "root"; then
-        if [ -z "$SUDO" ] && [ "$($SUDO whoami)" != "root" ]; then
+    if test "$(id -u)" != "0"; then
+        if [ -z "$SUDO" ] && [ "$($SUDO id -u)" != "0" ]; then
             echo "ROOT/SUDO is required to run this script"
             abort
         fi
