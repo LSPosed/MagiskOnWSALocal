@@ -46,8 +46,6 @@ check_dependencies() {
     command -v lzip >/dev/null 2>&1 || NEED_INSTALL+=("lzip")
     if [ ! -f /proc/sys/fs/binfmt_misc/WSLInterop ]; then
         command -v wine64 >/dev/null 2>&1 || NEED_INSTALL+=("wine")
-    fi
-    if [ ! -f /proc/sys/fs/binfmt_misc/WSLInterop ] || which wine64 > /dev/null; then
         command -v winetricks >/dev/null 2>&1 || NEED_INSTALL+=("winetricks")
     fi
     command -v patchelf >/dev/null 2>&1 || NEED_INSTALL+=("patchelf")
@@ -126,7 +124,7 @@ if [ -n "${NEED_INSTALL[*]}" ]; then
 fi
 pip list --disable-pip-version-check | grep -E "^requests " >/dev/null 2>&1 || python3 -m pip install requests
 
-if [ ! -f /proc/sys/fs/binfmt_misc/WSLInterop ] || which wine64 > /dev/null; then
+if [ ! -f /proc/sys/fs/binfmt_misc/WSLInterop ] && which wine64 > /dev/null; then
     winetricks list-installed | grep -E "^msxml6" >/dev/null 2>&1 || {
         cp -r ../wine/.cache/* ~/.cache
         winetricks msxml6 || abort
