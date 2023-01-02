@@ -647,7 +647,11 @@ cp "$WORK_DIR"/wsa/"$ARCH"/resources.pri "$WORK_DIR"/wsa/pri/en-us.pri \
 </index>
 </resources>
 EOF
-    wine64 ../wine/"$HOST_ARCH"/makepri.exe new /pr "$WORK_DIR"/wsa/pri /in MicrosoftCorporationII.WindowsSubsystemForAndroid /cf "$WORK_DIR"/wsa/priconfig.xml /of "$WORK_DIR"/wsa/"$ARCH"/resources.pri /o
+    if [ ! -f /proc/sys/fs/binfmt_misc/WSLInterop ] || which wine64 > /dev/null; then
+        wine64 ../wine/"$HOST_ARCH"/makepri.exe new /pr "$WORK_DIR"/wsa/pri /in MicrosoftCorporationII.WindowsSubsystemForAndroid /cf "$WORK_DIR"/wsa/priconfig.xml /of "$WORK_DIR"/wsa/"$ARCH"/resources.pri /o
+    else
+        ../wine/"$HOST_ARCH"/makepri.exe new /pr "$(wslpath -w "$WORK_DIR"/wsa/pri)" /in MicrosoftCorporationII.WindowsSubsystemForAndroid /cf "$(wslpath -w "$WORK_DIR"/wsa/priconfig.xml)" /of "$(wslpath -w "$WORK_DIR"/wsa/"$ARCH"/resources.pri)" /o
+    fi
     sed -i -zE "s/<Resources.*Resources>/<Resources>\n$(cat "$WORK_DIR"/wsa/xml/* | grep -Po '<Resource [^>]*/>' | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/\$/\\$/g' | sed 's/\//\\\//g')\n<\/Resources>/g" "$WORK_DIR"/wsa/"$ARCH"/AppxManifest.xml
     echo -e "Merge Language Resources done\n"
 } || echo -e "Merge Language Resources failed\n"
