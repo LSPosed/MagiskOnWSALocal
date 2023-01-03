@@ -38,6 +38,8 @@ SUDO="$(which sudo 2>/dev/null)"
 if [ -z "$SUDO" ]; then
     unset SUDO
 fi
+DOWNLOAD_DIR=../download
+DOWNLOAD_CONF_NAME=download.list
 umount_clean() {
     echo "Cleanup Work Directory"
     if [ -d "$MOUNT_DIR" ]; then
@@ -60,10 +62,9 @@ umount_clean() {
         rm -rf "${TMPDIR:?}"
         unset TMPDIR
     fi
+    rm -f "${DOWNLOAD_DIR:?}/$DOWNLOAD_CONF_NAME"
 }
 trap umount_clean EXIT
-DOWNLOAD_DIR=../download
-DOWNLOAD_CONF_NAME=download.list
 OUTPUT_DIR=../output
 WSA_WORK_ENV="${WORK_DIR:?}"/ENV
 if [ -f "$WSA_WORK_ENV" ]; then rm -f "${WSA_WORK_ENV:?}"; fi
@@ -366,7 +367,6 @@ update_gapps_zip_name() {
 }
 update_gapps_zip_name
 if [ -z "${OFFLINE+x}" ]; then
-    trap 'rm -f -- "${DOWNLOAD_DIR:?}/${DOWNLOAD_CONF_NAME}"' EXIT
     require_su
     if [ "${DOWN_WSA}" != "no" ]; then
         echo "Generate Download Links"
