@@ -41,24 +41,24 @@ fi
 DOWNLOAD_DIR=../download
 DOWNLOAD_CONF_NAME=download.list
 umount_clean() {
-    echo "Cleanup Work Directory"
     if [ -d "$MOUNT_DIR" ]; then
         echo "Cleanup Mount Directory"
         if [ -d "$MOUNT_DIR/vendor" ]; then
-            $SUDO umount "$MOUNT_DIR"/vendor
+            $SUDO umount -v "$MOUNT_DIR"/vendor
         fi
         if [ -d "$MOUNT_DIR/product" ]; then
-            $SUDO umount "$MOUNT_DIR"/product
+            $SUDO umount -v "$MOUNT_DIR"/product
         fi
         if [ -d "$MOUNT_DIR/system_ext" ]; then
-            $SUDO umount "$MOUNT_DIR"/system_ext
+            $SUDO umount -v "$MOUNT_DIR"/system_ext
         fi
-        $SUDO umount "$MOUNT_DIR"
+        $SUDO umount -v "$MOUNT_DIR"
         $SUDO rm -rf "${WORK_DIR:?}"
     else
         rm -rf "${WORK_DIR:?}"
     fi
     if [ "$TMPDIR" ] && [ -d "$TMPDIR" ]; then
+        echo "Cleanup Temp Directory"
         rm -rf "${TMPDIR:?}"
         unset TMPDIR
     fi
@@ -87,6 +87,7 @@ clean_download() {
 abort() {
     echo "Build: an error has occurred, exit"
     if [ -d "$WORK_DIR" ]; then
+        echo -e "\nCleanup Work Directory"
         umount_clean
     fi
     clean_download
@@ -527,10 +528,10 @@ echo -e "Expand images done\n"
 
 echo "Mount images"
 $SUDO mkdir "$MOUNT_DIR" || abort
-$SUDO mount -o loop "$WORK_DIR"/wsa/"$ARCH"/system.img "$MOUNT_DIR" || abort
-$SUDO mount -o loop "$WORK_DIR"/wsa/"$ARCH"/vendor.img "$MOUNT_DIR"/vendor || abort
-$SUDO mount -o loop "$WORK_DIR"/wsa/"$ARCH"/product.img "$MOUNT_DIR"/product || abort
-$SUDO mount -o loop "$WORK_DIR"/wsa/"$ARCH"/system_ext.img "$MOUNT_DIR"/system_ext || abort
+$SUDO mount -vo loop "$WORK_DIR"/wsa/"$ARCH"/system.img "$MOUNT_DIR" || abort
+$SUDO mount -vo loop "$WORK_DIR"/wsa/"$ARCH"/vendor.img "$MOUNT_DIR"/vendor || abort
+$SUDO mount -vo loop "$WORK_DIR"/wsa/"$ARCH"/product.img "$MOUNT_DIR"/product || abort
+$SUDO mount -vo loop "$WORK_DIR"/wsa/"$ARCH"/system_ext.img "$MOUNT_DIR"/system_ext || abort
 echo -e "done\n"
 
 if [ "$REMOVE_AMAZON" ]; then
@@ -553,7 +554,7 @@ if [ "$ROOT_SOL" = 'magisk' ] || [ "$ROOT_SOL" = '' ]; then
     $SUDO chmod 0700 "$MOUNT_DIR"/sbin
     $SUDO cp "$WORK_DIR"/magisk/magisk/* "$MOUNT_DIR"/sbin/
     $SUDO cp "$MAGISK_PATH" "$MOUNT_DIR"/sbin/magisk.apk
-    $SUDO tee -a "$MOUNT_DIR"/sbin/loadpolicy.sh <<EOF
+    $SUDO tee -a "$MOUNT_DIR"/sbin/loadpolicy.sh <<EOF >/dev/null
 #!/system/bin/sh
 mkdir -p /data/adb/magisk
 cp /sbin/* /data/adb/magisk/
@@ -578,7 +579,7 @@ EOF
     LOAD_POLICY_SVC_NAME=$(Gen_Rand_Str 12)
     PFD_SVC_NAME=$(Gen_Rand_Str 12)
     LS_SVC_NAME=$(Gen_Rand_Str 12)
-    $SUDO tee -a "$MOUNT_DIR"/system/etc/init/hw/init.rc <<EOF
+    $SUDO tee -a "$MOUNT_DIR"/system/etc/init/hw/init.rc <<EOF >/dev/null
 on post-fs-data
     start adbd
     mkdir /dev/$TMP_PATH
@@ -639,7 +640,7 @@ fi
 cp "$WORK_DIR/wsa/$ARCH/resources.pri" "$WORK_DIR"/wsa/pri/en-us.pri \
 && cp "$WORK_DIR/wsa/$ARCH/AppxManifest.xml" "$WORK_DIR"/wsa/xml/en-us.xml && {
     echo "Merge Language Resources"
-    tee "$WORK_DIR"/wsa/priconfig.xml <<EOF
+    tee "$WORK_DIR"/wsa/priconfig.xml <<EOF >/dev/null
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <resources targetOsVersion="10.0.0" majorVersion="1">
 <index root="\" startIndexAt="\">
@@ -735,10 +736,10 @@ fi
 
 echo "Umount images"
 $SUDO find "$MOUNT_DIR" -exec touch -hamt 200901010000.00 {} \;
-$SUDO umount "$MOUNT_DIR"/vendor
-$SUDO umount "$MOUNT_DIR"/product
-$SUDO umount "$MOUNT_DIR"/system_ext
-$SUDO umount "$MOUNT_DIR"
+$SUDO umount -v "$MOUNT_DIR"/vendor
+$SUDO umount -v "$MOUNT_DIR"/product
+$SUDO umount -v "$MOUNT_DIR"/system_ext
+$SUDO umount -v "$MOUNT_DIR"
 echo -e "done\n"
 
 echo "Shrink images"
@@ -755,7 +756,7 @@ echo -e "Shrink images done\n"
 echo "Remove signature and add scripts"
 $SUDO rm -rf "${WORK_DIR:?}"/wsa/"$ARCH"/\[Content_Types\].xml "$WORK_DIR"/wsa/"$ARCH"/AppxBlockMap.xml "$WORK_DIR"/wsa/"$ARCH"/AppxSignature.p7x "$WORK_DIR"/wsa/"$ARCH"/AppxMetadata || abort
 cp "$vclibs_PATH" "$xaml_PATH" "$WORK_DIR"/wsa/"$ARCH" || abort
-tee "$WORK_DIR"/wsa/"$ARCH"/Install.ps1 <<EOF
+tee "$WORK_DIR"/wsa/"$ARCH"/Install.ps1 <<EOF >/dev/null
 # Automated Install script by Midonei
 \$Host.UI.RawUI.WindowTitle = "Installing MagiskOnWSA..."
 function Test-Administrator {
@@ -872,7 +873,7 @@ ElseIf (\$null -Ne \$Installed) {
 Write-Host "All Done!\`r\`nPress any key to exit"
 \$null = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
 EOF
-tee "$WORK_DIR"/wsa/"$ARCH"/Run.bat <<EOF
+tee "$WORK_DIR"/wsa/"$ARCH"/Run.bat <<EOF >/dev/null
 :: Automated Install batch script by Syuugo
 
 @echo off
