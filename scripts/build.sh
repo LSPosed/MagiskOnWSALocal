@@ -28,27 +28,20 @@ if [ "$HOST_ARCH" != "x86_64" ] && [ "$HOST_ARCH" != "aarch64" ]; then
     exit 1
 fi
 cd "$(dirname "$0")" || exit 1
-trap umount_clean EXIT
 # export TMPDIR=$(dirname "$PWD")/WORK_DIR_
 if [ "$TMPDIR" ] && [ ! -d "$TMPDIR" ]; then
     mkdir -p "$TMPDIR"
 fi
 WORK_DIR=$(mktemp -d -t wsa-build-XXXXXXXXXX_) || exit 1
-DOWNLOAD_DIR=../download
-DOWNLOAD_CONF_NAME=download.list
-OUTPUT_DIR=../output
 MOUNT_DIR="$WORK_DIR"/system
 SUDO="$(which sudo 2>/dev/null)"
 if [ -z "$SUDO" ]; then
     unset SUDO
 fi
-WSA_WORK_ENV="${WORK_DIR:?}"/ENV
-if [ -f "$WSA_WORK_ENV" ]; then rm -f "${WSA_WORK_ENV:?}"; fi
-touch "$WSA_WORK_ENV"
-export WSA_WORK_ENV
 umount_clean() {
+    echo "Cleanup Work Directory"
     if [ -d "$MOUNT_DIR" ]; then
-        echo "Cleanup Work Directory"
+        echo "Cleanup Mount Directory"
         if [ -d "$MOUNT_DIR/vendor" ]; then
             $SUDO umount "$MOUNT_DIR"/vendor
         fi
@@ -68,6 +61,14 @@ umount_clean() {
         unset TMPDIR
     fi
 }
+trap umount_clean EXIT
+DOWNLOAD_DIR=../download
+DOWNLOAD_CONF_NAME=download.list
+OUTPUT_DIR=../output
+WSA_WORK_ENV="${WORK_DIR:?}"/ENV
+if [ -f "$WSA_WORK_ENV" ]; then rm -f "${WSA_WORK_ENV:?}"; fi
+touch "$WSA_WORK_ENV"
+export WSA_WORK_ENV
 clean_download() {
     if [ -d "$DOWNLOAD_DIR" ]; then
         echo "Cleanup Download Directory"
@@ -635,9 +636,9 @@ EOF
     echo -e "Integrate Magisk done\n"
 fi
 
-echo "Merge Language Resources"
-cp "$WORK_DIR"/wsa/"$ARCH"/resources.pri "$WORK_DIR"/wsa/pri/en-us.pri \
-&& cp "$WORK_DIR"/wsa/"$ARCH"/AppxManifest.xml "$WORK_DIR"/wsa/xml/en-us.xml && {
+cp "$WORK_DIR/wsa/$ARCH/resources.pri" "$WORK_DIR"/wsa/pri/en-us.pri \
+&& cp "$WORK_DIR/wsa/$ARCH/AppxManifest.xml" "$WORK_DIR"/wsa/xml/en-us.xml && {
+    echo "Merge Language Resources"
     tee "$WORK_DIR"/wsa/priconfig.xml <<EOF
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <resources targetOsVersion="10.0.0" majorVersion="1">
@@ -654,9 +655,9 @@ EOF
     else
         res_merge_failed=1
     fi
-    [ -z "$res_merge_failed" ] || sed -i -zE "s/<Resources.*Resources>/<Resources>\n$(cat "$WORK_DIR"/wsa/xml/* | grep -Po '<Resource [^>]*/>' | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/\$/\\$/g' | sed 's/\//\\\//g')\n<\/Resources>/g" "$WORK_DIR"/wsa/"$ARCH"/AppxManifest.xml && \
+    [ -z "$res_merge_failed" ] && sed -i -zE "s/<Resources.*Resources>/<Resources>\n$(cat "$WORK_DIR"/wsa/xml/* | grep -Po '<Resource [^>]*/>' | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/\$/\\$/g' | sed 's/\//\\\//g')\n<\/Resources>/g" "$WORK_DIR"/wsa/"$ARCH"/AppxManifest.xml && \
     echo -e "Merge Language Resources done\n"
-} && [ -z "$res_merge_failed" ] || echo -e "Merge Language Resources failed\n" && unset res_merge_failed
+} && [ -n "$res_merge_failed" ] && echo -e "Merge Language Resources failed\n" && unset res_merge_failed
 
 echo "Add extra packages"
 $SUDO cp -r ../"$ARCH"/system/* "$MOUNT_DIR" || abort
