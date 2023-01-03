@@ -68,7 +68,7 @@ with zipfile.ZipFile(wsa_zip_path) as zip:
                     elif g.filename == 'AppxManifest.xml':
                         g.filename = f'{name}.xml'
                         l.extract(g, workdir / 'xml')
-                    elif re.search(u'Images/.+\.png', g.filename) != None:
+                    elif re.search(u'Images/.+\.png', g.filename):
                         l.extract(g, archdir)
 with zipfile.ZipFile(zip_path) as zip:
     print(f"unzipping from {zip_path}", flush=True)
