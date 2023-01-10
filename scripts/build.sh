@@ -536,10 +536,8 @@ echo -e "done\n"
 
 if [ "$REMOVE_AMAZON" ]; then
     echo "Remove Amazon Appstore"
-    # shellcheck disable=SC2210
-    find "${MOUNT_DIR:?}"/product/{etc/permissions,etc/sysconfig,framework,priv-app} 2$>1 | grep -e amazon -e venezia | $SUDO xargs rm -rf
-    # shellcheck disable=SC2210
-    find "${MOUNT_DIR:?}"/system_ext/{etc/*permissions,framework,priv-app} 2&>1 | grep -e amazon -e venezia | $SUDO xargs rm -rf
+    find "${MOUNT_DIR:?}"/product/{etc/permissions,etc/sysconfig,framework,priv-app} 2>/dev/null | grep -e amazon -e venezia | $SUDO xargs rm -rf
+    find "${MOUNT_DIR:?}"/system_ext/{etc/*permissions,framework,priv-app} 2>/dev/null | grep -e amazon -e venezia | $SUDO xargs rm -rf
     echo -e "done\n"
 fi
 

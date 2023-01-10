@@ -22,6 +22,6 @@ jobs:
       id: check
       uses: ludeeus/action-shellcheck@master
       env:
-        SHELLCHECK_OPTS: -e SC2086 -e SC2260
+        SHELLCHECK_OPTS: -e SC2086
       with:
        scandir: './scripts'
