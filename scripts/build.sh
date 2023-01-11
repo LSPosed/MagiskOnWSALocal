@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with MagiskOnWSALocal.  If not, see <https://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2022 LSPosed Contributors
+# Copyright (C) 2023 LSPosed Contributors
 #
 
 if [ ! "$BASH_VERSION" ]; then
@@ -356,7 +356,7 @@ if [ "$CUSTOM_MAGISK" ]; then
         fi
     fi
 fi
-ANDROID_API=32
+ANDROID_API=33
 update_gapps_zip_name() {
     if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
         ANDROID_API=30
@@ -377,8 +377,8 @@ if [ -z "${OFFLINE+x}" ]; then
     else
         DOWN_WSA_MAIN_VERSION=2211
     fi
-    if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2211 ]]; then
-        ANDROID_API=33
+    if [[ "$DOWN_WSA_MAIN_VERSION" -lt 2211 ]]; then
+        ANDROID_API=32
         update_gapps_zip_name
     fi
     if [ -z "${CUSTOM_MAGISK+x}" ]; then
@@ -393,7 +393,12 @@ if [ -z "${OFFLINE+x}" ]; then
         echo "We have encountered an error while downloading files."
         exit 1
     fi
-else
+else # Offline mode
+    # TODO: Removed after Android 13 was released to the retail channel
+    if [ "$RELEASE_TYPE" = "retail" ]; then
+        ANDROID_API=32
+        update_gapps_zip_name
+    fi
     declare -A FILES_CHECK_LIST=([WSA_ZIP_PATH]="$WSA_ZIP_PATH" [xaml_PATH]="$xaml_PATH" [vclibs_PATH]="$vclibs_PATH" [MAGISK_PATH]="$MAGISK_PATH")
     for i in "${FILES_CHECK_LIST[@]}"; do
         if [ ! -f "$i" ]; then
