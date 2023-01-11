@@ -105,7 +105,7 @@ If ($?) {
 }
 ElseIf ($null -Ne $Installed) {
     Clear-Host
-    Write-Error "Failed to update. Please, press any key to try to uninstall existing installation while preserving userdata. Take in mind this will remove Android apps from start menu.\nIf you want to cancel, close this window now."
+    Write-Error "Failed to update.`r`nPress any key to uninstall existing installation while preserving user data.`r`nTake in mind that this will remove the Android apps' icon from the start menu.`r`nIf you want to cancel, close this window now."
     $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
     Remove-AppxPackage -PreserveApplicationData -Package $Installed.PackageFullName
     Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Register .\AppxManifest.xml
