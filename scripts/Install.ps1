@@ -82,7 +82,7 @@ $Dependencies | ForEach-Object {
 }
 
 $Installed = $null
-$Installed = Get-AppxPackage -Name $Name
+$Installed = Get-AppxPackage -Name 'MicrosoftCorporationII.WindowsSubsystemForAndroid'
 
 If (($null -Ne $Installed) -And (-Not ($Installed.IsDevelopmentMode))) {
     Clear-Host
