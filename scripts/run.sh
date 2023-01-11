@@ -88,7 +88,7 @@ if (YesNoBox '([title]="Install GApps" [text]="Do you want to install GApps?")')
 else
     GAPPS_BRAND="none"
 fi
-if [ $GAPPS_BRAND = "OpenGApps" ]; then
+if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
     GAPPS_VARIANT=$(
         Radiolist '([title]="Variants of GApps"
                      [default]="pico")' \
