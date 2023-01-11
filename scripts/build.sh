@@ -375,7 +375,7 @@ if [ -z "${OFFLINE+x}" ]; then
         # shellcheck disable=SC1091
         source "${WORK_DIR:?}/ENV" || abort
     else
-        DOWN_WSA_MAIN_VERSION=2211
+        DOWN_WSA_MAIN_VERSION=$(python3 getWSAMainVersion.py "$ARCH" "$WSA_ZIP_PATH")
     fi
     if [[ "$DOWN_WSA_MAIN_VERSION" -lt 2211 ]]; then
         ANDROID_API=32
@@ -394,8 +394,8 @@ if [ -z "${OFFLINE+x}" ]; then
         exit 1
     fi
 else # Offline mode
-    # TODO: Removed after Android 13 was released to the retail channel
-    if [ "$RELEASE_TYPE" = "retail" ]; then
+    DOWN_WSA_MAIN_VERSION=$(python3 getWSAMainVersion.py "$ARCH" "$WSA_ZIP_PATH")
+    if [[ "$DOWN_WSA_MAIN_VERSION" -lt 2211 ]]; then
         ANDROID_API=32
         update_gapps_zip_name
     fi
@@ -429,10 +429,6 @@ if [ -f "$WSA_ZIP_PATH" ]; then
     echo -e "Extract done\n"
     # shellcheck disable=SC1091
     source "${WORK_DIR:?}/ENV" || abort
-    if [[ "$WSA_MAIN_VER" -ge 2211 ]]; then
-        ANDROID_API=33
-        update_gapps_zip_name
-    fi
 else
     echo "The WSA zip package does not exist, is the download incomplete?"
     exit 1
