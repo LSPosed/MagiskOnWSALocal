@@ -359,7 +359,6 @@ fi
 ANDROID_API=33
 update_gapps_zip_name() {
     if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
-        ANDROID_API=30
         GAPPS_ZIP_NAME="$GAPPS_BRAND-$ARCH-${ANDROID_API_MAP[$ANDROID_API]}-$GAPPS_VARIANT".zip
     else
         GAPPS_ZIP_NAME="$GAPPS_BRAND-$ARCH-${ANDROID_API_MAP[$ANDROID_API]}".zip
@@ -778,9 +777,6 @@ else
         name2="-$GAPPS_BRAND-${ANDROID_API_MAP[$ANDROID_API]}-${GAPPS_VARIANT}"
     else
         name2="-$GAPPS_BRAND-${ANDROID_API_MAP[$ANDROID_API]}"
-    fi
-    if [ "$GAPPS_BRAND" = "OpenGApps" ] && [ "$DEBUG" ]; then
-        echo ":warning: Since OpenGApps doesn't officially support Android 12.1 yet, lock the variant to pico!"
     fi
 fi
 artifact_name="WSA_${WSA_VER}_${ARCH}_${WSA_REL}${name1}${name2}"
