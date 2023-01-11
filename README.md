@@ -123,7 +123,7 @@
 
     Note that there is no x86_64 pre-build, so you need to build it by yourself ([Repository](https://gitlab.com/MindTheGapps/vendor_gapps)).
 
-    Or you can download the built package for 12.1-x86_64 from [this page](https://sourceforge.net/projects/wsa-mtg/files/x86_64/).
+    Or you can download the built package for 12.1 and 13 for x86_64 from [this page](https://sourceforge.net/projects/wsa-mtg/files/x86_64/).
 - Can I switch OpenGApps to MindTheGapps and keep user data in a previous build?
 
     No. You should wipe data after changing the GApps brand. Otherwise, you will find that the installed GApps are not recognized.
