@@ -123,7 +123,7 @@
 
     Note that there is no x86_64 pre-build, so you need to build it by yourself ([Repository](https://gitlab.com/MindTheGapps/vendor_gapps)).
 
-    Or you can download the built package for 12.1-x86_64 from [this page](https://sourceforge.net/projects/wsa-mtg/files/x86_64/).
+    Or you can download the built package for 12.1 and 13 for x86_64 from [this page](https://sourceforge.net/projects/wsa-mtg/files/x86_64/).
 - Can I switch OpenGApps to MindTheGapps and keep user data in a previous build?
 
     No. You should wipe data after changing the GApps brand. Otherwise, you will find that the installed GApps are not recognized.
@@ -135,3 +135,7 @@
 - [The Open GApps Project](https://opengapps.org): One of the most famous Google Apps packages solution
 - [WSA-Kernel-SU](https://github.com/LSPosed/WSA-Kernel-SU) and [kernel-assisted-superuser](https://git.zx2c4.com/kernel-assisted-superuser/): The kernel `su` for debugging Magisk Integration
 - [WSAGAScript](https://github.com/ADeltaX/WSAGAScript): The first GApps integration script for WSA
+
+_The repository is provided as a utility._
+
+_Android is a trademark of Google LLC. Windows is a trademark of Microsoft LLC._

@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with MagiskOnWSALocal.  If not, see <https://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2022 LSPosed Contributors
+# Copyright (C) 2023 LSPosed Contributors
 #
 
 import sys
@@ -37,7 +37,7 @@ print(
     f"Generating {brand} download link: arch={arch} variant={variant}", flush=True)
 abi_map = {"x64": "x86_64", "arm64": "arm64"}
 android_api_map = {"30": "11.0", "32": "12.1", "33": "13.0"}
-release = [android_api_map[android_api]]
+release = android_api_map[android_api]
 if brand == "OpenGApps":
     try:
         res = requests.get(f"https://api.opengapps.org/list")
@@ -55,7 +55,7 @@ if brand == "OpenGApps":
 elif brand == "MindTheGapps":
     res = requests.get(
         f'https://sourceforge.net/projects/wsa-mtg/rss?path=/{abi_map[arch]}&limit=100')
-    link = re.search(f'https://.*{release}.*{abi_map[arch]}/.*\.zip/download', res.text).group().replace(
+    link = re.search(f'https://.*{release}.*{abi_map[arch]}.*\.zip/download', res.text).group().replace(
         '.zip/download', '.zip').replace('sourceforge.net/projects/wsa-mtg/files', 'downloads.sourceforge.net/project/wsa-mtg')
 
 print(f"download link: {link}", flush=True)

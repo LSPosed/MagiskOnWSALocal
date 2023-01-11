@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - '**.sh'
   workflow_dispatch:
   pull_request:
 

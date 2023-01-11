@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with MagiskOnWSALocal.  If not, see <https://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2022 LSPosed Contributors
+# Copyright (C) 2023 LSPosed Contributors
 #
 
 if [ ! "$BASH_VERSION" ]; then
@@ -28,46 +28,48 @@ if [ "$HOST_ARCH" != "x86_64" ] && [ "$HOST_ARCH" != "aarch64" ]; then
     exit 1
 fi
 cd "$(dirname "$0")" || exit 1
-trap umount_clean EXIT
 # export TMPDIR=$(dirname "$PWD")/WORK_DIR_
 if [ "$TMPDIR" ] && [ ! -d "$TMPDIR" ]; then
     mkdir -p "$TMPDIR"
 fi
 WORK_DIR=$(mktemp -d -t wsa-build-XXXXXXXXXX_) || exit 1
-DOWNLOAD_DIR=../download
-DOWNLOAD_CONF_NAME=download.list
-OUTPUT_DIR=../output
 MOUNT_DIR="$WORK_DIR"/system
 SUDO="$(which sudo 2>/dev/null)"
 if [ -z "$SUDO" ]; then
     unset SUDO
 fi
-WSA_WORK_ENV="${WORK_DIR:?}"/ENV
-if [ -f "$WSA_WORK_ENV" ]; then rm -f "${WSA_WORK_ENV:?}"; fi
-touch "$WSA_WORK_ENV"
-export WSA_WORK_ENV
+DOWNLOAD_DIR=../download
+DOWNLOAD_CONF_NAME=download.list
 umount_clean() {
     if [ -d "$MOUNT_DIR" ]; then
-        echo "Cleanup Work Directory"
+        echo "Cleanup Mount Directory"
         if [ -d "$MOUNT_DIR/vendor" ]; then
-            $SUDO umount "$MOUNT_DIR"/vendor
+            $SUDO umount -v "$MOUNT_DIR"/vendor
         fi
         if [ -d "$MOUNT_DIR/product" ]; then
-            $SUDO umount "$MOUNT_DIR"/product
+            $SUDO umount -v "$MOUNT_DIR"/product
         fi
         if [ -d "$MOUNT_DIR/system_ext" ]; then
-            $SUDO umount "$MOUNT_DIR"/system_ext
+            $SUDO umount -v "$MOUNT_DIR"/system_ext
         fi
-        $SUDO umount "$MOUNT_DIR"
+        $SUDO umount -v "$MOUNT_DIR"
         $SUDO rm -rf "${WORK_DIR:?}"
     else
         rm -rf "${WORK_DIR:?}"
     fi
     if [ "$TMPDIR" ] && [ -d "$TMPDIR" ]; then
+        echo "Cleanup Temp Directory"
         rm -rf "${TMPDIR:?}"
         unset TMPDIR
     fi
+    rm -f "${DOWNLOAD_DIR:?}/$DOWNLOAD_CONF_NAME"
 }
+trap umount_clean EXIT
+OUTPUT_DIR=../output
+WSA_WORK_ENV="${WORK_DIR:?}"/ENV
+if [ -f "$WSA_WORK_ENV" ]; then rm -f "${WSA_WORK_ENV:?}"; fi
+touch "$WSA_WORK_ENV"
+export WSA_WORK_ENV
 clean_download() {
     if [ -d "$DOWNLOAD_DIR" ]; then
         echo "Cleanup Download Directory"
@@ -85,6 +87,7 @@ clean_download() {
 abort() {
     echo "Build: an error has occurred, exit"
     if [ -d "$WORK_DIR" ]; then
+        echo -e "\nCleanup Work Directory"
         umount_clean
     fi
     clean_download
@@ -93,7 +96,7 @@ abort() {
 trap abort INT TERM
 
 Gen_Rand_Str() {
-    tr -dc 'a-zA-Z0-9' </dev/urandom | fold -w "$1" | head -n 1
+    head /dev/urandom | tr -dc '[:lower:]' | head -c"$1"
 }
 
 default() {
@@ -173,56 +176,57 @@ usage() {
     default
     echo -e "
 Usage:
-    --arch          Architecture of WSA.
+    --arch              Architecture of WSA.
 
-                    Possible values: $(ARR_TO_STR "${ARCH_MAP[@]}")
-                    Default: $ARCH
+                        Possible values: $(ARR_TO_STR "${ARCH_MAP[@]}")
+                        Default: $ARCH
 
-    --release-type  Release type of WSA.
-                    RP means Release Preview, WIS means Insider Slow, WIF means Insider Fast.
+    --release-type      Release type of WSA.
+                        RP means Release Preview, WIS means Insider Slow, WIF means Insider Fast.
 
-                    Possible values: $(ARR_TO_STR "${RELEASE_TYPE_MAP[@]}")
-                    Default: $RELEASE_TYPE
+                        Possible values: $(ARR_TO_STR "${RELEASE_TYPE_MAP[@]}")
+                        Default: $RELEASE_TYPE
 
-    --magisk-ver    Magisk version.
+    --magisk-ver        Magisk version.
 
-                    Possible values: $(ARR_TO_STR "${MAGISK_VER_MAP[@]}")
-                    Default: $MAGISK_VER
+                        Possible values: $(ARR_TO_STR "${MAGISK_VER_MAP[@]}")
+                        Default: $MAGISK_VER
 
-    --gapps-brand   GApps brand.
-                    \"none\" for no integration of GApps
+    --gapps-brand       GApps brand.
+                        \"none\" for no integration of GApps
 
-                    Possible values: $(ARR_TO_STR "${GAPPS_BRAND_MAP[@]}")
-                    Default: $GAPPS_BRAND
+                        Possible values: $(ARR_TO_STR "${GAPPS_BRAND_MAP[@]}")
+                        Default: $GAPPS_BRAND
 
-    --gapps-variant GApps variant.
+    --gapps-variant     GApps variant.
 
-                    Possible values: $(ARR_TO_STR "${GAPPS_VARIANT_MAP[@]}")
-                    Default: $GAPPS_VARIANT
+                        Possible values: $(ARR_TO_STR "${GAPPS_VARIANT_MAP[@]}")
+                        Default: $GAPPS_VARIANT
 
-    --root-sol      Root solution.
-                    \"none\" means no root.
+    --root-sol          Root solution.
+                        \"none\" means no root.
 
-                    Possible values: $(ARR_TO_STR "${ROOT_SOL_MAP[@]}")
-                    Default: $ROOT_SOL
+                        Possible values: $(ARR_TO_STR "${ROOT_SOL_MAP[@]}")
+                        Default: $ROOT_SOL
 
     --compress-format
-                    Compress format of output file.
-                    If this option is not specified and --compress is not specified, the generated file will not be compressed
+                        Compress format of output file.
+                        If this option is not specified and --compress is not specified, the generated file will not be compressed
 
-                    Possible values: $(ARR_TO_STR "${COMPRESS_FORMAT_MAP[@]}")
+                        Possible values: $(ARR_TO_STR "${COMPRESS_FORMAT_MAP[@]}")
 
 Additional Options:
-    --remove-amazon Remove Amazon Appstore from the system
-    --compress      Compress the WSA, The default format is 7z, you can use the format specified by --compress-format
-    --offline       Build WSA offline
-    --magisk-custom Install custom Magisk
-    --debug         Debug build mode
-    --help          Show this help message and exit
-    --nofix-props   No fix \"build.prop\"
-                    $GAPPS_PROPS_MSG1
-                    $GAPPS_PROPS_MSG2
-                    $GAPPS_PROPS_MSG3
+    --remove-amazon     Remove Amazon Appstore from the system
+    --compress          Compress the WSA, The default format is 7z, you can use the format specified by --compress-format
+    --offline           Build WSA offline
+    --magisk-custom     Install custom Magisk
+    --skip-download-wsa Skip download WSA
+    --debug             Debug build mode
+    --help              Show this help message and exit
+    --nofix-props       No fix \"build.prop\"
+                        $GAPPS_PROPS_MSG1
+                        $GAPPS_PROPS_MSG2
+                        $GAPPS_PROPS_MSG3
 
 Example:
     ./build.sh --release-type RP --magisk-ver beta --gapps-variant pico --remove-amazon
@@ -247,6 +251,7 @@ ARGUMENT_LIST=(
     "magisk-custom"
     "debug"
     "help"
+    "skip-download-wsa"
 )
 
 default
@@ -262,21 +267,22 @@ opts=$(
 eval set --"$opts"
 while [[ $# -gt 0 ]]; do
    case "$1" in
-        --arch            ) ARCH="$2"; shift 2 ;;
-        --release-type    ) RELEASE_TYPE="$2"; shift 2 ;;
-        --gapps-brand     ) GAPPS_BRAND="$2"; shift 2 ;;
-        --gapps-variant   ) GAPPS_VARIANT="$2"; shift 2 ;;
-        --nofix-props     ) NOFIX_PROPS="yes"; shift ;;
-        --root-sol        ) ROOT_SOL="$2"; shift 2 ;;
-        --compress-format ) COMPRESS_FORMAT="$2"; shift 2 ;;
-        --remove-amazon   ) REMOVE_AMAZON="yes"; shift ;;
-        --compress        ) COMPRESS_OUTPUT="yes"; shift ;;
-        --offline         ) OFFLINE="on"; shift ;;
-        --magisk-custom   ) CUSTOM_MAGISK="debug"; shift ;;
-        --magisk-ver      ) MAGISK_VER="$2"; shift 2 ;;
-        --debug           ) DEBUG="on"; shift ;;
-        --help            ) usage; exit 0 ;;
-        --                ) shift; break;;
+        --arch              ) ARCH="$2"; shift 2 ;;
+        --release-type      ) RELEASE_TYPE="$2"; shift 2 ;;
+        --gapps-brand       ) GAPPS_BRAND="$2"; shift 2 ;;
+        --gapps-variant     ) GAPPS_VARIANT="$2"; shift 2 ;;
+        --nofix-props       ) NOFIX_PROPS="yes"; shift ;;
+        --root-sol          ) ROOT_SOL="$2"; shift 2 ;;
+        --compress-format   ) COMPRESS_FORMAT="$2"; shift 2 ;;
+        --remove-amazon     ) REMOVE_AMAZON="yes"; shift ;;
+        --compress          ) COMPRESS_OUTPUT="yes"; shift ;;
+        --offline           ) OFFLINE="on"; shift ;;
+        --magisk-custom     ) CUSTOM_MAGISK="debug"; shift ;;
+        --magisk-ver        ) MAGISK_VER="$2"; shift 2 ;;
+        --debug             ) DEBUG="on"; shift ;;
+        --skip-download-wsa ) DOWN_WSA="no"; shift ;;
+        --help              ) usage; exit 0 ;;
+        --                  ) shift; break;;
    esac
 done
 
@@ -319,8 +325,8 @@ if [ "$DEBUG" ]; then
 fi
 
 require_su() {
-    if test "$(whoami)" != "root"; then
-        if [ -z "$SUDO" ] || [ "$($SUDO whoami)" != "root" ]; then
+    if test "$(id -u)" != "0"; then
+        if [ -z "$SUDO" ] || [ "$($SUDO id -u)" != "0" ]; then
             echo "ROOT/SUDO is required to run this script"
             abort
         fi
@@ -350,7 +356,7 @@ if [ "$CUSTOM_MAGISK" ]; then
         fi
     fi
 fi
-ANDROID_API=32
+ANDROID_API=33
 update_gapps_zip_name() {
     if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
         GAPPS_ZIP_NAME="$GAPPS_BRAND-$ARCH-${ANDROID_API_MAP[$ANDROID_API]}-$GAPPS_VARIANT".zip
@@ -361,14 +367,17 @@ update_gapps_zip_name() {
 }
 update_gapps_zip_name
 if [ -z "${OFFLINE+x}" ]; then
-    trap 'rm -f -- "${DOWNLOAD_DIR:?}/${DOWNLOAD_CONF_NAME}"' EXIT
     require_su
-    echo "Generate Download Links"
-    python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
-    # shellcheck disable=SC1091
-    source "${WORK_DIR:?}/ENV" || abort
-    if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2211 ]]; then
-        ANDROID_API=33
+    if [ "${DOWN_WSA}" != "no" ]; then
+        echo "Generate Download Links"
+        python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
+        # shellcheck disable=SC1091
+        source "${WORK_DIR:?}/ENV" || abort
+    else
+        DOWN_WSA_MAIN_VERSION=$(python3 getWSAMainVersion.py "$ARCH" "$WSA_ZIP_PATH")
+    fi
+    if [[ "$DOWN_WSA_MAIN_VERSION" -lt 2211 ]]; then
+        ANDROID_API=32
         update_gapps_zip_name
     fi
     if [ -z "${CUSTOM_MAGISK+x}" ]; then
@@ -383,7 +392,12 @@ if [ -z "${OFFLINE+x}" ]; then
         echo "We have encountered an error while downloading files."
         exit 1
     fi
-else
+else # Offline mode
+    DOWN_WSA_MAIN_VERSION=$(python3 getWSAMainVersion.py "$ARCH" "$WSA_ZIP_PATH")
+    if [[ "$DOWN_WSA_MAIN_VERSION" -lt 2211 ]]; then
+        ANDROID_API=32
+        update_gapps_zip_name
+    fi
     declare -A FILES_CHECK_LIST=([WSA_ZIP_PATH]="$WSA_ZIP_PATH" [xaml_PATH]="$xaml_PATH" [vclibs_PATH]="$vclibs_PATH" [MAGISK_PATH]="$MAGISK_PATH")
     for i in "${FILES_CHECK_LIST[@]}"; do
         if [ ! -f "$i" ]; then
@@ -414,10 +428,6 @@ if [ -f "$WSA_ZIP_PATH" ]; then
     echo -e "Extract done\n"
     # shellcheck disable=SC1091
     source "${WORK_DIR:?}/ENV" || abort
-    if [[ "$WSA_MAIN_VER" -ge 2211 ]]; then
-        ANDROID_API=33
-        update_gapps_zip_name
-    fi
 else
     echo "The WSA zip package does not exist, is the download incomplete?"
     exit 1
@@ -425,15 +435,19 @@ fi
 
 echo "Extract Magisk"
 if [ -f "$MAGISK_PATH" ]; then
+    MAGISK_VERSION_NAME=""
+    MAGISK_VERSION_CODE=0
     if ! python3 extractMagisk.py "$ARCH" "$MAGISK_PATH" "$WORK_DIR"; then
         echo "Unzip Magisk failed, is the download incomplete?"
         CLEAN_DOWNLOAD_MAGISK=1
         abort
     fi
+    # shellcheck disable=SC1091
+    source "${WORK_DIR:?}/ENV" || abort
     $SUDO patchelf --replace-needed libc.so "../linker/$HOST_ARCH/libc.so" "$WORK_DIR"/magisk/magiskpolicy || abort
     $SUDO patchelf --replace-needed libm.so "../linker/$HOST_ARCH/libm.so" "$WORK_DIR"/magisk/magiskpolicy || abort
     $SUDO patchelf --replace-needed libdl.so "../linker/$HOST_ARCH/libdl.so" "$WORK_DIR"/magisk/magiskpolicy || abort
-    chmod +x "../linker/$HOST_ARCH/linker64" || abort
+    $SUDO chmod +x "../linker/$HOST_ARCH/linker64" || abort
     $SUDO patchelf --set-interpreter "../linker/$HOST_ARCH/linker64" "$WORK_DIR"/magisk/magiskpolicy || abort
     chmod +x "$WORK_DIR"/magisk/magiskpolicy || abort
 elif [ -z "${CUSTOM_MAGISK+x}" ]; then
@@ -458,6 +472,7 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
         else
             if ! unzip "$GAPPS_PATH" "system/*" -x "system/addon.d/*" "system/system_ext/priv-app/SetupWizard/*" -d "$WORK_DIR"/gapps; then
                 echo "Unzip MindTheGapps failed, package is corrupted?"
+                CLEAN_DOWNLOAD_GAPPS=1
                 abort
             fi
             mv "$WORK_DIR"/gapps/system/* "$WORK_DIR"/gapps || abort
@@ -513,15 +528,16 @@ echo -e "Expand images done\n"
 
 echo "Mount images"
 $SUDO mkdir "$MOUNT_DIR" || abort
-$SUDO mount -o loop "$WORK_DIR"/wsa/"$ARCH"/system.img "$MOUNT_DIR" || abort
-$SUDO mount -o loop "$WORK_DIR"/wsa/"$ARCH"/vendor.img "$MOUNT_DIR"/vendor || abort
-$SUDO mount -o loop "$WORK_DIR"/wsa/"$ARCH"/product.img "$MOUNT_DIR"/product || abort
-$SUDO mount -o loop "$WORK_DIR"/wsa/"$ARCH"/system_ext.img "$MOUNT_DIR"/system_ext || abort
+$SUDO mount -vo loop "$WORK_DIR"/wsa/"$ARCH"/system.img "$MOUNT_DIR" || abort
+$SUDO mount -vo loop "$WORK_DIR"/wsa/"$ARCH"/vendor.img "$MOUNT_DIR"/vendor || abort
+$SUDO mount -vo loop "$WORK_DIR"/wsa/"$ARCH"/product.img "$MOUNT_DIR"/product || abort
+$SUDO mount -vo loop "$WORK_DIR"/wsa/"$ARCH"/system_ext.img "$MOUNT_DIR"/system_ext || abort
 echo -e "done\n"
 
 if [ "$REMOVE_AMAZON" ]; then
     echo "Remove Amazon Appstore"
-    find "${MOUNT_DIR:?}"/product/{etc/permissions,etc/sysconfig,framework,priv-app} | grep -e amazon -e venezia | $SUDO xargs rm -rf
+    find "${MOUNT_DIR:?}"/product/{etc/permissions,etc/sysconfig,framework,priv-app} 2>/dev/null | grep -e amazon -e venezia | $SUDO xargs rm -rf
+    find "${MOUNT_DIR:?}"/system_ext/{etc/*permissions,framework,priv-app} 2>/dev/null | grep -e amazon -e venezia | $SUDO xargs rm -rf
     echo -e "done\n"
 fi
 
@@ -538,7 +554,7 @@ if [ "$ROOT_SOL" = 'magisk' ] || [ "$ROOT_SOL" = '' ]; then
     $SUDO chmod 0700 "$MOUNT_DIR"/sbin
     $SUDO cp "$WORK_DIR"/magisk/magisk/* "$MOUNT_DIR"/sbin/
     $SUDO cp "$MAGISK_PATH" "$MOUNT_DIR"/sbin/magisk.apk
-    $SUDO tee -a "$MOUNT_DIR"/sbin/loadpolicy.sh <<EOF
+    $SUDO tee -a "$MOUNT_DIR"/sbin/loadpolicy.sh <<EOF >/dev/null
 #!/system/bin/sh
 mkdir -p /data/adb/magisk
 cp /sbin/* /data/adb/magisk/
@@ -560,11 +576,10 @@ EOF
     echo "/dev/$TMP_PATH(/.*)?    u:object_r:magisk_file:s0" | $SUDO tee -a "$MOUNT_DIR"/vendor/etc/selinux/vendor_file_contexts
     echo '/data/adb/magisk(/.*)?   u:object_r:magisk_file:s0' | $SUDO tee -a "$MOUNT_DIR"/vendor/etc/selinux/vendor_file_contexts
     $SUDO "$WORK_DIR"/magisk/magiskpolicy --load "$MOUNT_DIR"/vendor/etc/selinux/precompiled_sepolicy --save "$MOUNT_DIR"/vendor/etc/selinux/precompiled_sepolicy --magisk "allow * magisk_file lnk_file *" || abort
-    SERVER_NAME1=$(Gen_Rand_Str 12)
-    SERVER_NAME2=$(Gen_Rand_Str 12)
-    SERVER_NAME3=$(Gen_Rand_Str 12)
-    SERVER_NAME4=$(Gen_Rand_Str 12)
-    $SUDO tee -a "$MOUNT_DIR"/system/etc/init/hw/init.rc <<EOF
+    LOAD_POLICY_SVC_NAME=$(Gen_Rand_Str 12)
+    PFD_SVC_NAME=$(Gen_Rand_Str 12)
+    LS_SVC_NAME=$(Gen_Rand_Str 12)
+    $SUDO tee -a "$MOUNT_DIR"/system/etc/init/hw/init.rc <<EOF >/dev/null
 on post-fs-data
     start adbd
     mkdir /dev/$TMP_PATH
@@ -586,22 +601,22 @@ on post-fs-data
     copy /sbin/magisk.apk /dev/$TMP_PATH/stub.apk
     chmod 0644 /dev/$TMP_PATH/stub.apk
     rm /dev/.magisk_unblock
-    exec_start $SERVER_NAME1
-    start $SERVER_NAME2
+    exec_start $LOAD_POLICY_SVC_NAME
+    start $PFD_SVC_NAME
     wait /dev/.magisk_unblock 40
     rm /dev/.magisk_unblock
 
-service $SERVER_NAME1 /system/bin/sh /sbin/loadpolicy.sh
+service $LOAD_POLICY_SVC_NAME /system/bin/sh /sbin/loadpolicy.sh
     user root
     seclabel u:r:magisk:s0
     oneshot
 
-service $SERVER_NAME2 /dev/$TMP_PATH/magisk --post-fs-data
+service $PFD_SVC_NAME /dev/$TMP_PATH/magisk --post-fs-data
     user root
     seclabel u:r:magisk:s0
     oneshot
 
-service $SERVER_NAME3 /dev/$TMP_PATH/magisk --service
+service $LS_SVC_NAME /dev/$TMP_PATH/magisk --service
     class late_start
     user root
     seclabel u:r:magisk:s0
@@ -610,20 +625,22 @@ service $SERVER_NAME3 /dev/$TMP_PATH/magisk --service
 on property:sys.boot_completed=1
     mkdir /data/adb/magisk 755
     copy /sbin/magisk.apk /data/adb/magisk/magisk.apk
-    start $SERVER_NAME4
+    exec /dev/$TMP_PATH/magisk --boot-complete
 
-service $SERVER_NAME4 /dev/$TMP_PATH/magisk --boot-complete
-    user root
-    seclabel u:r:magisk:s0
-    oneshot
+on property:init.svc.zygote=restarting
+    exec /dev/$TMP_PATH/magisk --zygote-restart
+
+on property:init.svc.zygote=stopped
+    exec /dev/$TMP_PATH/magisk --zygote-restart
+
 EOF
     echo -e "Integrate Magisk done\n"
 fi
 
-echo "Merge Language Resources"
-cp "$WORK_DIR"/wsa/"$ARCH"/resources.pri "$WORK_DIR"/wsa/pri/en-us.pri
-cp "$WORK_DIR"/wsa/"$ARCH"/AppxManifest.xml "$WORK_DIR"/wsa/xml/en-us.xml
-tee "$WORK_DIR"/wsa/priconfig.xml <<EOF
+cp "$WORK_DIR/wsa/$ARCH/resources.pri" "$WORK_DIR"/wsa/pri/en-us.pri \
+&& cp "$WORK_DIR/wsa/$ARCH/AppxManifest.xml" "$WORK_DIR"/wsa/xml/en-us.xml && {
+    echo "Merge Language Resources"
+    tee "$WORK_DIR"/wsa/priconfig.xml <<EOF >/dev/null
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <resources targetOsVersion="10.0.0" majorVersion="1">
 <index root="\" startIndexAt="\">
@@ -632,9 +649,16 @@ tee "$WORK_DIR"/wsa/priconfig.xml <<EOF
 </index>
 </resources>
 EOF
-wine64 ../wine/"$HOST_ARCH"/makepri.exe new /pr "$WORK_DIR"/wsa/pri /in MicrosoftCorporationII.WindowsSubsystemForAndroid /cf "$WORK_DIR"/wsa/priconfig.xml /of "$WORK_DIR"/wsa/"$ARCH"/resources.pri /o
-sed -i -zE "s/<Resources.*Resources>/<Resources>\n$(cat "$WORK_DIR"/wsa/xml/* | grep -Po '<Resource [^>]*/>' | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/\$/\\$/g' | sed 's/\//\\\//g')\n<\/Resources>/g" "$WORK_DIR"/wsa/"$ARCH"/AppxManifest.xml
-echo -e "Merge Language Resources done\n"
+    if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ]; then
+        ../wine/"$HOST_ARCH"/makepri.exe new /pr "$(wslpath -w "$WORK_DIR"/wsa/pri)" /in MicrosoftCorporationII.WindowsSubsystemForAndroid /cf "$(wslpath -w "$WORK_DIR"/wsa/priconfig.xml)" /of "$(wslpath -w "$WORK_DIR"/wsa/"$ARCH"/resources.pri)" /o
+    elif which wine64 > /dev/null; then
+        wine64 ../wine/"$HOST_ARCH"/makepri.exe new /pr "$WORK_DIR"/wsa/pri /in MicrosoftCorporationII.WindowsSubsystemForAndroid /cf "$WORK_DIR"/wsa/priconfig.xml /of "$WORK_DIR"/wsa/"$ARCH"/resources.pri /o
+    else
+        res_merge_failed=1
+    fi
+    [ -z "$res_merge_failed" ] && sed -i -zE "s/<Resources.*Resources>/<Resources>\n$(cat "$WORK_DIR"/wsa/xml/* | grep -Po '<Resource [^>]*/>' | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/\$/\\$/g' | sed 's/\//\\\//g')\n<\/Resources>/g" "$WORK_DIR"/wsa/"$ARCH"/AppxManifest.xml && \
+    echo -e "Merge Language Resources done\n"
+} && [ -n "$res_merge_failed" ] && echo -e "Merge Language Resources failed\n" && unset res_merge_failed
 
 echo "Add extra packages"
 $SUDO cp -r ../"$ARCH"/system/* "$MOUNT_DIR" || abort
@@ -712,10 +736,10 @@ fi
 
 echo "Umount images"
 $SUDO find "$MOUNT_DIR" -exec touch -hamt 200901010000.00 {} \;
-$SUDO umount "$MOUNT_DIR"/vendor
-$SUDO umount "$MOUNT_DIR"/product
-$SUDO umount "$MOUNT_DIR"/system_ext
-$SUDO umount "$MOUNT_DIR"
+$SUDO umount -v "$MOUNT_DIR"/vendor
+$SUDO umount -v "$MOUNT_DIR"/product
+$SUDO umount -v "$MOUNT_DIR"/system_ext
+$SUDO umount -v "$MOUNT_DIR"
 echo -e "done\n"
 
 echo "Shrink images"
@@ -732,7 +756,7 @@ echo -e "Shrink images done\n"
 echo "Remove signature and add scripts"
 $SUDO rm -rf "${WORK_DIR:?}"/wsa/"$ARCH"/\[Content_Types\].xml "$WORK_DIR"/wsa/"$ARCH"/AppxBlockMap.xml "$WORK_DIR"/wsa/"$ARCH"/AppxSignature.p7x "$WORK_DIR"/wsa/"$ARCH"/AppxMetadata || abort
 cp "$vclibs_PATH" "$xaml_PATH" "$WORK_DIR"/wsa/"$ARCH" || abort
-tee "$WORK_DIR"/wsa/"$ARCH"/Install.ps1 <<EOF
+tee "$WORK_DIR"/wsa/"$ARCH"/Install.ps1 <<EOF >/dev/null
 # Automated Install script by Midonei
 \$Host.UI.RawUI.WindowTitle = "Installing MagiskOnWSA..."
 function Test-Administrator {
@@ -849,7 +873,7 @@ ElseIf (\$null -Ne \$Installed) {
 Write-Host "All Done!\`r\`nPress any key to exit"
 \$null = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
 EOF
-tee "$WORK_DIR"/wsa/"$ARCH"/Run.bat <<EOF
+tee "$WORK_DIR"/wsa/"$ARCH"/Run.bat <<EOF >/dev/null
 :: Automated Install batch script by Syuugo
 
 @echo off
@@ -869,8 +893,8 @@ echo "Generate info"
 
 if [[ "$ROOT_SOL" = "none" ]]; then
     name1=""
-elif [[ "$ROOT_SOL" = "" ]]; then
-    name1="-with-magisk-$MAGISK_VER"
+elif [ "$ROOT_SOL" = "" ] || [ "$ROOT_SOL" = "magisk" ]; then
+    name1="-with-magisk-$MAGISK_VERSION_NAME($MAGISK_VERSION_CODE)-$MAGISK_VER"
 else
     name1="-with-$ROOT_SOL-$MAGISK_VER"
 fi
@@ -878,12 +902,18 @@ if [ "$GAPPS_BRAND" = "none" ]; then
     name2="-NoGApps"
 else
     if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
-        name2="-$GAPPS_BRAND-${GAPPS_VARIANT}"
+        name2="-$GAPPS_BRAND-${ANDROID_API_MAP[$ANDROID_API]}-${GAPPS_VARIANT}"
     else
-        name2="-$GAPPS_BRAND"
+        name2="-$GAPPS_BRAND-${ANDROID_API_MAP[$ANDROID_API]}"
     fi
 fi
-artifact_name="WSA${name1}${name2}_${WSA_VER}_${ARCH}_${WSA_REL}"
+artifact_name="WSA_${WSA_VER}_${ARCH}_${WSA_REL}${name1}${name2}"
+if [ "$NOFIX_PROPS" = "yes" ]; then
+    artifact_name+="-NoFixProps"
+fi
+if [ "$REMOVE_AMAZON" = "yes" ]; then
+    artifact_name+="-RemovedAmazon"
+fi
 echo "$artifact_name"
 echo -e "\nFinishing building...."
 if [ -f "$OUTPUT_DIR" ]; then
