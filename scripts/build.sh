@@ -736,7 +736,7 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
 fi
 
 echo "Umount images"
-$SUDO find "$MOUNT_DIR" -exec touch -hamt 200901010000.00 {} \;
+$SUDO find "$MOUNT_DIR" -exec touch -ht 200901010000.00 {} \;
 $SUDO umount -v "$MOUNT_DIR"/vendor
 $SUDO umount -v "$MOUNT_DIR"/product
 $SUDO umount -v "$MOUNT_DIR"/system_ext

@@ -18,6 +18,7 @@
 # Copyright (C) 2023 LSPosed Contributors
 #
 
+from datetime import datetime
 import sys
 
 import requests
@@ -55,8 +56,28 @@ if brand == "OpenGApps":
 elif brand == "MindTheGapps":
     res = requests.get(
         f'https://sourceforge.net/projects/wsa-mtg/rss?path=/{abi_map[arch]}&limit=100')
-    link = re.search(f'https://.*{release}.*{abi_map[arch]}.*\.zip/download', res.text).group().replace(
-        '.zip/download', '.zip').replace('sourceforge.net/projects/wsa-mtg/files', 'downloads.sourceforge.net/project/wsa-mtg')
+    matched = re.search(f'https://.*{release}.*{abi_map[arch]}.*\.zip/download', res.text)
+    if matched:
+        link = matched.group().replace(
+            '.zip/download', '.zip').replace('sourceforge.net/projects/wsa-mtg/files', 'downloads.sourceforge.net/project/wsa-mtg')
+    else:
+        print(f"Failed to fetch from SourceForge RSS, fallbacking to Github API...", flush=True)
+        res = requests.get(f"https://api.github.com/repos/s1204IT/MindTheGappsBuilder/releases/latest")
+        json_data = json.loads(res.content)
+        if res.status_code == 200:
+            assets = json_data["assets"]
+            for asset in assets:
+                if re.match(f'.*{release}.*{abi_map[arch]}.*\.zip$', asset["name"]):
+                    link = asset["browser_download_url"]
+        elif res.status_code == 403:
+            message = json_data["message"]
+            print(f"Github API Error: {message}", flush=True)
+            headers = res.headers
+            headers_json = json.load(headers)
+            ratelimit_reset = headers_json["x-ratelimit-reset"]
+            ratelimit_reset = datetime.datetime.utcfromtimestamp(ratelimit_reset)
+            print(f"The current rate limit window resets in {ratelimit_reset}", flush=True)
+            exit(1)
 
 print(f"download link: {link}", flush=True)
 
