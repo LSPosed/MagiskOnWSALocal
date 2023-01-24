@@ -4,3 +4,5 @@
 *.apk binary
 *.so binary
 *.xml text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
