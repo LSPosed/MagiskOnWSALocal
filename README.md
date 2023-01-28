@@ -6,7 +6,12 @@
 
 - Linux (x86_64 or arm64)
 
-    The following dependencies are required: `setools lzip wine patchelf e2fsprogs aria2 python3 attr`
+    The following dependencies are required:
+
+    | DistrOS |                                                                                                 |                   |            |           |
+    |:-------:|-------------------------------------------------------------------------------------------------|-------------------|------------|-----------|
+    |  Debian | `lzip wine winetricks patchelf e2fsprogs aria2 python3 python3-pip aria2 p7zip-full attr unzip` | `setools`         | `whiptail` | `xz-util` |
+    |   SuSE  | Same as above                                                                                   | `setools-console` | `dialog`   | `xz`      |
 
     The following components need to be installed using `winetricks`: `msxml6`
 
