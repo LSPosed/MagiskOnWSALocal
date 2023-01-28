@@ -133,6 +133,10 @@
 
     No. You should wipe data after changing the GApps brand. Otherwise, you will find that the installed GApps are not recognized.
 
+- WSA with OpenGApps integrated fails to start.
+
+    OpenGApps has not yet released a version built for Android 12L and 13, only built for Android 11, which may not be compatible and thus cause crashes. Consider switching to MindTheGapps.
+
 ## Credits
 
 - [StoreLib](https://github.com/StoreDev/StoreLib): API for downloading WSA

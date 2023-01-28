@@ -779,8 +779,10 @@ else
     else
         name2="-$GAPPS_BRAND-${ANDROID_API_MAP[$ANDROID_API]}"
     fi
-    if [ "$GAPPS_BRAND" = "OpenGApps" ] && [ "$DEBUG" ]; then
-        echo ":warning: Since OpenGApps doesn't officially support Android 12.1 yet, lock the variant to pico!"
+    if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
+        echo -e "\033[0;31m:warning: Since $GAPPS_BRAND doesn't officially support Android 12.1 and 13 yet, lock the variant to pico!
+          $GAPPS_BRAND may cause startup failure
+        \033[0m"
     fi
 fi
 artifact_name="WSA_${WSA_VER}_${ARCH}_${WSA_REL}${name1}${name2}"
