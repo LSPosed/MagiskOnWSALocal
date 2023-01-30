@@ -18,6 +18,7 @@
 # Copyright (C) 2023 LSPosed Contributors
 #
 
+from datetime import datetime
 import sys
 
 import requests
@@ -33,8 +34,7 @@ download_dir = Path.cwd().parent / \
 tempScript = sys.argv[5]
 android_api = sys.argv[6]
 file_name = sys.argv[7]
-print(
-    f"Generating {brand} download link: arch={arch} variant={variant}", flush=True)
+print(f"Generating {brand} download link: arch={arch} variant={variant}", flush=True)
 abi_map = {"x64": "x86_64", "arm64": "arm64"}
 android_api_map = {"30": "11.0", "32": "12.1", "33": "13.0"}
 release = android_api_map[android_api]
@@ -44,7 +44,7 @@ if brand == "OpenGApps":
         j = json.loads(res.content)
         link = {i["name"]: i for i in j["archs"][abi_map[arch]]
                 ["apis"][release]["variants"]}[variant]["zip"]
-        DATE=j["archs"][abi_map[arch]]["date"]
+        DATE = j["archs"][abi_map[arch]]["date"]
         print(f"DATE={DATE}", flush=True)
     except Exception:
         print("Failed to fetch from OpenGApps API, fallbacking to SourceForge RSS...")
@@ -55,8 +55,29 @@ if brand == "OpenGApps":
 elif brand == "MindTheGapps":
     res = requests.get(
         f'https://sourceforge.net/projects/wsa-mtg/rss?path=/{abi_map[arch]}&limit=100')
-    link = re.search(f'https://.*{release}.*{abi_map[arch]}.*\.zip/download', res.text).group().replace(
-        '.zip/download', '.zip').replace('sourceforge.net/projects/wsa-mtg/files', 'downloads.sourceforge.net/project/wsa-mtg')
+    matched = re.search(f'https://.*{release}.*{abi_map[arch]}.*\.zip/download', res.text)
+    if matched:
+        link = matched.group().replace(
+            '.zip/download', '.zip').replace('sourceforge.net/projects/wsa-mtg/files', 'downloads.sourceforge.net/project/wsa-mtg')
+    else:
+        print(f"Failed to fetch from SourceForge RSS, fallbacking to Github API...", flush=True)
+        res = requests.get(f"https://api.github.com/repos/s1204IT/MindTheGappsBuilder/releases/latest")
+        json_data = json.loads(res.content)
+        headers = res.headers
+        x_ratelimit_remaining = headers["x-ratelimit-remaining"]
+        if res.status_code == 200:
+            assets = json_data["assets"]
+            for asset in assets:
+                if re.match(f'.*{release}.*{abi_map[arch]}.*\.zip$', asset["name"]) and asset["content_type"] == "application/x-zip-compressed":
+                    link = asset["browser_download_url"]
+                    break
+        elif res.status_code == 403 and x_ratelimit_remaining == '0':
+            message = json_data["message"]
+            print(f"Github API Error: {message}", flush=True)
+            ratelimit_reset = headers["x-ratelimit-reset"]
+            ratelimit_reset = datetime.fromtimestamp(int(ratelimit_reset))
+            print(f"The current rate limit window resets in {ratelimit_reset}", flush=True)
+            exit(1)
 
 print(f"download link: {link}", flush=True)
 

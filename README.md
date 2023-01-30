@@ -6,7 +6,12 @@
 
 - Linux (x86_64 or arm64)
 
-    The following dependencies are required: `setools lzip wine patchelf e2fsprogs aria2 python3 attr`
+    The following dependencies are required:
+
+    | DistrOS |                                                                                                 |                   |            |           |
+    |:-------:|-------------------------------------------------------------------------------------------------|-------------------|------------|-----------|
+    |  Debian | `lzip wine winetricks patchelf e2fsprogs aria2 python3 python3-pip aria2 p7zip-full attr unzip` | `setools`         | `whiptail` | `xz-util` |
+    |   SuSE  | Same as above                                                                                   | `setools-console` | `dialog`   | `xz`      |
 
     The following components need to be installed using `winetricks`: `msxml6`
 
@@ -127,6 +132,10 @@
 - Can I switch OpenGApps to MindTheGapps and keep user data in a previous build?
 
     No. You should wipe data after changing the GApps brand. Otherwise, you will find that the installed GApps are not recognized.
+
+- WSA with OpenGApps integrated fails to start.
+
+    OpenGApps has not yet released a version built for Android 12L and 13, only built for Android 11, which may not be compatible and thus cause crashes. Consider switching to MindTheGapps.
 
 ## Credits
 
