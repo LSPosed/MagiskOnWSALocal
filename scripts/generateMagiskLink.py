@@ -33,11 +33,11 @@ if not magisk_ver:
 if magisk_ver == "stable" or magisk_ver == "beta" or magisk_ver == "canary" or magisk_ver == "debug":
     try:
         magisk_link = json.loads(requests.get(
-            f"https://raw.githubusercontent.com/HuskyDG/download/main/canary.json").content)['magisk']['link']
+            f"https://raw.githubusercontent.com/HuskyDG/magisk-files/main/canary.json").content)['magisk']['link']
     except Exception:
         print("Failed to fetch from GitHub API, fallbacking to jsdelivr...")
         magisk_link = json.loads(requests.get(
-            f"https://raw.githubusercontent.com/HuskyDG/download/main/canary.json").content)['magisk']['link']
+            f"https://raw.githubusercontent.com/HuskyDG/magisk-files/main/canary.json").content)['magisk']['link']
 print(f"download link: {magisk_link}", flush=True)
 
 with open(download_dir/tempScript, 'a') as f:
