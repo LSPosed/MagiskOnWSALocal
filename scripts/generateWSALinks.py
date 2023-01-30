@@ -15,19 +15,21 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with MagiskOnWSALocal.  If not, see <https://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2022 LSPosed Contributors
+# Copyright (C) 2023 LSPosed Contributors
 #
 
-import sys
-
-import requests
-from xml.dom import minidom
 import html
-import warnings
-import re
-from pathlib import Path
 import os
+import re
+import sys
+import warnings
+from pathlib import Path
+from threading import Thread
 from typing import OrderedDict
+from xml.dom import minidom
+
+from requests import Session
+
 
 class Prop(OrderedDict):
     def __init__(self, props: str=...) -> None:
@@ -55,6 +57,8 @@ ms_account_conf = download_dir/".ms_account"
 tempScript = sys.argv[4]
 cat_id = '858014f3-3934-4abe-8078-4aa193e74ca8'
 user = ''
+session = Session()
+
 if ms_account_conf.is_file():
     with open(ms_account_conf, "r") as f:
         conf = Prop(f.read())
@@ -63,7 +67,7 @@ print(f"Generating WSA download link: arch={arch} release_type={release_name}", 
 with open(Path.cwd().parent / ("xml/GetCookie.xml"), "r") as f:
     cookie_content = f.read().format(user)
 
-out = requests.post(
+out = session.post(
     'https://fe3.delivery.mp.microsoft.com/ClientWebService/client.asmx',
     data=cookie_content,
     headers={'Content-Type': 'application/soap+xml; charset=utf-8'},
@@ -75,7 +79,7 @@ cookie = doc.getElementsByTagName('EncryptedData')[0].firstChild.nodeValue
 with open(Path.cwd().parent / "xml/WUIDRequest.xml", "r") as f:
     cat_id_content = f.read().format(user, cookie, cat_id, release_type)
 
-out = requests.post(
+out = session.post(
     'https://fe3.delivery.mp.microsoft.com/ClientWebService/client.asmx',
     data=cat_id_content,
     headers={'Content-Type': 'application/soap+xml; charset=utf-8'},
@@ -104,6 +108,24 @@ with open(Path.cwd().parent / "xml/FE3FileUrl.xml", "r") as f:
 if not download_dir.is_dir():
     download_dir.mkdir()
 tmpdownlist = open(download_dir/tempScript, 'a')
+
+def send_req(i,v,out_file,out_file_name):
+    out = session.post(
+        'https://fe3.delivery.mp.microsoft.com/ClientWebService/client.asmx/secured',
+        data=FE3_file_content.format(user, i, v, release_type),
+        headers={'Content-Type': 'application/soap+xml; charset=utf-8'},
+        verify=False
+    )
+    doc = minidom.parseString(out.text)
+    for l in doc.getElementsByTagName("FileLocation"):
+        url = l.getElementsByTagName("Url")[0].firstChild.nodeValue
+        if len(url) != 99:
+            print(f"download link: {url} to {out_file}", flush=True)
+            tmpdownlist.writelines(url + '\n')
+            tmpdownlist.writelines(f'  dir={download_dir}\n')
+            tmpdownlist.writelines(f'  out={out_file_name}\n')
+
+threads = []
 for i, v, f in identities:
     if re.match(f"Microsoft\.UI\.Xaml\..*_{arch}_.*\.appx", f):
         out_file_name = f"Microsoft.UI.Xaml_{arch}.appx"
@@ -122,20 +144,12 @@ for i, v, f in identities:
         out_file = download_dir / out_file_name
     else:
         continue
-    out = requests.post(
-        'https://fe3.delivery.mp.microsoft.com/ClientWebService/client.asmx/secured',
-        data=FE3_file_content.format(user, i, v, release_type),
-        headers={'Content-Type': 'application/soap+xml; charset=utf-8'},
-        verify=False
-    )
-    doc = minidom.parseString(out.text)
-    for l in doc.getElementsByTagName("FileLocation"):
-        url = l.getElementsByTagName("Url")[0].firstChild.nodeValue
-        if len(url) != 99:
-            print(f"download link: {url} to {out_file}", flush=True)
-            tmpdownlist.writelines(url + '\n')
-            tmpdownlist.writelines(f'  dir={download_dir}\n')
-            tmpdownlist.writelines(f'  out={out_file_name}\n')
+    th = Thread(target=send_req, args=(i,v,out_file,out_file_name))
+    threads.append(th)
+    th.daemon = True
+    th.start()
 tmpdownlist.writelines(f'https://aka.ms/Microsoft.VCLibs.{arch}.14.00.Desktop.appx\n')
 tmpdownlist.writelines(f'  dir={download_dir}\n')
+for th in threads:
+    th.join()
 tmpdownlist.close()

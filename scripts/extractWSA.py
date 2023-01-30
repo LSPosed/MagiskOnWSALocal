@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with MagiskOnWSALocal.  If not, see <https://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2022 LSPosed Contributors
+# Copyright (C) 2023 LSPosed Contributors
 #
 
 import sys
@@ -24,6 +24,7 @@ import warnings
 import zipfile
 import os
 from pathlib import Path
+import re
 
 warnings.filterwarnings("ignore")
 
@@ -32,8 +33,11 @@ arch = sys.argv[1]
 zip_name = ""
 wsa_zip_path= Path(sys.argv[2]).resolve()
 workdir = Path(sys.argv[3]) / "wsa"
+archdir = Path(workdir / arch)
 if not Path(workdir).is_dir():
     workdir.mkdir()
+if not Path(archdir).is_dir():
+    archdir.mkdir()
 with zipfile.ZipFile(wsa_zip_path) as zip:
     for f in zip.filelist:
         if arch in f.filename.lower():
@@ -64,7 +68,8 @@ with zipfile.ZipFile(wsa_zip_path) as zip:
                     elif g.filename == 'AppxManifest.xml':
                         g.filename = f'{name}.xml'
                         l.extract(g, workdir / 'xml')
+                    elif re.search(u'Images/.+\.png', g.filename):
+                        l.extract(g, archdir)
 with zipfile.ZipFile(zip_path) as zip:
-    if not Path(workdir / arch).is_dir():
-        print(f"unzipping from {zip_path}", flush=True)
-        zip.extractall(workdir / arch)
+    print(f"unzipping from {zip_path}", flush=True)
+    zip.extractall(archdir)

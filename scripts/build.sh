@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with MagiskOnWSALocal.  If not, see <https://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2022 LSPosed Contributors
+# Copyright (C) 2023 LSPosed Contributors
 #
 
 if [ ! "$BASH_VERSION" ]; then
@@ -28,46 +28,48 @@ if [ "$HOST_ARCH" != "x86_64" ] && [ "$HOST_ARCH" != "aarch64" ]; then
     exit 1
 fi
 cd "$(dirname "$0")" || exit 1
-trap umount_clean EXIT
 # export TMPDIR=$(dirname "$PWD")/WORK_DIR_
 if [ "$TMPDIR" ] && [ ! -d "$TMPDIR" ]; then
     mkdir -p "$TMPDIR"
 fi
 WORK_DIR=$(mktemp -d -t wsa-build-XXXXXXXXXX_) || exit 1
-DOWNLOAD_DIR=../download
-DOWNLOAD_CONF_NAME=download.list
-OUTPUT_DIR=../output
 MOUNT_DIR="$WORK_DIR"/system
 SUDO="$(which sudo 2>/dev/null)"
 if [ -z "$SUDO" ]; then
     unset SUDO
 fi
-WSA_WORK_ENV="${WORK_DIR:?}"/ENV
-if [ -f "$WSA_WORK_ENV" ]; then rm -f "${WSA_WORK_ENV:?}"; fi
-touch "$WSA_WORK_ENV"
-export WSA_WORK_ENV
+DOWNLOAD_DIR=../download
+DOWNLOAD_CONF_NAME=download.list
 umount_clean() {
     if [ -d "$MOUNT_DIR" ]; then
-        echo "Cleanup Work Directory"
+        echo "Cleanup Mount Directory"
         if [ -d "$MOUNT_DIR/vendor" ]; then
-            $SUDO umount "$MOUNT_DIR"/vendor
+            $SUDO umount -v "$MOUNT_DIR"/vendor
         fi
         if [ -d "$MOUNT_DIR/product" ]; then
-            $SUDO umount "$MOUNT_DIR"/product
+            $SUDO umount -v "$MOUNT_DIR"/product
         fi
         if [ -d "$MOUNT_DIR/system_ext" ]; then
-            $SUDO umount "$MOUNT_DIR"/system_ext
+            $SUDO umount -v "$MOUNT_DIR"/system_ext
         fi
-        $SUDO umount "$MOUNT_DIR"
+        $SUDO umount -v "$MOUNT_DIR"
         $SUDO rm -rf "${WORK_DIR:?}"
     else
         rm -rf "${WORK_DIR:?}"
     fi
     if [ "$TMPDIR" ] && [ -d "$TMPDIR" ]; then
+        echo "Cleanup Temp Directory"
         rm -rf "${TMPDIR:?}"
         unset TMPDIR
     fi
+    rm -f "${DOWNLOAD_DIR:?}/$DOWNLOAD_CONF_NAME"
 }
+trap umount_clean EXIT
+OUTPUT_DIR=../output
+WSA_WORK_ENV="${WORK_DIR:?}"/ENV
+if [ -f "$WSA_WORK_ENV" ]; then rm -f "${WSA_WORK_ENV:?}"; fi
+touch "$WSA_WORK_ENV"
+export WSA_WORK_ENV
 clean_download() {
     if [ -d "$DOWNLOAD_DIR" ]; then
         echo "Cleanup Download Directory"
@@ -85,6 +87,7 @@ clean_download() {
 abort() {
     echo "Build: an error has occurred, exit"
     if [ -d "$WORK_DIR" ]; then
+        echo -e "\nCleanup Work Directory"
         umount_clean
     fi
     clean_download
@@ -93,7 +96,7 @@ abort() {
 trap abort INT TERM
 
 Gen_Rand_Str() {
-    tr -dc '[:lower:]' </dev/urandom | fold -w "$1" | head -n 1
+    head /dev/urandom | tr -dc '[:lower:]' | head -c"$1"
 }
 
 default() {
@@ -322,8 +325,8 @@ if [ "$DEBUG" ]; then
 fi
 
 require_su() {
-    if test "$(whoami)" != "root"; then
-        if [ -z "$SUDO" ] || [ "$($SUDO whoami)" != "root" ]; then
+    if test "$(id -u)" != "0"; then
+        if [ -z "$SUDO" ] || [ "$($SUDO id -u)" != "0" ]; then
             echo "ROOT/SUDO is required to run this script"
             abort
         fi
@@ -353,7 +356,7 @@ if [ "$CUSTOM_MAGISK" ]; then
         fi
     fi
 fi
-ANDROID_API=32
+ANDROID_API=33
 update_gapps_zip_name() {
     if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
         ANDROID_API=30
@@ -365,7 +368,6 @@ update_gapps_zip_name() {
 }
 update_gapps_zip_name
 if [ -z "${OFFLINE+x}" ]; then
-    trap 'rm -f -- "${DOWNLOAD_DIR:?}/${DOWNLOAD_CONF_NAME}"' EXIT
     require_su
     if [ "${DOWN_WSA}" != "no" ]; then
         echo "Generate Download Links"
@@ -373,10 +375,10 @@ if [ -z "${OFFLINE+x}" ]; then
         # shellcheck disable=SC1091
         source "${WORK_DIR:?}/ENV" || abort
     else
-        DOWN_WSA_MAIN_VERSION=2211
+        DOWN_WSA_MAIN_VERSION=$(python3 getWSAMainVersion.py "$ARCH" "$WSA_ZIP_PATH")
     fi
-    if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2211 ]]; then
-        ANDROID_API=33
+    if [[ "$DOWN_WSA_MAIN_VERSION" -lt 2211 ]]; then
+        ANDROID_API=32
         update_gapps_zip_name
     fi
     if [ -z "${CUSTOM_MAGISK+x}" ]; then
@@ -391,7 +393,12 @@ if [ -z "${OFFLINE+x}" ]; then
         echo "We have encountered an error while downloading files."
         exit 1
     fi
-else
+else # Offline mode
+    DOWN_WSA_MAIN_VERSION=$(python3 getWSAMainVersion.py "$ARCH" "$WSA_ZIP_PATH")
+    if [[ "$DOWN_WSA_MAIN_VERSION" -lt 2211 ]]; then
+        ANDROID_API=32
+        update_gapps_zip_name
+    fi
     declare -A FILES_CHECK_LIST=([WSA_ZIP_PATH]="$WSA_ZIP_PATH" [xaml_PATH]="$xaml_PATH" [vclibs_PATH]="$vclibs_PATH" [MAGISK_PATH]="$MAGISK_PATH")
     for i in "${FILES_CHECK_LIST[@]}"; do
         if [ ! -f "$i" ]; then
@@ -422,10 +429,6 @@ if [ -f "$WSA_ZIP_PATH" ]; then
     echo -e "Extract done\n"
     # shellcheck disable=SC1091
     source "${WORK_DIR:?}/ENV" || abort
-    if [[ "$WSA_MAIN_VER" -ge 2211 ]]; then
-        ANDROID_API=33
-        update_gapps_zip_name
-    fi
 else
     echo "The WSA zip package does not exist, is the download incomplete?"
     exit 1
@@ -526,16 +529,16 @@ echo -e "Expand images done\n"
 
 echo "Mount images"
 $SUDO mkdir "$MOUNT_DIR" || abort
-$SUDO mount -o loop "$WORK_DIR"/wsa/"$ARCH"/system.img "$MOUNT_DIR" || abort
-$SUDO mount -o loop "$WORK_DIR"/wsa/"$ARCH"/vendor.img "$MOUNT_DIR"/vendor || abort
-$SUDO mount -o loop "$WORK_DIR"/wsa/"$ARCH"/product.img "$MOUNT_DIR"/product || abort
-$SUDO mount -o loop "$WORK_DIR"/wsa/"$ARCH"/system_ext.img "$MOUNT_DIR"/system_ext || abort
+$SUDO mount -vo loop "$WORK_DIR"/wsa/"$ARCH"/system.img "$MOUNT_DIR" || abort
+$SUDO mount -vo loop "$WORK_DIR"/wsa/"$ARCH"/vendor.img "$MOUNT_DIR"/vendor || abort
+$SUDO mount -vo loop "$WORK_DIR"/wsa/"$ARCH"/product.img "$MOUNT_DIR"/product || abort
+$SUDO mount -vo loop "$WORK_DIR"/wsa/"$ARCH"/system_ext.img "$MOUNT_DIR"/system_ext || abort
 echo -e "done\n"
 
 if [ "$REMOVE_AMAZON" ]; then
     echo "Remove Amazon Appstore"
-    find "${MOUNT_DIR:?}"/product/{etc/permissions,etc/sysconfig,framework,priv-app} | grep -e amazon -e venezia | $SUDO xargs rm -rf
-    find "${MOUNT_DIR:?}"/system_ext/{etc/*permissions,framework,priv-app} | grep -e amazon -e venezia | $SUDO xargs rm -rf
+    find "${MOUNT_DIR:?}"/product/{etc/permissions,etc/sysconfig,framework,priv-app} 2>/dev/null | grep -e amazon -e venezia | $SUDO xargs rm -rf
+    find "${MOUNT_DIR:?}"/system_ext/{etc/*permissions,framework,priv-app} 2>/dev/null | grep -e amazon -e venezia | $SUDO xargs rm -rf
     echo -e "done\n"
 fi
 
@@ -552,7 +555,7 @@ if [ "$ROOT_SOL" = 'magisk' ] || [ "$ROOT_SOL" = '' ]; then
     $SUDO chmod 0700 "$MOUNT_DIR"/sbin
     $SUDO cp "$WORK_DIR"/magisk/magisk/* "$MOUNT_DIR"/sbin/
     $SUDO cp "$MAGISK_PATH" "$MOUNT_DIR"/sbin/magisk.apk
-    $SUDO tee -a "$MOUNT_DIR"/sbin/loadpolicy.sh <<EOF
+    $SUDO tee -a "$MOUNT_DIR"/sbin/loadpolicy.sh <<EOF >/dev/null
 #!/system/bin/sh
 mkdir -p /data/adb/magisk
 cp /sbin/* /data/adb/magisk/
@@ -577,7 +580,7 @@ EOF
     LOAD_POLICY_SVC_NAME=$(Gen_Rand_Str 12)
     PFD_SVC_NAME=$(Gen_Rand_Str 12)
     LS_SVC_NAME=$(Gen_Rand_Str 12)
-    $SUDO tee -a "$MOUNT_DIR"/system/etc/init/hw/init.rc <<EOF
+    $SUDO tee -a "$MOUNT_DIR"/system/etc/init/hw/init.rc <<EOF >/dev/null
 on post-fs-data
     start adbd
     mkdir /dev/$TMP_PATH
@@ -635,10 +638,10 @@ EOF
     echo -e "Integrate Magisk done\n"
 fi
 
-echo "Merge Language Resources"
-cp "$WORK_DIR"/wsa/"$ARCH"/resources.pri "$WORK_DIR"/wsa/pri/en-us.pri \
-&& cp "$WORK_DIR"/wsa/"$ARCH"/AppxManifest.xml "$WORK_DIR"/wsa/xml/en-us.xml && {
-    tee "$WORK_DIR"/wsa/priconfig.xml <<EOF
+cp "$WORK_DIR/wsa/$ARCH/resources.pri" "$WORK_DIR"/wsa/pri/en-us.pri \
+&& cp "$WORK_DIR/wsa/$ARCH/AppxManifest.xml" "$WORK_DIR"/wsa/xml/en-us.xml && {
+    echo "Merge Language Resources"
+    tee "$WORK_DIR"/wsa/priconfig.xml <<EOF >/dev/null
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <resources targetOsVersion="10.0.0" majorVersion="1">
 <index root="\" startIndexAt="\">
@@ -647,10 +650,16 @@ cp "$WORK_DIR"/wsa/"$ARCH"/resources.pri "$WORK_DIR"/wsa/pri/en-us.pri \
 </index>
 </resources>
 EOF
-    wine64 ../wine/"$HOST_ARCH"/makepri.exe new /pr "$WORK_DIR"/wsa/pri /in MicrosoftCorporationII.WindowsSubsystemForAndroid /cf "$WORK_DIR"/wsa/priconfig.xml /of "$WORK_DIR"/wsa/"$ARCH"/resources.pri /o
-    sed -i -zE "s/<Resources.*Resources>/<Resources>\n$(cat "$WORK_DIR"/wsa/xml/* | grep -Po '<Resource [^>]*/>' | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/\$/\\$/g' | sed 's/\//\\\//g')\n<\/Resources>/g" "$WORK_DIR"/wsa/"$ARCH"/AppxManifest.xml
+    if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ]; then
+        ../wine/"$HOST_ARCH"/makepri.exe new /pr "$(wslpath -w "$WORK_DIR"/wsa/pri)" /in MicrosoftCorporationII.WindowsSubsystemForAndroid /cf "$(wslpath -w "$WORK_DIR"/wsa/priconfig.xml)" /of "$(wslpath -w "$WORK_DIR"/wsa/"$ARCH"/resources.pri)" /o
+    elif which wine64 > /dev/null; then
+        wine64 ../wine/"$HOST_ARCH"/makepri.exe new /pr "$WORK_DIR"/wsa/pri /in MicrosoftCorporationII.WindowsSubsystemForAndroid /cf "$WORK_DIR"/wsa/priconfig.xml /of "$WORK_DIR"/wsa/"$ARCH"/resources.pri /o
+    else
+        res_merge_failed=1
+    fi
+    [ -z "$res_merge_failed" ] && sed -i -zE "s/<Resources.*Resources>/<Resources>\n$(cat "$WORK_DIR"/wsa/xml/* | grep -Po '<Resource [^>]*/>' | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/\$/\\$/g' | sed 's/\//\\\//g')\n<\/Resources>/g" "$WORK_DIR"/wsa/"$ARCH"/AppxManifest.xml && \
     echo -e "Merge Language Resources done\n"
-} || echo -e "Merge Language Resources failed\n"
+} && [ -n "$res_merge_failed" ] && echo -e "Merge Language Resources failed\n" && unset res_merge_failed
 
 echo "Add extra packages"
 $SUDO cp -r ../"$ARCH"/system/* "$MOUNT_DIR" || abort
@@ -727,11 +736,11 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
 fi
 
 echo "Umount images"
-$SUDO find "$MOUNT_DIR" -exec touch -hamt 200901010000.00 {} \;
-$SUDO umount "$MOUNT_DIR"/vendor
-$SUDO umount "$MOUNT_DIR"/product
-$SUDO umount "$MOUNT_DIR"/system_ext
-$SUDO umount "$MOUNT_DIR"
+$SUDO find "$MOUNT_DIR" -exec touch -ht 200901010000.00 {} \;
+$SUDO umount -v "$MOUNT_DIR"/vendor
+$SUDO umount -v "$MOUNT_DIR"/product
+$SUDO umount -v "$MOUNT_DIR"/system_ext
+$SUDO umount -v "$MOUNT_DIR"
 echo -e "done\n"
 
 echo "Shrink images"
@@ -748,137 +757,9 @@ echo -e "Shrink images done\n"
 echo "Remove signature and add scripts"
 $SUDO rm -rf "${WORK_DIR:?}"/wsa/"$ARCH"/\[Content_Types\].xml "$WORK_DIR"/wsa/"$ARCH"/AppxBlockMap.xml "$WORK_DIR"/wsa/"$ARCH"/AppxSignature.p7x "$WORK_DIR"/wsa/"$ARCH"/AppxMetadata || abort
 cp "$vclibs_PATH" "$xaml_PATH" "$WORK_DIR"/wsa/"$ARCH" || abort
-tee "$WORK_DIR"/wsa/"$ARCH"/Install.ps1 <<EOF
-# Automated Install script by Midonei
-\$Host.UI.RawUI.WindowTitle = "Installing MagiskOnWSA..."
-function Test-Administrator {
-    [OutputType([bool])]
-    param()
-    process {
-        [Security.Principal.WindowsPrincipal]\$user = [Security.Principal.WindowsIdentity]::GetCurrent();
-        return \$user.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator);
-    }
-}
-
-function Get-InstalledDependencyVersion {
-    param (
-        [string]\$Name,
-        [string]\$ProcessorArchitecture
-    )
-    process {
-        return Get-AppxPackage -Name \$Name | ForEach-Object { if (\$_.Architecture -eq \$ProcessorArchitecture) { \$_ } } | Sort-Object -Property Version | Select-Object -ExpandProperty Version -Last 1;
-    }
-}
-
-function Finish {
-    Clear-Host
-    Start-Process "wsa://com.topjohnwu.magisk"
-    Start-Process "wsa://com.android.vending"
-}
-
-If (-Not (Test-Administrator)) {
-    Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass -Force
-    \$proc = Start-Process -PassThru -WindowStyle Hidden -Verb RunAs ConHost.exe -Args "powershell -ExecutionPolicy Bypass -Command Set-Location '\$PSScriptRoot'; &'\$PSCommandPath' EVAL"
-    \$proc.WaitForExit()
-    If (\$proc.ExitCode -Ne 0) {
-        Clear-Host
-        Write-Warning "Failed to launch start as Administrator\`r\`nPress any key to exit"
-        \$null = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown');
-    }
-    exit
-}
-ElseIf ((\$args.Count -Eq 1) -And (\$args[0] -Eq "EVAL")) {
-    Start-Process ConHost.exe -Args "powershell -ExecutionPolicy Bypass -Command Set-Location '\$PSScriptRoot'; &'\$PSCommandPath'"
-    exit
-}
-
-If (((Test-Path -Path $(find "$WORK_DIR"/wsa/"$ARCH" -maxdepth 1 -mindepth 1 -printf "\"%P\"\n" | paste -sd "," -)) -Eq \$false).Count) {
-    Write-Error "Some files are missing in the folder. Please try to build again. Press any key to exist"
-    \$null = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
-    exit 1
-}
-
-reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
-
-If (\$(Get-WindowsOptionalFeature -Online -FeatureName 'VirtualMachinePlatform').State -Ne "Enabled") {
-    Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName 'VirtualMachinePlatform'
-    Clear-Host
-    Write-Warning "Need restart to enable virtual machine platform\`r\`nPress y to restart or press any key to exit"
-    \$key = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
-    If ("y" -Eq \$key.Character) {
-        Restart-Computer -Confirm
-    }
-    Else {
-        exit 1
-    }
-}
-
-[xml]\$Xml = Get-Content ".\AppxManifest.xml";
-\$Name = \$Xml.Package.Identity.Name;
-\$ProcessorArchitecture = \$Xml.Package.Identity.ProcessorArchitecture;
-\$Dependencies = \$Xml.Package.Dependencies.PackageDependency;
-\$Dependencies | ForEach-Object {
-    If (\$_.Name -Eq "Microsoft.VCLibs.140.00.UWPDesktop") {
-        \$HighestInstalledVCLibsVersion = Get-InstalledDependencyVersion -Name \$_.Name -ProcessorArchitecture \$ProcessorArchitecture;
-        If ( \$HighestInstalledVCLibsVersion -Lt \$_.MinVersion ) {
-            Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Path "Microsoft.VCLibs.\$ProcessorArchitecture.14.00.Desktop.appx"
-        }
-    }
-    ElseIf (\$_.Name -Match "Microsoft.UI.Xaml") {
-        \$HighestInstalledXamlVersion = Get-InstalledDependencyVersion -Name \$_.Name -ProcessorArchitecture \$ProcessorArchitecture;
-        If ( \$HighestInstalledXamlVersion -Lt \$_.MinVersion ) {
-            Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Path "Microsoft.UI.Xaml_\$ProcessorArchitecture.appx"
-        }
-    }
-}
-
-\$Installed = \$null
-\$Installed = Get-AppxPackage -Name \$Name
-
-If ((\$null -Ne \$Installed) -And (-Not (\$Installed.IsDevelopmentMode))) {
-    Clear-Host
-    Write-Warning "There is already one installed WSA. Please uninstall it first.\`r\`nPress y to uninstall existing WSA or press any key to exit"
-    \$key = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
-    If ("y" -Eq \$key.Character) {
-        Remove-AppxPackage -Package \$Installed.PackageFullName
-    }
-    Else {
-        exit 1
-    }
-}
-Clear-Host
-Write-Host "Installing MagiskOnWSA..."
-Stop-Process -Name "WsaClient" -ErrorAction SilentlyContinue
-Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Register .\AppxManifest.xml
-If (\$?) {
-    Finish
-}
-ElseIf (\$null -Ne \$Installed) {
-    Clear-Host
-    Write-Host "Failed to update, try to uninstall existing installation while preserving userdata..."
-    Remove-AppxPackage -PreserveApplicationData -Package \$Installed.PackageFullName
-    Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Register .\AppxManifest.xml
-    If (\$?) {
-        Finish
-    }
-}
-Write-Host "All Done!\`r\`nPress any key to exit"
-\$null = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
-EOF
-tee "$WORK_DIR"/wsa/"$ARCH"/Run.bat <<EOF
-:: Automated Install batch script by Syuugo
-
-@echo off
-if not exist Install.ps1 (
-    echo "Install.ps1" is not found.
-    echo Press any key to exit
-    pause>nul
-    exit 1
-) else (
-    start powershell.exe -ExecutionPolicy Bypass -File .\Install.ps1
-    exit
-)
-EOF
+cp ../installer/Install.ps1 "$WORK_DIR"/wsa/"$ARCH" || abort
+cp ../installer/Run.bat "$WORK_DIR"/wsa/"$ARCH" || abort
+find "$WORK_DIR"/wsa/"$ARCH" -maxdepth 1 -mindepth 1 -printf "%P\n" > "$WORK_DIR"/wsa/"$ARCH"/filelist.txt || abort
 echo -e "Remove signature and add scripts done\n"
 
 echo "Generate info"
@@ -898,8 +779,10 @@ else
     else
         name2="-$GAPPS_BRAND-${ANDROID_API_MAP[$ANDROID_API]}"
     fi
-    if [ "$GAPPS_BRAND" = "OpenGApps" ] && [ "$DEBUG" ]; then
-        echo ":warning: Since OpenGApps doesn't officially support Android 12.1 yet, lock the variant to pico!"
+    if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
+        echo -e "\033[0;31m:warning: Since $GAPPS_BRAND doesn't officially support Android 12.1 and 13 yet, lock the variant to pico!
+          $GAPPS_BRAND may cause startup failure
+        \033[0m"
     fi
 fi
 artifact_name="WSA_${WSA_VER}_${ARCH}_${WSA_REL}${name1}${name2}"
