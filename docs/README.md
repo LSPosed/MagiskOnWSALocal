@@ -121,7 +121,7 @@
     Choose `none` as the root solution.
 - How to install custom GApps?
 
-    [Tutorial](./Custom-GApps.md)
+    [Tutorial](Custom-GApps.md)
 - Where can I download MindTheGapps?
 
     You can download from here [MindTheGapps](https://androidfilehost.com/?w=files&flid=322935) ([mirror](http://downloads.codefi.re/jdcteam/javelinanddart/gapps))
@@ -138,7 +138,7 @@
     OpenGApps has not yet released a version built for Android 12L and 13, only built for Android 11, which may not be compatible and thus cause crashes. Consider switching to MindTheGapps.
 - How to install KernelSU?
 
-    [Tutorial](./KernelSU.md)
+    [Tutorial](KernelSU.md)
 
 ## Credits
 
