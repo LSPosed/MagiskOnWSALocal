@@ -141,7 +141,7 @@ if [ "$COMPRESS_OUTPUT" = "--compress" ]; then
             'xz' "tar.xz" 'off'
         )
 fi
-# if ! (YesNoBox '([title]="Off line mode" [text]="Do you want to enable off line mode?")'); then
+# if (YesNoBox '([title]="Off line mode" [text]="Do you want to enable off line mode?")'); then
 #     OFFLINE="--offline"
 # else
 #     OFFLINE=""
