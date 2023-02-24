@@ -10,7 +10,7 @@
 
     | DistrOS |                                                                                                 |                   |            |           |
     |:-------:|-------------------------------------------------------------------------------------------------|-------------------|------------|-----------|
-    |  Debian | `lzip wine winetricks patchelf e2fsprogs aria2 python3 python3-pip aria2 p7zip-full attr unzip` | `setools`         | `whiptail` | `xz-util` |
+    |  Debian | `lzip wine winetricks patchelf e2fsprogs aria2 python3 python3-pip aria2 p7zip-full attr unzip` | `setools`         | `whiptail` | `xz-utils` |
     |   SuSE  | Same as above                                                                                   | `setools-console` | `dialog`   | `xz`      |
 
     The following components need to be installed using `winetricks`: `msxml6`
