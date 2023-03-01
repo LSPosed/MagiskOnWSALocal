@@ -57,6 +57,9 @@
 
 1. Star (if you like)
 1. Clone the repo to local
+```
+git clone https://github.com/LSPosed/MagiskOnWSALocal.git --depth 1
+```
    - Run `cd scripts`
    - Then run `./build.sh --help` (optional) to get the usage if you want to use CLI.
 1. Run `./run.sh` under scripts directory.
