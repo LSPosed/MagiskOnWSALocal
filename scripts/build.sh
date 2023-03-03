@@ -490,21 +490,21 @@ fi
 echo "Expand images"
 if [ ! -f /etc/mtab ]; then $SUDO ln -s /proc/self/mounts /etc/mtab; fi
 e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/system_ext.img || abort
-SYSTEM_EXT_SIZE=$(($(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/system_ext.img | cut -f1) + 20000))
+SYSTEM_EXT_SIZE=$(($(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/system_ext.img | cut -f1) + 20480))
 if [ -d "$WORK_DIR"/gapps/system_ext ]; then
     SYSTEM_EXT_SIZE=$(( SYSTEM_EXT_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps/system_ext | cut -f1) ))
 fi
 resize2fs "$WORK_DIR"/wsa/"$ARCH"/system_ext.img "$SYSTEM_EXT_SIZE"s || abort
 
 e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/product.img || abort
-PRODUCT_SIZE=$(($(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/product.img | cut -f1) + 20000))
+PRODUCT_SIZE=$(($(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/product.img | cut -f1) + 20480))
 if [ -d "$WORK_DIR"/gapps/product ]; then
     PRODUCT_SIZE=$(( PRODUCT_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps/product | cut -f1) ))
 fi
 resize2fs "$WORK_DIR"/wsa/"$ARCH"/product.img "$PRODUCT_SIZE"s || abort
 
 e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/system.img || abort
-SYSTEM_SIZE=$(($(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/system.img | cut -f1) + 20000))
+SYSTEM_SIZE=$(($(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/system.img | cut -f1) + 20480))
 if [ -d "$WORK_DIR"/gapps ]; then
     SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps | cut -f1) - $(du --apparent-size -sB512 "$WORK_DIR"/gapps/product | cut -f1) ))
     if [ -d "$WORK_DIR"/gapps/system_ext ]; then
@@ -523,7 +523,7 @@ fi
 resize2fs "$WORK_DIR"/wsa/"$ARCH"/system.img "$SYSTEM_SIZE"s || abort
 
 e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/vendor.img || abort
-VENDOR_SIZE=$(($(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/vendor.img | cut -f1) + 20000))
+VENDOR_SIZE=$(($(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/vendor.img | cut -f1) + 20480))
 resize2fs "$WORK_DIR"/wsa/"$ARCH"/vendor.img "$VENDOR_SIZE"s || abort
 echo -e "Expand images done\n"
 
@@ -573,8 +573,8 @@ EOF
     $SUDO find "$MOUNT_DIR"/sbin -type f -exec chown root:root {} \;
     $SUDO find "$MOUNT_DIR"/sbin -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
 
-    TMP_PATH=$(Gen_Rand_Str 8)
-    echo "/dev/$TMP_PATH(/.*)?    u:object_r:magisk_file:s0" | $SUDO tee -a "$MOUNT_DIR"/vendor/etc/selinux/vendor_file_contexts
+    MAGISK_TMP_PATH=$(Gen_Rand_Str 8)
+    echo "/dev/$MAGISK_TMP_PATH(/.*)?    u:object_r:magisk_file:s0" | $SUDO tee -a "$MOUNT_DIR"/vendor/etc/selinux/vendor_file_contexts
     echo '/data/adb/magisk(/.*)?   u:object_r:magisk_file:s0' | $SUDO tee -a "$MOUNT_DIR"/vendor/etc/selinux/vendor_file_contexts
     $SUDO "$WORK_DIR"/magisk/magiskpolicy --load "$MOUNT_DIR"/vendor/etc/selinux/precompiled_sepolicy --save "$MOUNT_DIR"/vendor/etc/selinux/precompiled_sepolicy --magisk "allow * magisk_file lnk_file *" || abort
     LOAD_POLICY_SVC_NAME=$(Gen_Rand_Str 12)
@@ -583,24 +583,24 @@ EOF
     $SUDO tee -a "$MOUNT_DIR"/system/etc/init/hw/init.rc <<EOF >/dev/null
 on post-fs-data
     start adbd
-    mkdir /dev/$TMP_PATH
-    mount tmpfs tmpfs /dev/$TMP_PATH mode=0755
-    copy /sbin/magisk64 /dev/$TMP_PATH/magisk64
-    chmod 0755 /dev/$TMP_PATH/magisk64
-    symlink ./magisk64 /dev/$TMP_PATH/magisk
-    symlink ./magisk64 /dev/$TMP_PATH/su
-    symlink ./magisk64 /dev/$TMP_PATH/resetprop
-    copy /sbin/magisk32 /dev/$TMP_PATH/magisk32
-    chmod 0755 /dev/$TMP_PATH/magisk32
-    copy /sbin/magiskinit /dev/$TMP_PATH/magiskinit
-    chmod 0755 /dev/$TMP_PATH/magiskinit
-    copy /sbin/magiskpolicy /dev/$TMP_PATH/magiskpolicy
-    chmod 0755 /dev/$TMP_PATH/magiskpolicy
-    mkdir /dev/$TMP_PATH/.magisk 700
-    mkdir /dev/$TMP_PATH/.magisk/mirror 700
-    mkdir /dev/$TMP_PATH/.magisk/block 700
-    copy /sbin/magisk.apk /dev/$TMP_PATH/stub.apk
-    chmod 0644 /dev/$TMP_PATH/stub.apk
+    mkdir /dev/$MAGISK_TMP_PATH
+    mount tmpfs tmpfs /dev/$MAGISK_TMP_PATH mode=0755
+    copy /sbin/magisk64 /dev/$MAGISK_TMP_PATH/magisk64
+    chmod 0755 /dev/$MAGISK_TMP_PATH/magisk64
+    symlink ./magisk64 /dev/$MAGISK_TMP_PATH/magisk
+    symlink ./magisk64 /dev/$MAGISK_TMP_PATH/su
+    symlink ./magisk64 /dev/$MAGISK_TMP_PATH/resetprop
+    copy /sbin/magisk32 /dev/$MAGISK_TMP_PATH/magisk32
+    chmod 0755 /dev/$MAGISK_TMP_PATH/magisk32
+    copy /sbin/magiskinit /dev/$MAGISK_TMP_PATH/magiskinit
+    chmod 0755 /dev/$MAGISK_TMP_PATH/magiskinit
+    copy /sbin/magiskpolicy /dev/$MAGISK_TMP_PATH/magiskpolicy
+    chmod 0755 /dev/$MAGISK_TMP_PATH/magiskpolicy
+    mkdir /dev/$MAGISK_TMP_PATH/.magisk 700
+    mkdir /dev/$MAGISK_TMP_PATH/.magisk/mirror 700
+    mkdir /dev/$MAGISK_TMP_PATH/.magisk/block 700
+    copy /sbin/magisk.apk /dev/$MAGISK_TMP_PATH/stub.apk
+    chmod 0644 /dev/$MAGISK_TMP_PATH/stub.apk
     rm /dev/.magisk_unblock
     exec_start $LOAD_POLICY_SVC_NAME
     start $PFD_SVC_NAME
@@ -612,12 +612,12 @@ service $LOAD_POLICY_SVC_NAME /system/bin/sh /sbin/loadpolicy.sh
     seclabel u:r:magisk:s0
     oneshot
 
-service $PFD_SVC_NAME /dev/$TMP_PATH/magisk --post-fs-data
+service $PFD_SVC_NAME /dev/$MAGISK_TMP_PATH/magisk --post-fs-data
     user root
     seclabel u:r:magisk:s0
     oneshot
 
-service $LS_SVC_NAME /dev/$TMP_PATH/magisk --service
+service $LS_SVC_NAME /dev/$MAGISK_TMP_PATH/magisk --service
     class late_start
     user root
     seclabel u:r:magisk:s0
@@ -626,13 +626,13 @@ service $LS_SVC_NAME /dev/$TMP_PATH/magisk --service
 on property:sys.boot_completed=1
     mkdir /data/adb/magisk 755
     copy /sbin/magisk.apk /data/adb/magisk/magisk.apk
-    exec /dev/$TMP_PATH/magisk --boot-complete
+    exec /dev/$MAGISK_TMP_PATH/magisk --boot-complete
 
 on property:init.svc.zygote=restarting
-    exec /dev/$TMP_PATH/magisk --zygote-restart
+    exec /dev/$MAGISK_TMP_PATH/magisk --zygote-restart
 
 on property:init.svc.zygote=stopped
-    exec /dev/$TMP_PATH/magisk --zygote-restart
+    exec /dev/$MAGISK_TMP_PATH/magisk --zygote-restart
 
 EOF
     echo -e "Integrate Magisk done\n"
