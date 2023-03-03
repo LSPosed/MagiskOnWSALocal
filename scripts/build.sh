@@ -596,9 +596,10 @@ on post-fs-data
     chmod 0755 /dev/$MAGISK_TMP_PATH/magiskinit
     copy /sbin/magiskpolicy /dev/$MAGISK_TMP_PATH/magiskpolicy
     chmod 0755 /dev/$MAGISK_TMP_PATH/magiskpolicy
-    mkdir /dev/$MAGISK_TMP_PATH/.magisk 700
-    mkdir /dev/$MAGISK_TMP_PATH/.magisk/mirror 700
-    mkdir /dev/$MAGISK_TMP_PATH/.magisk/block 700
+    mkdir /dev/$MAGISK_TMP_PATH/.magisk 755
+    mkdir /dev/$MAGISK_TMP_PATH/.magisk/worker 0
+    mkdir /dev/$MAGISK_TMP_PATH/.magisk/mirror 0
+    mkdir /dev/$MAGISK_TMP_PATH/.magisk/block 0
     copy /sbin/magisk.apk /dev/$MAGISK_TMP_PATH/stub.apk
     chmod 0644 /dev/$MAGISK_TMP_PATH/stub.apk
     rm /dev/.magisk_unblock
