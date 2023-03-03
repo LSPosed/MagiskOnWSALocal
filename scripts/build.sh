@@ -573,10 +573,10 @@ EOF
     $SUDO find "$MOUNT_DIR"/sbin -type f -exec chown root:root {} \;
     $SUDO find "$MOUNT_DIR"/sbin -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
 
-    MAGISK_TMP_PATH=$(Gen_Rand_Str 8)
+    MAGISK_TMP_PATH=$(Gen_Rand_Str 14)
     echo "/dev/$MAGISK_TMP_PATH(/.*)?    u:object_r:magisk_file:s0" | $SUDO tee -a "$MOUNT_DIR"/vendor/etc/selinux/vendor_file_contexts
     echo '/data/adb/magisk(/.*)?   u:object_r:magisk_file:s0' | $SUDO tee -a "$MOUNT_DIR"/vendor/etc/selinux/vendor_file_contexts
-    $SUDO "$WORK_DIR"/magisk/magiskpolicy --load "$MOUNT_DIR"/vendor/etc/selinux/precompiled_sepolicy --save "$MOUNT_DIR"/vendor/etc/selinux/precompiled_sepolicy --magisk "allow * magisk_file lnk_file *" || abort
+    $SUDO "$WORK_DIR"/magisk/magiskpolicy --load "$MOUNT_DIR"/vendor/etc/selinux/precompiled_sepolicy --save "$MOUNT_DIR"/vendor/etc/selinux/precompiled_sepolicy --magisk || abort
     LOAD_POLICY_SVC_NAME=$(Gen_Rand_Str 12)
     PFD_SVC_NAME=$(Gen_Rand_Str 12)
     LS_SVC_NAME=$(Gen_Rand_Str 12)
@@ -597,14 +597,17 @@ on post-fs-data
     copy /sbin/magiskpolicy /dev/$MAGISK_TMP_PATH/magiskpolicy
     chmod 0755 /dev/$MAGISK_TMP_PATH/magiskpolicy
     mkdir /dev/$MAGISK_TMP_PATH/.magisk 755
-    mkdir /dev/$MAGISK_TMP_PATH/.magisk/worker 0
     mkdir /dev/$MAGISK_TMP_PATH/.magisk/mirror 0
     mkdir /dev/$MAGISK_TMP_PATH/.magisk/block 0
+    mkdir /dev/$MAGISK_TMP_PATH/.magisk/worker 0
+    mkdir /dev/$MAGISK_TMP_PATH/.magisk/sepolicy.rules 0
     copy /sbin/magisk.apk /dev/$MAGISK_TMP_PATH/stub.apk
     chmod 0644 /dev/$MAGISK_TMP_PATH/stub.apk
     rm /dev/.magisk_unblock
     exec_start $LOAD_POLICY_SVC_NAME
     start $PFD_SVC_NAME
+    mkdir /data/adb/modules 700
+    mount none /data/adb/modules /dev/$MAGISK_TMP_PATH/.magisk/sepolicy.rules bind
     wait /dev/.magisk_unblock 40
     rm /dev/.magisk_unblock
 
