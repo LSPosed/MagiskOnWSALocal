@@ -445,6 +445,10 @@ if [ -f "$MAGISK_PATH" ]; then
     fi
     # shellcheck disable=SC1091
     source "${WORK_DIR:?}/ENV" || abort
+    if [ "$MAGISK_VERSION_CODE" -lt 24000 ]; then
+        echo "Please install Magisk v24+"
+        abort
+    fi
     $SUDO patchelf --replace-needed libc.so "../linker/$HOST_ARCH/libc.so" "$WORK_DIR"/magisk/magiskpolicy || abort
     $SUDO patchelf --replace-needed libm.so "../linker/$HOST_ARCH/libm.so" "$WORK_DIR"/magisk/magiskpolicy || abort
     $SUDO patchelf --replace-needed libdl.so "../linker/$HOST_ARCH/libdl.so" "$WORK_DIR"/magisk/magiskpolicy || abort
