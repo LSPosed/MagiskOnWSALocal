@@ -10,7 +10,7 @@
 
     | DistrOS |                                                                                                 |                   |            |           |
     |:-------:|-------------------------------------------------------------------------------------------------|-------------------|------------|-----------|
-    |  Debian | `lzip wine winetricks patchelf e2fsprogs aria2 python3 python3-pip aria2 p7zip-full attr unzip` | `setools`         | `whiptail` | `xz-util` |
+    |  Debian | `lzip wine winetricks patchelf e2fsprogs aria2 python3 python3-pip aria2 p7zip-full attr unzip` | `setools`         | `whiptail` | `xz-utils` |
     |   SuSE  | Same as above                                                                                   | `setools-console` | `dialog`   | `xz`      |
 
     The following components need to be installed using `winetricks`: `msxml6`
@@ -57,6 +57,9 @@
 
 1. Star (if you like)
 1. Clone the repo to local
+```
+git clone https://github.com/LSPosed/MagiskOnWSALocal.git --depth 1
+```
    - Run `cd scripts`
    - Then run `./build.sh --help` (optional) to get the usage if you want to use CLI.
 1. Run `./run.sh` under scripts directory.
@@ -121,7 +124,7 @@
     Choose `none` as the root solution.
 - How to install custom GApps?
 
-    [Tutorial](./Custom-GApps.md)
+    [Tutorial](Custom-GApps.md)
 - Where can I download MindTheGapps?
 
     You can download from here [MindTheGapps](https://androidfilehost.com/?w=files&flid=322935) ([mirror](http://downloads.codefi.re/jdcteam/javelinanddart/gapps))
@@ -138,7 +141,7 @@
     OpenGApps has not yet released a version built for Android 12L and 13, only built for Android 11, which may not be compatible and thus cause crashes. Consider switching to MindTheGapps.
 - How to install KernelSU?
 
-    [Tutorial](./KernelSU.md)
+    [Tutorial](KernelSU.md)
 
 ## Credits
 
