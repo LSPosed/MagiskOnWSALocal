@@ -2,8 +2,6 @@ name: Shell checker
 
 on:
   push:
-    branches:
-      - main
     paths:
       - '**.sh'
   workflow_dispatch:
