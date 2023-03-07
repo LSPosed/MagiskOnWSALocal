@@ -41,7 +41,7 @@ check_dependencies() {
     command -v whiptail >/dev/null 2>&1 || command -v dialog >/dev/null 2>&1 || NEED_INSTALL+=("whiptail")
     command -v seinfo >/dev/null 2>&1 || NEED_INSTALL+=("setools")
     command -v lzip >/dev/null 2>&1 || NEED_INSTALL+=("lzip")
-    if [ ! -f /proc/sys/fs/binfmt_misc/WSLInterop ]; then
+    if [ ! -f /proc/sys/fs/binfmt_misc/WSLInterop ] || [ "$(id -u)" == "0" ]; then
         command -v wine64 >/dev/null 2>&1 || NEED_INSTALL+=("wine")
         command -v winetricks >/dev/null 2>&1 || NEED_INSTALL+=("winetricks")
     fi
@@ -121,7 +121,7 @@ if [ -n "${NEED_INSTALL[*]}" ]; then
 fi
 pip list --disable-pip-version-check | grep -E "^requests " >/dev/null 2>&1 || python3 -m pip install requests
 
-if [ ! -f /proc/sys/fs/binfmt_misc/WSLInterop ] && which wine64 > /dev/null; then
+if [ ! -f /proc/sys/fs/binfmt_misc/WSLInterop ] || [ "$(id -u)" == "0" ] && which wine64 > /dev/null; then
     winetricks list-installed | grep -E "^msxml6" >/dev/null 2>&1 || {
         cp -r ../wine/.cache/* ~/.cache
         winetricks msxml6 || abort
