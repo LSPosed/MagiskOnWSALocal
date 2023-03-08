@@ -491,8 +491,8 @@ if [ "$GAPPS_BRAND" != "none" ] || [ "$ROOT_SOL" = "magisk" ]; then
         fi
         # shellcheck disable=SC1090
         source "$WSA_WORK_ENV" || abort
-        if [ "$MAGISK_VERSION_CODE" -lt 24000 ]; then
-            echo "Please install Magisk v24+"
+        if [ "$MAGISK_VERSION_CODE" -lt 25210 ]; then
+            echo "Please install Magisk v25.3+"
             abort
         fi
         "$SUDO" chmod +x "../linker/$HOST_ARCH/linker64" || abort
@@ -716,9 +716,6 @@ on property:sys.boot_completed=1
     mkdir /data/adb/magisk 755
     copy /sbin/magisk.apk /data/adb/magisk/magisk.apk
     exec /dev/$MAGISK_TMP_PATH/magisk --boot-complete
-
-on property:init.svc.zygote=restarting
-    exec /dev/$MAGISK_TMP_PATH/magisk --zygote-restart
 
 on property:init.svc.zygote=stopped
     exec /dev/$MAGISK_TMP_PATH/magisk --zygote-restart
