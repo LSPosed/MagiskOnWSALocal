@@ -122,8 +122,9 @@ ROOT_SOL=$(
     Radiolist '([title]="Root solution"
                      [default]="magisk")' \
         \
-        'magisk' "" 'on' \
-        'none' "" 'off'
+        'magisk' "Magisk" 'on' \
+        'kernelsu' "KernelSU" 'on' \
+        'none' "Without root" 'off'
 )
 
 if (YesNoBox '([title]="Compress output" [text]="Do you want to compress the output?")'); then

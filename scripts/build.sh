@@ -80,6 +80,10 @@ clean_download() {
         if [ "$CLEAN_DOWNLOAD_GAPPS" ]; then
             rm -f "${GAPPS_PATH:?}"
         fi
+        if [ "$CLEAN_DOWNLOAD_KERNELSU" ]; then
+            rm -f "${KERNELSU_PATH:?}"
+            rm -f "${KERNELSU_INFO:?}"
+        fi
     fi
 }
 abort() {
@@ -152,6 +156,7 @@ GAPPS_VARIANT_MAP=(
 
 ROOT_SOL_MAP=(
     "magisk"
+    "kernelsu"
     "none"
 )
 
@@ -342,7 +347,11 @@ vclibs_PATH=$DOWNLOAD_DIR/Microsoft.VCLibs."$ARCH".14.00.Desktop.appx
 xaml_PATH=$DOWNLOAD_DIR/Microsoft.UI.Xaml_"$ARCH".appx
 MAGISK_ZIP=magisk-$MAGISK_VER.zip
 MAGISK_PATH=$DOWNLOAD_DIR/$MAGISK_ZIP
-if [ "$CUSTOM_MAGISK" ]; then
+KERNEL_VER="5.10.117.2" # TODO: Get from kernel
+KERNELSU_ZIP_NAME=kernelsu-$ARCH-$KERNEL_VER.zip
+KERNELSU_PATH=$DOWNLOAD_DIR/$KERNELSU_ZIP_NAME
+KERNELSU_INFO="$KERNELSU_PATH".info
+if [ "$CUSTOM_MAGISK" ] && [ "$ROOT_SOL" = "magisk" ]; then
     if [ ! -f "$MAGISK_PATH" ]; then
         echo "Custom Magisk $MAGISK_ZIP not found"
         MAGISK_ZIP=app-$MAGISK_VER.apk
@@ -379,8 +388,17 @@ if [ -z "${OFFLINE+x}" ]; then
         ANDROID_API=32
         update_gapps_zip_name
     fi
-    if [ -z "${CUSTOM_MAGISK+x}" ]; then
-        python3 generateMagiskLink.py "$MAGISK_VER" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
+    if [ "$ROOT_SOL" = "magisk" ] || [ "$GAPPS_BRAND" != "none" ]; then
+        if [ -z "${CUSTOM_MAGISK+x}" ]; then
+            python3 generateMagiskLink.py "$MAGISK_VER" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
+        fi
+    fi
+    if [ "$ROOT_SOL" = "kernelsu" ]; then
+        python3 generateKernelSULink.py "$ARCH" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" "$KERNEL_VER" "$KERNELSU_ZIP_NAME" || abort
+        # shellcheck disable=SC1091
+        source "${WORK_DIR:?}/ENV" || abort
+        # shellcheck disable=SC2153
+        echo "KERNELSU_VER=$KERNELSU_VER" > "$KERNELSU_INFO"
     fi
     if [ "$GAPPS_BRAND" != "none" ]; then
         python3 generateGappsLink.py "$ARCH" "$GAPPS_BRAND" "$GAPPS_VARIANT" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" "$ANDROID_API" "$GAPPS_ZIP_NAME" || abort
@@ -397,19 +415,22 @@ else # Offline mode
         ANDROID_API=32
         update_gapps_zip_name
     fi
-    declare -A FILES_CHECK_LIST=([WSA_ZIP_PATH]="$WSA_ZIP_PATH" [xaml_PATH]="$xaml_PATH" [vclibs_PATH]="$vclibs_PATH" [MAGISK_PATH]="$MAGISK_PATH")
+    declare -A FILES_CHECK_LIST=([WSA_ZIP_PATH]="$WSA_ZIP_PATH" [xaml_PATH]="$xaml_PATH" [vclibs_PATH]="$vclibs_PATH")
+    if [ "$GAPPS_BRAND" != "none" ] || [ "$ROOT_SOL" = "magisk" ]; then
+        FILES_CHECK_LIST+=(["MAGISK_PATH"]="$MAGISK_PATH")
+    fi
+    if [ "$ROOT_SOL" = "kernelsu" ]; then
+        FILES_CHECK_LIST+=(["KERNELSU_PATH"]="$KERNELSU_PATH")
+    fi
+    if [ "$GAPPS_BRAND" != 'none' ]; then
+        FILES_CHECK_LIST+=(["GAPPS_PATH"]="$GAPPS_PATH")
+    fi
     for i in "${FILES_CHECK_LIST[@]}"; do
         if [ ! -f "$i" ]; then
             echo "Offline mode: missing [$i]."
             OFFLINE_ERR="1"
         fi
     done
-    if [ "$GAPPS_BRAND" != 'none' ]; then
-        if [ ! -f "$GAPPS_PATH" ]; then
-            echo "Offline mode: missing [$GAPPS_PATH]."
-            OFFLINE_ERR="1"
-        fi
-    fi
     if [ "$OFFLINE_ERR" ]; then
         echo "Offline mode: Some files are missing, please disable offline mode."
         exit 1
@@ -432,32 +453,51 @@ else
     exit 1
 fi
 
-echo "Extract Magisk"
-if [ -f "$MAGISK_PATH" ]; then
-    MAGISK_VERSION_NAME=""
-    MAGISK_VERSION_CODE=0
-    if ! python3 extractMagisk.py "$ARCH" "$MAGISK_PATH" "$WORK_DIR"; then
-        echo "Unzip Magisk failed, is the download incomplete?"
-        CLEAN_DOWNLOAD_MAGISK=1
-        abort
+if [ "$GAPPS_BRAND" != "none" ] || [ "$ROOT_SOL" = "magisk" ]; then
+    echo "Extract Magisk"
+    if [ -f "$MAGISK_PATH" ]; then
+        MAGISK_VERSION_NAME=""
+        MAGISK_VERSION_CODE=0
+        if ! python3 extractMagisk.py "$ARCH" "$MAGISK_PATH" "$WORK_DIR"; then
+            echo "Unzip Magisk failed, is the download incomplete?"
+            CLEAN_DOWNLOAD_MAGISK=1
+            abort
+        fi
+        # shellcheck disable=SC1091
+        source "${WORK_DIR:?}/ENV" || abort
+        if [ "$MAGISK_VERSION_CODE" -lt 24000 ]; then
+            echo "Please install Magisk v24+"
+            abort
+        fi
+        "$SUDO" chmod +x "../linker/$HOST_ARCH/linker64" || abort
+        "$SUDO" patchelf --set-interpreter "../linker/$HOST_ARCH/linker64" "$WORK_DIR"/magisk/magiskpolicy || abort
+        chmod +x "$WORK_DIR"/magisk/magiskpolicy || abort
+    elif [ -z "${CUSTOM_MAGISK+x}" ]; then
+        echo "The Magisk zip package does not exist, is the download incomplete?"
+        exit 1
+    else
+        echo "The Magisk zip package does not exist, rename it to magisk-debug.zip and put it in the download folder."
+        exit 1
     fi
-    # shellcheck disable=SC1091
-    source "${WORK_DIR:?}/ENV" || abort
-    if [ "$MAGISK_VERSION_CODE" -lt 24000 ]; then
-        echo "Please install Magisk v24+"
-        abort
-    fi
-    "$SUDO" chmod +x "../linker/$HOST_ARCH/linker64" || abort
-    "$SUDO" patchelf --set-interpreter "../linker/$HOST_ARCH/linker64" "$WORK_DIR"/magisk/magiskpolicy || abort
-    chmod +x "$WORK_DIR"/magisk/magiskpolicy || abort
-elif [ -z "${CUSTOM_MAGISK+x}" ]; then
-    echo "The Magisk zip package does not exist, is the download incomplete?"
-    exit 1
-else
-    echo "The Magisk zip package does not exist, rename it to magisk-debug.zip and put it in the download folder."
-    exit 1
+    echo -e "done\n"
 fi
-echo -e "done\n"
+
+if [ "$ROOT_SOL" = "kernelsu" ]; then
+    echo "Extract KernelSU"
+    # shellcheck disable=SC1090
+    source "${KERNELSU_INFO:?}" || abort
+    if ! unzip "$KERNELSU_PATH" -d "$WORK_DIR"/kernelsu; then
+        echo "Unzip KernelSU failed, package is corrupted?"
+        CLEAN_DOWNLOAD_KERNELSU=1
+        abort
+    fi
+    if [ "$ARCH" = "x64" ]; then
+        mv "$WORK_DIR"/kernelsu/bzImage "$WORK_DIR"/kernelsu/kernel
+    elif [ "$ARCH" = "arm64" ]; then
+        mv "$WORK_DIR"/kernelsu/Image "$WORK_DIR"/kernelsu/kernel
+    fi
+    echo -e "done\n"
+fi
 
 if [ "$GAPPS_BRAND" != 'none' ]; then
     echo "Extract $GAPPS_BRAND"
@@ -513,7 +553,7 @@ fi
 if [ -d "$WORK_DIR"/magisk ]; then
     SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/magisk/magisk | cut -f1) ))
 fi
-if [ -f "$MAGISK_PATH" ]; then
+if [ "$ROOT_SOL" = "magisk" ] && [ -f "$MAGISK_PATH" ]; then
     SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du --apparent-size -sB512 "$MAGISK_PATH" | cut -f1) ))
 fi
 if [ -d "../$ARCH/system" ]; then
@@ -546,7 +586,7 @@ $SUDO sed -i -e '/cts/a \ \ \ \ <feature name="android.software.device_admin" />
 $SUDO setfattr -n security.selinux -v "u:object_r:vendor_configs_file:s0" "$MOUNT_DIR"/vendor/etc/permissions/windows.permissions.xml || abort
 echo -e "done\n"
 
-if [ "$ROOT_SOL" = 'magisk' ] || [ "$ROOT_SOL" = '' ]; then
+if [ "$ROOT_SOL" = 'magisk' ]; then
     echo "Integrate Magisk"
     "$SUDO" mkdir "$MOUNT_DIR"/sbin
     "$SUDO" setfattr -n security.selinux -v "u:object_r:rootfs:s0" "$MOUNT_DIR"/sbin || abort
@@ -639,6 +679,11 @@ on property:init.svc.zygote=stopped
 
 EOF
     echo -e "Integrate Magisk done\n"
+elif [ "$ROOT_SOL" = "kernelsu" ]; then
+    echo "Integrate KernelSU"
+    mv "$WORK_DIR/wsa/$ARCH/Tools/kernel" "$WORK_DIR/wsa/$ARCH/Tools/kernel_origin"
+    cp "$WORK_DIR"/kernelsu/kernel "$WORK_DIR/wsa/$ARCH/Tools/kernel"
+    echo -e "Integrate KernelSU done\n"
 fi
 
 cp "$WORK_DIR/wsa/$ARCH/resources.pri" "$WORK_DIR"/wsa/pri/en-us.pri \
@@ -769,10 +814,10 @@ echo "Generate info"
 
 if [[ "$ROOT_SOL" = "none" ]]; then
     name1=""
-elif [ "$ROOT_SOL" = "" ] || [ "$ROOT_SOL" = "magisk" ]; then
+elif [ "$ROOT_SOL" = "magisk" ]; then
     name1="-with-magisk-$MAGISK_VERSION_NAME($MAGISK_VERSION_CODE)-$MAGISK_VER"
-else
-    name1="-with-$ROOT_SOL-$MAGISK_VER"
+elif [ "$ROOT_SOL" = "kernelsu" ]; then
+    name1="-with-$ROOT_SOL-$KERNELSU_VER"
 fi
 if [ "$GAPPS_BRAND" = "none" ]; then
     name2="-NoGApps"
