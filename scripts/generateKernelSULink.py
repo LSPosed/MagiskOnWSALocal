@@ -43,7 +43,7 @@ x_ratelimit_remaining = headers["x-ratelimit-remaining"]
 if res.status_code == 200:
     assets = json_data["assets"]
     for asset in assets:
-        if re.match(f'kernel-WSA-{abi_map[arch]}-{kernelVersion}.*\.zip$', asset["name"]) and asset["content_type"] == "application/x-zip-compressed":
+        if re.match(f'kernel-WSA-{abi_map[arch]}-{kernelVersion}.*\.zip$', asset["name"]) and asset["content_type"] == "application/zip":
             link = asset["browser_download_url"]
             break
     release_name = json_data["name"]
