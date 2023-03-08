@@ -496,6 +496,7 @@ if [ "$ROOT_SOL" = "kernelsu" ]; then
     elif [ "$ARCH" = "arm64" ]; then
         mv "$WORK_DIR"/kernelsu/Image "$WORK_DIR"/kernelsu/kernel
     fi
+    echo -e "done\n"
 fi
 
 if [ "$GAPPS_BRAND" != 'none' ]; then
@@ -682,6 +683,7 @@ elif [ "$ROOT_SOL" = "kernelsu" ]; then
     echo "Integrate KernelSU"
     mv "$WORK_DIR/wsa/$ARCH/Tools/kernel" "$WORK_DIR/wsa/$ARCH/Tools/kernel_origin"
     cp "$WORK_DIR"/kernelsu/kernel "$WORK_DIR/wsa/$ARCH/Tools/kernel"
+    echo -e "Integrate KernelSU done\n"
 fi
 
 cp "$WORK_DIR/wsa/$ARCH/resources.pri" "$WORK_DIR"/wsa/pri/en-us.pri \
