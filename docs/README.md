@@ -104,7 +104,7 @@
     1. Update build scripts
 
         ```bash
-            git pull
+        git pull
         ```
 
         For more usage of git, referred to <https://git-scm.com/book>
