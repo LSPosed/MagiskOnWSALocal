@@ -57,11 +57,14 @@
 
 1. Star (if you like)
 1. Clone the repo to local
-```
-git clone https://github.com/LSPosed/MagiskOnWSALocal.git --depth 1
-```
-   - Run `cd scripts`
-   - Then run `./build.sh --help` (optional) to get the usage if you want to use CLI.
+
+    ```bash
+    git clone https://github.com/LSPosed/MagiskOnWSALocal.git --depth 1
+    ```
+
+1. Run `cd scripts`
+1. Then run `./build.sh --help` (optional) to get the usage if you want to use CLI.
+
 1. Run `./run.sh` under scripts directory.
 1. Select the WSA version and its architecture (mostly x64).
 1. Select the version of Magisk.
@@ -86,15 +89,27 @@ git clone https://github.com/LSPosed/MagiskOnWSALocal.git --depth 1
         5. If this workaround does not work, your PC is not supported for WSA
 1. Magisk/Play store will be launched. Enjoy by installing LSPosed-zygisk with zygisk enabled or Riru and LSPosed-riru
 
+---
+
 ## FAQ
+
+<details open>
 
 - Can I delete the installed folder?
 
     No.
+
 - How can I update WSA to a new version?
 
-    Delete the `download` folder
-    Rerun the script, replace the content of your previous installation and rerun `Install.ps1`. Don't worry, your data will be preserved.
+    1. Update build scripts
+
+        ```bash
+            git pull
+        ```
+
+        For more usage of git, referred to <https://git-scm.com/book>
+
+    1. Rerun the script, replace the content of your previous installation and rerun `Install.ps1`. Don't worry, your data will be preserved.
 - How can I get the logcat from WSA?
 
     `%LOCALAPPDATA%\Packages\MicrosoftCorporationII.WindowsSubsystemForAndroid_8wekyb3d8bbwe\LocalState\diagnostics\logcat`
@@ -142,6 +157,10 @@ git clone https://github.com/LSPosed/MagiskOnWSALocal.git --depth 1
 - How to install KernelSU?
 
     [Tutorial](KernelSU.md)
+
+</details>
+
+---
 
 ## Credits
 
