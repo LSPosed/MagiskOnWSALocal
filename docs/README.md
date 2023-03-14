@@ -11,13 +11,13 @@
     | DistrOS |                                                                                                 |                   |            |           |
     |:-------:|-------------------------------------------------------------------------------------------------|-------------------|------------|-----------|
     |  Debian | `lzip wine winetricks patchelf e2fsprogs aria2 python3 python3-pip aria2 p7zip-full attr unzip` | `setools`         | `whiptail` | `xz-utils` |
-    |   SuSE  | Same as above                                                                                   | `setools-console` | `dialog`   | `xz`      |
+    | openSUSE Tumbleweed | Same as above                                                                       | `setools-console` | `dialog`   | `xz`      |
 
     The following components need to be installed using `winetricks`: `msxml6`
 
     The python3 library `requests` is used.
 
-    Python version ≥ 3.7.
+    Python version ≥ **3.7.2**
   - Recommended Use
     - Ubuntu (You can use [WSL2](https://apps.microsoft.com/store/search?publisher=Canonical%20Group%20Limited))
 
@@ -26,7 +26,7 @@
 
         Need to add `contrib` sources to the source list to install winetricks.
 
-    - OpenSUSE (You can use [WSL2](https://apps.microsoft.com/store/search?publisher=SUSE))
+    - openSUSE Tumbleweed (You can use [WSL2](https://apps.microsoft.com/store/detail/opensuse-tumbleweed/9MSSK2ZXXN11))
 
         Ready to use right out of the box.
 

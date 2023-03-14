@@ -119,7 +119,7 @@ if [ -n "${NEED_INSTALL[*]}" ]; then
         if ! ($SUDO "$PM" "${UPDATE_OPTION[@]}" && $SUDO "$PM" "${INSTALL_OPTION[@]}" "${NEED_INSTALL[@]}") then abort; fi
     fi
 fi
-pip list --disable-pip-version-check | grep -E "^requests " >/dev/null 2>&1 || python3 -m pip install requests
+python3 -m pip install -r requirements.txt -v
 
 if [ ! -f /proc/sys/fs/binfmt_misc/WSLInterop ] || [ "$(id -u)" == "0" ] && which wine64 > /dev/null; then
     winetricks list-installed | grep -E "^msxml6" >/dev/null 2>&1 || {
