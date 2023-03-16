@@ -39,7 +39,6 @@ require_su() {
 echo "Checking and ensuring dependencies"
 check_dependencies() {
     command -v whiptail >/dev/null 2>&1 || command -v dialog >/dev/null 2>&1 || NEED_INSTALL+=("whiptail")
-    command -v seinfo >/dev/null 2>&1 || NEED_INSTALL+=("setools")
     command -v lzip >/dev/null 2>&1 || NEED_INSTALL+=("lzip")
     if [ ! -f /proc/sys/fs/binfmt_misc/WSLInterop ] || [ "$(id -u)" == "0" ]; then
         command -v wine64 >/dev/null 2>&1 || NEED_INSTALL+=("wine")
