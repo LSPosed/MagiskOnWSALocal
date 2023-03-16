@@ -52,6 +52,9 @@ check_dependencies() {
     command -v setfattr > /dev/null 2>&1 || NEED_INSTALL+=("attr")
     command -v xz > /dev/null 2>&1 || NEED_INSTALL+=("xz-utils")
     command -v unzip > /dev/null 2>&1 || NEED_INSTALL+=("unzip")
+    command -v guestmount > /dev/null 2>&1 || NEED_INSTALL+=("libguestfs-tools")
+    command -v qemu-img > /dev/null 2>&1 || NEED_INSTALL+=("qemu-utils")
+    command -v jq > /dev/null 2>&1 || NEED_INSTALL+=("jq")
 }
 check_dependencies
 osrel=$(sed -n '/^ID_LIKE=/s/^.*=//p' /etc/os-release);
@@ -107,6 +110,8 @@ if [ -n "${NEED_INSTALL[*]}" ]; then
                 NEED_INSTALL_FIX=${NEED_INSTALL_FIX//setools/setools-console} 2>&1
                 NEED_INSTALL_FIX=${NEED_INSTALL_FIX//whiptail/dialog} 2>&1
                 NEED_INSTALL_FIX=${NEED_INSTALL_FIX//xz-utils/xz} 2>&1
+                NEED_INSTALL_FIX=${NEED_INSTALL_FIX//libguestfs-tools/libguestfs} 2>&1
+                NEED_INSTALL_FIX=${NEED_INSTALL_FIX//qemu-utils/qemu-tools} 2>&1
             }  >> /dev/null
 
             readarray -td ' ' NEED_INSTALL <<<"$NEED_INSTALL_FIX "; unset 'NEED_INSTALL[-1]';

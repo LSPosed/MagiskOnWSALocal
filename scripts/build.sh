@@ -41,16 +41,30 @@ DOWNLOAD_CONF_NAME=download.list
 umount_clean() {
     if [ -d "$MOUNT_DIR" ]; then
         echo "Cleanup Mount Directory"
-        if [ -d "$MOUNT_DIR/vendor" ]; then
-            "$SUDO" umount -v "$MOUNT_DIR"/vendor
+        if [[ "$DOWN_WSA_MAIN_VERSION" -lt 2302 ]]; then
+            if [ -d "$MOUNT_DIR/vendor" ]; then
+                "$SUDO" umount -v "$MOUNT_DIR"/vendor
+            fi
+            if [ -d "$MOUNT_DIR/product" ]; then
+                "$SUDO" umount -v "$MOUNT_DIR"/product
+            fi
+            if [ -d "$MOUNT_DIR/system_ext" ]; then
+                "$SUDO" umount -v "$MOUNT_DIR"/system_ext
+            fi
+            "$SUDO" umount -v "$MOUNT_DIR"
+        else
+            if [ -d "$MOUNT_DIR/vendor" ]; then
+                "$SUDO" guestunmount -v "$MOUNT_DIR"/vendor
+            fi
+            if [ -d "$MOUNT_DIR/product" ]; then
+                "$SUDO" guestunmount -v "$MOUNT_DIR"/product
+            fi
+            if [ -d "$MOUNT_DIR/system_ext" ]; then
+                "$SUDO" guestunmount -v "$MOUNT_DIR"/system_ext
+            fi
+            "$SUDO" guestunmount -v "$MOUNT_DIR"
         fi
-        if [ -d "$MOUNT_DIR/product" ]; then
-            "$SUDO" umount -v "$MOUNT_DIR"/product
-        fi
-        if [ -d "$MOUNT_DIR/system_ext" ]; then
-            "$SUDO" umount -v "$MOUNT_DIR"/system_ext
-        fi
-        "$SUDO" umount -v "$MOUNT_DIR"
+
         "$SUDO" rm -rf "${WORK_DIR:?}"
     else
         rm -rf "${WORK_DIR:?}"
@@ -526,52 +540,98 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
     echo -e "Extract done\n"
 fi
 
-echo "Expand images"
-if [ ! -f /etc/mtab ]; then "$SUDO" ln -s /proc/self/mounts /etc/mtab; fi
-e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/system_ext.img || abort
-SYSTEM_EXT_SIZE=$(($(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/system_ext.img | cut -f1) + 20480))
+echo "Calculate the required space"
+EXTRA_SIZE=20480
+
+SYSTEM_EXT_VIRTUAL_NEED_SIZE=$EXTRA_SIZE
 if [ -d "$WORK_DIR"/gapps/system_ext ]; then
-    SYSTEM_EXT_SIZE=$(( SYSTEM_EXT_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps/system_ext | cut -f1) ))
+    SYSTEM_EXT_VIRTUAL_NEED_SIZE=$(( SYSTEM_EXT_VIRTUAL_NEED_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps/system_ext | cut -f1) ))
 fi
-resize2fs "$WORK_DIR"/wsa/"$ARCH"/system_ext.img "$SYSTEM_EXT_SIZE"s || abort
+echo "system_ext: $SYSTEM_EXT_VIRTUAL_NEED_SIZE"
 
-e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/product.img || abort
-PRODUCT_SIZE=$(($(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/product.img | cut -f1) + 20480))
+PRODUCT_VIRTUAL_NEED_SIZE=$EXTRA_SIZE
 if [ -d "$WORK_DIR"/gapps/product ]; then
-    PRODUCT_SIZE=$(( PRODUCT_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps/product | cut -f1) ))
+    PRODUCT_VIRTUAL_NEED_SIZE=$(( PRODUCT_VIRTUAL_NEED_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps/product | cut -f1) ))
 fi
-resize2fs "$WORK_DIR"/wsa/"$ARCH"/product.img "$PRODUCT_SIZE"s || abort
+echo "product: $PRODUCT_VIRTUAL_NEED_SIZE"
 
-e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/system.img || abort
-SYSTEM_SIZE=$(($(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/system.img | cut -f1) + 20480))
+SYSTEM_VIRTUAL_NEED_SIZE=$EXTRA_SIZE
 if [ -d "$WORK_DIR"/gapps ]; then
-    SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps | cut -f1) - $(du --apparent-size -sB512 "$WORK_DIR"/gapps/product | cut -f1) ))
+    SYSTEM_VIRTUAL_NEED_SIZE=$(( SYSTEM_VIRTUAL_NEED_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps | cut -f1) - $(du --apparent-size -sB512 "$WORK_DIR"/gapps/product | cut -f1) ))
     if [ -d "$WORK_DIR"/gapps/system_ext ]; then
-        SYSTEM_SIZE=$(( SYSTEM_SIZE - $(du --apparent-size -sB512 "$WORK_DIR"/gapps/system_ext | cut -f1) ))
+        SYSTEM_VIRTUAL_NEED_SIZE=$(( SYSTEM_VIRTUAL_NEED_SIZE - $(du --apparent-size -sB512 "$WORK_DIR"/gapps/system_ext | cut -f1) ))
     fi
 fi
-if [ -d "$WORK_DIR"/magisk ]; then
-    SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/magisk/magisk | cut -f1) ))
-fi
-if [ "$ROOT_SOL" = "magisk" ] && [ -f "$MAGISK_PATH" ]; then
-    SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du --apparent-size -sB512 "$MAGISK_PATH" | cut -f1) ))
+if [ "$ROOT_SOL" = "magisk" ]; then
+    if [ -d "$WORK_DIR"/magisk ]; then
+        SYSTEM_VIRTUAL_NEED_SIZE=$(( SYSTEM_VIRTUAL_NEED_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/magisk/magisk | cut -f1) ))
+    fi
+    if [ -f "$MAGISK_PATH" ]; then
+        SYSTEM_VIRTUAL_NEED_SIZE=$(( SYSTEM_VIRTUAL_NEED_SIZE + $(du --apparent-size -sB512 "$MAGISK_PATH" | cut -f1) ))
+    fi
 fi
 if [ -d "../$ARCH/system" ]; then
-    SYSTEM_SIZE=$(( SYSTEM_SIZE + $(du --apparent-size -sB512 "../$ARCH/system" | cut -f1) ))
+    SYSTEM_VIRTUAL_NEED_SIZE=$(( SYSTEM_VIRTUAL_NEED_SIZE + $(du --apparent-size -sB512 "../$ARCH/system" | cut -f1) ))
 fi
-resize2fs "$WORK_DIR"/wsa/"$ARCH"/system.img "$SYSTEM_SIZE"s || abort
+echo "system: $SYSTEM_VIRTUAL_NEED_SIZE"
 
-e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/vendor.img || abort
-VENDOR_SIZE=$(($(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/vendor.img | cut -f1) + 20480))
-resize2fs "$WORK_DIR"/wsa/"$ARCH"/vendor.img "$VENDOR_SIZE"s || abort
+VENDOR_VIRTUAL_NEED_SIZE=$EXTRA_SIZE
+echo -e "vendor: $VENDOR_VIRTUAL_NEED_SIZE\n"
+
+echo "Expand images"
+if [[ "$DOWN_WSA_MAIN_VERSION" -lt 2302 ]]; then
+    SYSTEM_EXT_ACTUAL_SIZE=$(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/system_ext.img | cut -f1)
+    PRODUCT_ACTUAL_SIZE=$(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/product.img | cut -f1)
+    SYSTEM_ACTUAL_SIZE=$(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/system.img | cut -f1)
+    VENDOR_ACTUAL_SIZE=$(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/vendor.img | cut -f1)
+
+    if [ ! -f /etc/mtab ]; then "$SUDO" ln -s /proc/self/mounts /etc/mtab; fi
+    e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/system_ext.img || abort
+    e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/product.img || abort
+    e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/system.img || abort
+    e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/vendor.img || abort
+
+    SYSTEM_EXT_TARGET_SIZE=$(( SYSTEM_EXT_ACTUAL_SIZE + SYSTEM_EXT_VIRTUAL_NEED_SIZE ))
+    PRODUCT_TAGET_SIZE=$(( PRODUCT_ACTUAL_SIZE + PRODUCT_VIRTUAL_NEED_SIZE ))
+    SYSTEM_TAGET_SIZE=$(( SYSTEM_ACTUAL_SIZE + SYSTEM_VIRTUAL_NEED_SIZE ))
+    VENDOR_TAGET_SIZE=$(( VENDOR_ACTUAL_SIZE + VENDOR_VIRTUAL_NEED_SIZE ))
+
+    resize2fs "$WORK_DIR"/wsa/"$ARCH"/system_ext.img "$SYSTEM_EXT_TARGET_SIZE"s || abort
+    resize2fs "$WORK_DIR"/wsa/"$ARCH"/product.img "$PRODUCT_TAGET_SIZE"s || abort
+    resize2fs "$WORK_DIR"/wsa/"$ARCH"/system.img "$SYSTEM_TAGET_SIZE"s || abort
+    resize2fs "$WORK_DIR"/wsa/"$ARCH"/vendor.img "$VENDOR_TAGET_SIZE"s || abort
+else
+    # SYSTEM_EXT_VIRTUAL_SIZE=$(qemu-img info --output=json "$WORK_DIR"/wsa/"$ARCH"/system_ext.vhdx | jq '."virtual-size"')
+    # PRODUCT_VIRTUAL_SIZE=$(qemu-img info --output=json "$WORK_DIR"/wsa/"$ARCH"/product.vhdx | jq '."virtual-size"')
+    # SYSTEM_VIRTUAL_SIZE=$(qemu-img info --output=json "$WORK_DIR"/wsa/"$ARCH"/system.vhdx | jq '."virtual-size"')
+    # VENDOR_VIRTUAL_SIZE=$(qemu-img info --output=json "$WORK_DIR"/wsa/"$ARCH"/vendor.vhdx | jq '."virtual-size"')
+    # SYSTEM_EXT_TARGET_SIZE=$(( SYSTEM_EXT_VIRTUAL_SIZE + SYSTEM_EXT_VIRTUAL_NEED_SIZE ))
+    # PRODUCT_TAGET_SIZE=$(( PRODUCT_VIRTUAL_SIZE + PRODUCT_VIRTUAL_NEED_SIZE ))
+    # SYSTEM_TAGET_SIZE=$(( SYSTEM_VIRTUAL_SIZE + SYSTEM_VIRTUAL_NEED_SIZE ))
+    # VENDOR_TAGET_SIZE=$(( VENDOR_VIRTUAL_SIZE + VENDOR_VIRTUAL_NEED_SIZE ))
+    echo "Currently not support expand vhdx images"
+    abort
+fi
 echo -e "Expand images done\n"
 
 echo "Mount images"
 $SUDO mkdir "$MOUNT_DIR" || abort
-$SUDO mount -vo loop "$WORK_DIR"/wsa/"$ARCH"/system.img "$MOUNT_DIR" || abort
-$SUDO mount -vo loop "$WORK_DIR"/wsa/"$ARCH"/vendor.img "$MOUNT_DIR"/vendor || abort
-$SUDO mount -vo loop "$WORK_DIR"/wsa/"$ARCH"/product.img "$MOUNT_DIR"/product || abort
-$SUDO mount -vo loop "$WORK_DIR"/wsa/"$ARCH"/system_ext.img "$MOUNT_DIR"/system_ext || abort
+if [[ "$DOWN_WSA_MAIN_VERSION" -lt 2302 ]]; then
+    $SUDO mount -vo loop "$WORK_DIR"/wsa/"$ARCH"/system.img "$MOUNT_DIR" || abort
+    $SUDO mount -vo loop "$WORK_DIR"/wsa/"$ARCH"/vendor.img "$MOUNT_DIR"/vendor || abort
+    $SUDO mount -vo loop "$WORK_DIR"/wsa/"$ARCH"/product.img "$MOUNT_DIR"/product || abort
+    $SUDO mount -vo loop "$WORK_DIR"/wsa/"$ARCH"/system_ext.img "$MOUNT_DIR"/system_ext || abort
+else
+    $SUDO guestmount -i -a "$WORK_DIR"/wsa/"$ARCH"/system.vhdx "$MOUNT_DIR" || abort
+    $SUDO guestmount -i -a "$WORK_DIR"/wsa/"$ARCH"/vendor.vhdx "$MOUNT_DIR"/vendor || abort
+    $SUDO guestmount -i -a "$WORK_DIR"/wsa/"$ARCH"/product.vhdx "$MOUNT_DIR"/product || abort
+    $SUDO guestmount -i -a "$WORK_DIR"/wsa/"$ARCH"/system_ext.vhdx "$MOUNT_DIR"/system_ext || abort
+    $SUDO resize2fs "$MOUNT_DIR" || abort
+    $SUDO resize2fs "$MOUNT_DIR"/vendor || abort
+    $SUDO resize2fs "$MOUNT_DIR"/product || abort
+    $SUDO resize2fs "$MOUNT_DIR"/system_ext || abort
+
+fi
 echo -e "done\n"
 
 if [ "$REMOVE_AMAZON" ]; then
@@ -785,22 +845,31 @@ fi
 
 echo "Umount images"
 $SUDO find "$MOUNT_DIR" -exec touch -ht 200901010000.00 {} \;
-$SUDO umount -v "$MOUNT_DIR"/vendor
-$SUDO umount -v "$MOUNT_DIR"/product
-$SUDO umount -v "$MOUNT_DIR"/system_ext
-$SUDO umount -v "$MOUNT_DIR"
+if [[ "$DOWN_WSA_MAIN_VERSION" -lt 2302 ]]; then
+    $SUDO umount -v "$MOUNT_DIR"/vendor
+    $SUDO umount -v "$MOUNT_DIR"/product
+    $SUDO umount -v "$MOUNT_DIR"/system_ext
+    $SUDO umount -v "$MOUNT_DIR"
+else
+    $SUDO guestunmount -v "$MOUNT_DIR"/vendor
+    $SUDO guestunmount -v "$MOUNT_DIR"/product
+    $SUDO guestunmount -v "$MOUNT_DIR"/system_ext
+    $SUDO guestunmount -v "$MOUNT_DIR"
+fi
 echo -e "done\n"
 
-echo "Shrink images"
-e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/system.img || abort
-resize2fs -M "$WORK_DIR"/wsa/"$ARCH"/system.img || abort
-e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/vendor.img || abort
-resize2fs -M "$WORK_DIR"/wsa/"$ARCH"/vendor.img || abort
-e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/product.img || abort
-resize2fs -M "$WORK_DIR"/wsa/"$ARCH"/product.img || abort
-e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/system_ext.img || abort
-resize2fs -M "$WORK_DIR"/wsa/"$ARCH"/system_ext.img || abort
-echo -e "Shrink images done\n"
+if [[ "$DOWN_WSA_MAIN_VERSION" -lt 2302 ]]; then
+    echo "Shrink images"
+    e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/system.img || abort
+    resize2fs -M "$WORK_DIR"/wsa/"$ARCH"/system.img || abort
+    e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/vendor.img || abort
+    resize2fs -M "$WORK_DIR"/wsa/"$ARCH"/vendor.img || abort
+    e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/product.img || abort
+    resize2fs -M "$WORK_DIR"/wsa/"$ARCH"/product.img || abort
+    e2fsck -pf "$WORK_DIR"/wsa/"$ARCH"/system_ext.img || abort
+    resize2fs -M "$WORK_DIR"/wsa/"$ARCH"/system_ext.img || abort
+    echo -e "Shrink images done\n"
+fi
 
 echo "Remove signature and add scripts"
 $SUDO rm -rf "${WORK_DIR:?}"/wsa/"$ARCH"/\[Content_Types\].xml "$WORK_DIR"/wsa/"$ARCH"/AppxBlockMap.xml "$WORK_DIR"/wsa/"$ARCH"/AppxSignature.p7x "$WORK_DIR"/wsa/"$ARCH"/AppxMetadata || abort
