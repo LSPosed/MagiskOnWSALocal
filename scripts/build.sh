@@ -356,7 +356,7 @@ KERNEL_VER="5.10.117.2" # TODO: Get from kernel
 KERNELSU_ZIP_NAME=kernelsu-$ARCH-$KERNEL_VER.zip
 KERNELSU_PATH=$DOWNLOAD_DIR/$KERNELSU_ZIP_NAME
 KERNELSU_INFO="$KERNELSU_PATH.info"
-if [ "$CUSTOM_MAGISK" ] && [ "$ROOT_SOL" = "magisk" ]; then
+if [ "$CUSTOM_MAGISK" ]; then
     if [ ! -f "$MAGISK_PATH" ]; then
         echo "Custom Magisk $MAGISK_ZIP not found"
         MAGISK_ZIP=app-$MAGISK_VER.apk
