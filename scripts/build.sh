@@ -39,11 +39,11 @@ VENDOR_MNT="$ROOT_MNT"/vendor
 PRODUCT_MNT="$ROOT_MNT"/product
 SYSTEM_EXT_MNT="$ROOT_MNT"/system_ext
 SUDO=""
-command -v sudo > /dev/null 2>&1 && SUDO="$(which sudo 2>/dev/null)"
+command -v sudo >/dev/null 2>&1 && SUDO="$(which sudo 2>/dev/null)"
 DOWNLOAD_DIR=../download
 DOWNLOAD_CONF_NAME=download.list
 umount_clean() {
-        if [ -d "$ROOT_MNT" ]; then
+    if [ -d "$ROOT_MNT" ]; then
         echo "Cleanup Mount Directory"
         if [ -d "$VENDOR_MNT" ]; then
             "$SUDO" umount -v "$VENDOR_MNT"
@@ -403,7 +403,7 @@ if [ -z "${OFFLINE+x}" ]; then
         # shellcheck disable=SC1091
         source "${WORK_DIR:?}/ENV" || abort
         # shellcheck disable=SC2153
-        echo "KERNELSU_VER=$KERNELSU_VER" > "$KERNELSU_INFO"
+        echo "KERNELSU_VER=$KERNELSU_VER" >"$KERNELSU_INFO"
     fi
     if [ "$GAPPS_BRAND" != "none" ]; then
         python3 generateGappsLink.py "$ARCH" "$GAPPS_BRAND" "$GAPPS_VARIANT" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" "$ANDROID_API" "$GAPPS_ZIP_NAME" || abort
@@ -536,30 +536,30 @@ EXTRA_SIZE=10240
 
 SYSTEM_EXT_NEED_SIZE=$EXTRA_SIZE
 if [ -d "$WORK_DIR"/gapps/system_ext ]; then
-    SYSTEM_EXT_NEED_SIZE=$(( SYSTEM_EXT_NEED_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps/system_ext | cut -f1) ))
+    SYSTEM_EXT_NEED_SIZE=$((SYSTEM_EXT_NEED_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps/system_ext | cut -f1)))
 fi
 
 PRODUCT_NEED_SIZE=$EXTRA_SIZE
 if [ -d "$WORK_DIR"/gapps/product ]; then
-    PRODUCT_NEED_SIZE=$(( PRODUCT_NEED_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps/product | cut -f1) ))
+    PRODUCT_NEED_SIZE=$((PRODUCT_NEED_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps/product | cut -f1)))
 fi
 
 SYSTEM_NEED_SIZE=$EXTRA_SIZE
 if [ -d "$WORK_DIR"/gapps ]; then
-    SYSTEM_NEED_SIZE=$(( SYSTEM_NEED_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps | cut -f1) - PRODUCT_NEED_SIZE - SYSTEM_EXT_NEED_SIZE ))
+    SYSTEM_NEED_SIZE=$((SYSTEM_NEED_SIZE + $(du --apparent-size -sB512 "$WORK_DIR"/gapps | cut -f1) - PRODUCT_NEED_SIZE - SYSTEM_EXT_NEED_SIZE))
 fi
 if [ "$ROOT_SOL" = "magisk" ]; then
     if [ -d "$WORK_DIR"/magisk ]; then
         MAGISK_SIZE=$(du --apparent-size -sB512 "$WORK_DIR"/magisk/magisk | cut -f1)
-        SYSTEM_NEED_SIZE=$(( SYSTEM_NEED_SIZE + MAGISK_SIZE ))
+        SYSTEM_NEED_SIZE=$((SYSTEM_NEED_SIZE + MAGISK_SIZE))
     fi
     if [ -f "$MAGISK_PATH" ]; then
         MAGISK_APK_SIZE=$(du --apparent-size -sB512 "$MAGISK_PATH" | cut -f1)
-        SYSTEM_NEED_SIZE=$(( SYSTEM_NEED_SIZE + MAGISK_APK_SIZE ))
+        SYSTEM_NEED_SIZE=$((SYSTEM_NEED_SIZE + MAGISK_APK_SIZE))
     fi
 fi
 if [ -d "../$ARCH/system" ]; then
-    SYSTEM_NEED_SIZE=$(( SYSTEM_NEED_SIZE + $(du --apparent-size -sB512 "../$ARCH/system" | cut -f1) ))
+    SYSTEM_NEED_SIZE=$((SYSTEM_NEED_SIZE + $(du --apparent-size -sB512 "../$ARCH/system" | cut -f1)))
 fi
 
 VENDOR_NEED_SIZE=$EXTRA_SIZE
@@ -588,10 +588,10 @@ if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
     PRODUCT_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/product.img | cut -f1)
     SYSTEM_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/system.img | cut -f1)
     VENDOR_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/vendor.img | cut -f1)
-    resize2fs "$WORK_DIR"/wsa/"$ARCH"/system_ext.img "$(( SYSTEM_EXT_IMG_SIZE * 2 ))"s || abort
-    resize2fs "$WORK_DIR"/wsa/"$ARCH"/product.img "$(( PRODUCT_IMG_SIZE * 2 ))"s || abort
-    resize2fs "$WORK_DIR"/wsa/"$ARCH"/system.img "$(( SYSTEM_IMG_SIZE * 2 ))"s || abort
-    resize2fs "$WORK_DIR"/wsa/"$ARCH"/vendor.img "$(( VENDOR_IMG_SIZE * 2 ))"s || abort
+    resize2fs "$WORK_DIR"/wsa/"$ARCH"/system_ext.img "$((SYSTEM_EXT_IMG_SIZE * 2))"s || abort
+    resize2fs "$WORK_DIR"/wsa/"$ARCH"/product.img "$((PRODUCT_IMG_SIZE * 2))"s || abort
+    resize2fs "$WORK_DIR"/wsa/"$ARCH"/system.img "$((SYSTEM_IMG_SIZE * 2))"s || abort
+    resize2fs "$WORK_DIR"/wsa/"$ARCH"/vendor.img "$((VENDOR_IMG_SIZE * 2))"s || abort
     e2fsck -fp -E unshare_blocks "$WORK_DIR"/wsa/"$ARCH"/system_ext.img || abort
     e2fsck -fp -E unshare_blocks "$WORK_DIR"/wsa/"$ARCH"/product.img || abort
     e2fsck -fp -E unshare_blocks "$WORK_DIR"/wsa/"$ARCH"/system.img || abort
@@ -606,10 +606,10 @@ SYSTEM_EXT_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/system_e
 PRODUCT_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/product.img | cut -f1)
 SYSTEM_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/system.img | cut -f1)
 VENDOR_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR"/wsa/"$ARCH"/vendor.img | cut -f1)
-SYSTEM_EXT_TARGET_SIZE=$(( SYSTEM_EXT_NEED_SIZE * 2 + SYSTEM_EXT_IMG_SIZE ))
-PRODUCT_TAGET_SIZE=$(( PRODUCT_NEED_SIZE * 2 + PRODUCT_IMG_SIZE ))
-SYSTEM_TAGET_SIZE=$(( SYSTEM_NEED_SIZE * 3 + SYSTEM_IMG_SIZE ))
-VENDOR_TAGET_SIZE=$(( VENDOR_NEED_SIZE * 2 + VENDOR_IMG_SIZE ))
+SYSTEM_EXT_TARGET_SIZE=$((SYSTEM_EXT_NEED_SIZE * 2 + SYSTEM_EXT_IMG_SIZE))
+PRODUCT_TAGET_SIZE=$((PRODUCT_NEED_SIZE * 2 + PRODUCT_IMG_SIZE))
+SYSTEM_TAGET_SIZE=$((SYSTEM_NEED_SIZE * 3 + SYSTEM_IMG_SIZE))
+VENDOR_TAGET_SIZE=$((VENDOR_NEED_SIZE * 2 + VENDOR_IMG_SIZE))
 
 echo "resize system_ext.img to $SYSTEM_EXT_TARGET_SIZE"
 resize2fs "$WORK_DIR"/wsa/"$ARCH"/system_ext.img "$SYSTEM_EXT_TARGET_SIZE"s || abort
@@ -742,8 +742,8 @@ elif [ "$ROOT_SOL" = "kernelsu" ]; then
     echo -e "Integrate KernelSU done\n"
 fi
 
-cp "$WORK_DIR/wsa/$ARCH/resources.pri" "$WORK_DIR"/wsa/pri/en-us.pri \
-&& cp "$WORK_DIR/wsa/$ARCH/AppxManifest.xml" "$WORK_DIR"/wsa/xml/en-us.xml && {
+cp "$WORK_DIR/wsa/$ARCH/resources.pri" "$WORK_DIR"/wsa/pri/en-us.pri &&
+    cp "$WORK_DIR/wsa/$ARCH/AppxManifest.xml" "$WORK_DIR"/wsa/xml/en-us.xml && {
     echo "Merge Language Resources"
     tee "$WORK_DIR"/wsa/priconfig.xml <<EOF >/dev/null
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -756,13 +756,13 @@ cp "$WORK_DIR/wsa/$ARCH/resources.pri" "$WORK_DIR"/wsa/pri/en-us.pri \
 EOF
     if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ] && [ "$(id -u)" != "0" ]; then
         ../wine/"$HOST_ARCH"/makepri.exe new /pr "$(wslpath -w "$WORK_DIR"/wsa/pri)" /in MicrosoftCorporationII.WindowsSubsystemForAndroid /cf "$(wslpath -w "$WORK_DIR"/wsa/priconfig.xml)" /of "$(wslpath -w "$WORK_DIR"/wsa/"$ARCH"/resources.pri)" /o || res_merge_failed=1
-    elif which wine64 > /dev/null; then
+    elif which wine64 >/dev/null; then
         wine64 ../wine/"$HOST_ARCH"/makepri.exe new /pr "$WORK_DIR"/wsa/pri /in MicrosoftCorporationII.WindowsSubsystemForAndroid /cf "$WORK_DIR"/wsa/priconfig.xml /of "$WORK_DIR"/wsa/"$ARCH"/resources.pri /o || res_merge_failed=1
     else
         res_merge_failed=1
     fi
-    [ -z "$res_merge_failed" ] && sed -i -zE "s/<Resources.*Resources>/<Resources>\n$(cat "$WORK_DIR"/wsa/xml/* | grep -Po '<Resource [^>]*/>' | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/\$/\\$/g' | sed 's/\//\\\//g')\n<\/Resources>/g" "$WORK_DIR"/wsa/"$ARCH"/AppxManifest.xml && \
-    echo -e "Merge Language Resources done\n"
+    [ -z "$res_merge_failed" ] && sed -i -zE "s/<Resources.*Resources>/<Resources>\n$(cat "$WORK_DIR"/wsa/xml/* | grep -Po '<Resource [^>]*/>' | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/\$/\\$/g' | sed 's/\//\\\//g')\n<\/Resources>/g" "$WORK_DIR"/wsa/"$ARCH"/AppxManifest.xml &&
+        echo -e "Merge Language Resources done\n"
 } && [ -n "$res_merge_failed" ] && echo -e "Merge Language Resources failed\n" && unset res_merge_failed
 
 echo "Add extra packages"
@@ -775,7 +775,7 @@ echo -e "Add extra packages done\n"
 
 if [ "$GAPPS_BRAND" != 'none' ]; then
     echo "Integrate $GAPPS_BRAND"
-        find "$WORK_DIR/gapps/" -mindepth 1 -type d -exec "$SUDO" chmod 0755 {} \;
+    find "$WORK_DIR/gapps/" -mindepth 1 -type d -exec "$SUDO" chmod 0755 {} \;
     find "$WORK_DIR/gapps/" -mindepth 1 -type d -exec "$SUDO" chown root:root {} \;
     file_list="$(find "$WORK_DIR/gapps/" -mindepth 1 -type f | cut -d/ -f5-)"
     for file in $file_list; do
@@ -871,7 +871,7 @@ $SUDO rm -rf "${WORK_DIR:?}"/wsa/"$ARCH"/\[Content_Types\].xml "$WORK_DIR"/wsa/"
 cp "$vclibs_PATH" "$xaml_PATH" "$WORK_DIR"/wsa/"$ARCH" || abort
 cp ../installer/Install.ps1 "$WORK_DIR"/wsa/"$ARCH" || abort
 cp ../installer/Run.bat "$WORK_DIR"/wsa/"$ARCH" || abort
-find "$WORK_DIR"/wsa/"$ARCH" -maxdepth 1 -mindepth 1 -printf "%P\n" > "$WORK_DIR"/wsa/"$ARCH"/filelist.txt || abort
+find "$WORK_DIR"/wsa/"$ARCH" -maxdepth 1 -mindepth 1 -printf "%P\n" >"$WORK_DIR"/wsa/"$ARCH"/filelist.txt || abort
 echo -e "Remove signature and add scripts done\n"
 
 echo "Generate info"
