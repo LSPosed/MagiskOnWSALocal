@@ -381,7 +381,7 @@ update_gapps_zip_name() {
 update_gapps_zip_name
 if [ -z ${OFFLINE+x} ]; then
     require_su
-    if [ ${DOWN_WSA} != "no" ]; then
+    if [ "$DOWN_WSA" != "no" ]; then
         echo "Generate Download Links"
         python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
         # shellcheck disable=SC1091
@@ -925,21 +925,22 @@ if [ "$COMPRESS_OUTPUT" ] || [ -n "$COMPRESS_FORMAT" ]; then
         fi
         OUTPUT_PATH="$OUTPUT_PATH$FILE_EXT"
     fi
-    rm -f ${OUTPUT_PATH:?} || abort
+    rm -f "${OUTPUT_PATH:?}" || abort
     if [ "$COMPRESS_FORMAT" = "7z" ]; then
         echo "Compressing with 7z"
-        7z a ${OUTPUT_PATH:?} "$WORK_DIR/wsa/$artifact_name" || abort
+        7z a "${OUTPUT_PATH:?}" "$WORK_DIR/wsa/$artifact_name" || abort
     elif [ "$COMPRESS_FORMAT" = "xz" ]; then
         echo "Compressing with tar xz"
-        if ! (tar -cP -I 'xz -9 -T0' -f ${OUTPUT_PATH:?} "$WORK_DIR/wsa/$artifact_name"); then
+        if ! (tar -cP -I 'xz -9 -T0' -f "$OUTPUT_PATH" "$WORK_DIR/wsa/$artifact_name"); then
             echo "Out of memory? Trying again with single threads..."
-            tar -cPJvf ${OUTPUT_PATH:?} "$WORK_DIR/wsa/$artifact_name" || abort
+            tar -cPJvf "$OUTPUT_PATH" "$WORK_DIR/wsa/$artifact_name" || abort
         fi
     elif [ "$COMPRESS_FORMAT" = "zip" ]; then
-        7z -tzip a ${OUTPUT_PATH:?} "$WORK_DIR/wsa/$artifact_name" || abort
+        echo "Compressing with zip"
+        7z -tzip a "$OUTPUT_PATH" "$WORK_DIR/wsa/$artifact_name" || abort
     fi
 else
-    rm -rf ${OUTPUT_PATH:?} || abort
+    rm -rf "${OUTPUT_PATH:?}" || abort
     cp -r "$WORK_DIR/wsa/$ARCH" "$OUTPUT_PATH" || abort
 fi
 echo -e "done\n"
