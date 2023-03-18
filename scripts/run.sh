@@ -71,7 +71,8 @@ if [ -z "${CUSTOM_MAGISK+x}" ]; then
             'stable' "Stable Channel" 'on' \
             'beta' "Beta Channel" 'off' \
             'canary' "Canary Channel" 'off' \
-            'debug' "Canary Channel Debug Build" 'off'
+            'debug' "Canary Channel Debug Build" 'off' \
+            'delta' "Delta Version by HuskyDG" 'off'
     )
 else
     MAGISK_VER=debug
