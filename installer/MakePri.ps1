@@ -36,9 +36,9 @@ If ((Test-Path -Path "pri") -Eq $true -And (Test-Path -Path "xml") -Eq $true) {
         }
         $ProjectXml.Save($AppxManifestFile)
         Remove-Item 'pri' -Recurse
-        Set-Content -Path "filelist.txt" -Value (Get-Content -Path "filelist.txt" | Select-String -Pattern 'pri' -NotMatch)
+        Set-Content -Path "filelist.txt" -Value (Get-Content -Path "filelist.txt" | Select-String -Pattern '^pri$' -NotMatch)
         Remove-Item 'xml' -Recurse
-        Set-Content -Path "filelist.txt" -Value (Get-Content -Path "filelist.txt" | Select-String -Pattern 'xml' -NotMatch)
+        Set-Content -Path "filelist.txt" -Value (Get-Content -Path "filelist.txt" | Select-String -Pattern '^xml$' -NotMatch)
         Remove-Item 'makepri.exe'
         Set-Content -Path "filelist.txt" -Value (Get-Content -Path "filelist.txt" | Select-String -Pattern 'makepri.exe' -NotMatch)
         Remove-Item $PSCommandPath -Force
