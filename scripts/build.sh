@@ -588,12 +588,12 @@ echo -e "done\n"
 
 echo "Expand images"
 if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
-    echo "Cover vhdx to img and remove read-only flag"
+    echo "Convert vhdx to img and remove read-only flag"
     vhdx_to_img "$WORK_DIR/wsa/$ARCH/system_ext.vhdx" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
     vhdx_to_img "$WORK_DIR/wsa/$ARCH/product.vhdx" "$WORK_DIR/wsa/$ARCH/product.img" || abort
     vhdx_to_img "$WORK_DIR/wsa/$ARCH/system.vhdx" "$WORK_DIR/wsa/$ARCH/system.img" || abort
     vhdx_to_img "$WORK_DIR/wsa/$ARCH/vendor.vhdx" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
-    echo -e "Cover vhdx to img and remove read-only flag done\n"
+    echo -e "Convert vhdx to img and remove read-only flag done\n"
 fi
 
 SYSTEM_EXT_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/system_ext.img" | cut -f1)
