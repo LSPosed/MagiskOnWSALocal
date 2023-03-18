@@ -121,6 +121,27 @@ exit_with_message() {
     exit 1
 }
 
+resize_img() {
+    e2fsck -pf "$1" || return 1
+    if [ "$2" ]; then
+        resize2fs "$1" "$2" || return 1
+    else
+        resize2fs -M "$1" || return 1
+    fi
+    return 0
+}
+
+vhdx_to_img() {
+    qemu-img convert -f vhdx -O raw "$1" "$2" || return 1
+    resize_img "$2" "$(($(du --apparent-size -sB512 "$2" | cut -f1) * 2))"s || return 1
+    e2fsck -fp -E unshare_blocks "$2" || return 1
+    resize_img "$2" || return 1
+    rm -f "$1" || return 1
+    return 0
+}
+
+[ -f /etc/mtab ] || ln -s /proc/self/mounts /etc/mtab
+
 ARCH_MAP=(
     "x64"
     "arm64"
@@ -567,41 +588,14 @@ echo -e "done\n"
 
 echo "Expand images"
 if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
-    echo "Cover vhdx to img"
-    qemu-img convert -f vhdx -O raw "$WORK_DIR/wsa/$ARCH/system_ext.vhdx" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
-    qemu-img convert -f vhdx -O raw "$WORK_DIR/wsa/$ARCH/product.vhdx" "$WORK_DIR/wsa/$ARCH/product.img" || abort
-    qemu-img convert -f vhdx -O raw "$WORK_DIR/wsa/$ARCH/system.vhdx" "$WORK_DIR/wsa/$ARCH/system.img" || abort
-    qemu-img convert -f vhdx -O raw "$WORK_DIR/wsa/$ARCH/vendor.vhdx" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
-    rm -f "$WORK_DIR/wsa/$ARCH/"*.vhdx || abort
-    echo -e "Cover done\n"
+    echo "Cover vhdx to img and remove read-only flag"
+    vhdx_to_img "$WORK_DIR/wsa/$ARCH/system_ext.vhdx" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
+    vhdx_to_img "$WORK_DIR/wsa/$ARCH/product.vhdx" "$WORK_DIR/wsa/$ARCH/product.img" || abort
+    vhdx_to_img "$WORK_DIR/wsa/$ARCH/system.vhdx" "$WORK_DIR/wsa/$ARCH/system.img" || abort
+    vhdx_to_img "$WORK_DIR/wsa/$ARCH/vendor.vhdx" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
+    echo -e "Cover vhdx to img and remove read-only flag done\n"
 fi
 
-[ -f /etc/mtab ] || ln -s /proc/self/mounts /etc/mtab
-e2fsck -pf "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
-e2fsck -pf "$WORK_DIR/wsa/$ARCH/product.img" || abort
-e2fsck -pf "$WORK_DIR/wsa/$ARCH/system.img" || abort
-e2fsck -pf "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
-
-if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
-    echo "Try to remove images read-only flags"
-    SYSTEM_EXT_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/system_ext.img" | cut -f1)
-    PRODUCT_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/product.img" | cut -f1)
-    SYSTEM_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/system.img" | cut -f1)
-    VENDOR_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/vendor.img" | cut -f1)
-    resize2fs "$WORK_DIR/wsa/$ARCH/system_ext.img" "$((SYSTEM_EXT_IMG_SIZE * 2))"s || abort
-    resize2fs "$WORK_DIR/wsa/$ARCH/product.img" "$((PRODUCT_IMG_SIZE * 2))"s || abort
-    resize2fs "$WORK_DIR/wsa/$ARCH/system.img" "$((SYSTEM_IMG_SIZE * 2))"s || abort
-    resize2fs "$WORK_DIR/wsa/$ARCH/vendor.img" "$((VENDOR_IMG_SIZE * 2))"s || abort
-    e2fsck -fp -E unshare_blocks "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
-    e2fsck -fp -E unshare_blocks "$WORK_DIR/wsa/$ARCH/product.img" || abort
-    e2fsck -fp -E unshare_blocks "$WORK_DIR/wsa/$ARCH/system.img" || abort
-    e2fsck -fp -E unshare_blocks "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
-    resize2fs -M "$WORK_DIR/wsa/$ARCH/system.img" || abort
-    resize2fs -M "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
-    resize2fs -M "$WORK_DIR/wsa/$ARCH/product.img" || abort
-    resize2fs -M "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
-    echo -e "Remove images read-only flags done\n"
-fi
 SYSTEM_EXT_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/system_ext.img" | cut -f1)
 PRODUCT_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/product.img" | cut -f1)
 SYSTEM_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/system.img" | cut -f1)
@@ -611,14 +605,10 @@ PRODUCT_TAGET_SIZE=$((PRODUCT_NEED_SIZE * 2 + PRODUCT_IMG_SIZE))
 SYSTEM_TAGET_SIZE=$((SYSTEM_IMG_SIZE * 2))
 VENDOR_TAGET_SIZE=$((VENDOR_NEED_SIZE * 2 + VENDOR_IMG_SIZE))
 
-echo "resize system_ext.img to $SYSTEM_EXT_TARGET_SIZE"
-resize2fs "$WORK_DIR/wsa/$ARCH/system_ext.img" "$SYSTEM_EXT_TARGET_SIZE"s || abort
-echo "resize product.img to $PRODUCT_TAGET_SIZE"
-resize2fs "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_TAGET_SIZE"s || abort
-echo "resize system.img to $SYSTEM_TAGET_SIZE"
-resize2fs "$WORK_DIR/wsa/$ARCH/system.img" "$SYSTEM_TAGET_SIZE"s || abort
-echo "resize vendor.img to $VENDOR_TAGET_SIZE"
-resize2fs "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_TAGET_SIZE"s || abort
+resize_img "$WORK_DIR/wsa/$ARCH/system_ext.img" "$SYSTEM_EXT_TARGET_SIZE"s || abort
+resize_img "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_TAGET_SIZE"s || abort
+resize_img "$WORK_DIR/wsa/$ARCH/system.img" "$SYSTEM_TAGET_SIZE"s || abort
+resize_img "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_TAGET_SIZE"s || abort
 
 echo -e "Expand images done\n"
 
@@ -835,14 +825,10 @@ $SUDO umount -v "$ROOT_MNT"
 echo -e "done\n"
 
 echo "Shrink images"
-e2fsck -pf "$WORK_DIR/wsa/$ARCH/system.img" || abort
-resize2fs -M "$WORK_DIR/wsa/$ARCH/system.img" || abort
-e2fsck -pf "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
-resize2fs -M "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
-e2fsck -pf "$WORK_DIR/wsa/$ARCH/product.img" || abort
-resize2fs -M "$WORK_DIR/wsa/$ARCH/product.img" || abort
-e2fsck -pf "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
-resize2fs -M "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
+resize_img "$WORK_DIR/wsa/$ARCH/system.img" || abort
+resize_img "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
+resize_img "$WORK_DIR/wsa/$ARCH/product.img" || abort
+resize_img "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
 echo -e "Shrink images done\n"
 
 if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
