@@ -731,18 +731,6 @@ elif [ "$ROOT_SOL" = "kernelsu" ]; then
     cp "$WORK_DIR/kernelsu/kernel" "$WORK_DIR/wsa/$ARCH/Tools/kernel"
     echo -e "Integrate KernelSU done\n"
 fi
-# [ -f "$WORK_DIR/wsa/pri" ] && {
-#     echo "Merge Language Resources"
-#     if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ] && [ "$(id -u)" != "0" ]; then
-#         "../wine/$HOST_ARCH/makepri.exe" resourcepack /pr "$(wslpath -w "$WORK_DIR/wsa/pri")" /cf "$(wslpath -w "../xml/priconfig.xml")" /of "$(wslpath -w "$WORK_DIR/wsa/$ARCH/resources.pri")" /if "$(wslpath -w "$WORK_DIR/wsa/$ARCH/resources.pri")" /o || res_merge_failed=1
-#     elif which wine64 >/dev/null; then
-#         wine64 "../wine/$HOST_ARCH/makepri.exe" resourcepack /pr "$WORK_DIR/wsa/pri" /cf "../xml/priconfig.xml" /of "$WORK_DIR/wsa/$ARCH/resources.pri" /if "$WORK_DIR/wsa/$ARCH/resources.pri" /o || res_merge_failed=1
-#     else
-#         res_merge_failed=1
-#     fi
-#     [ -z "$res_merge_failed" ] && sed -i -zE "s/<Resources.*Resources>/<Resources>\n$(cat "$WORK_DIR/wsa/xml/"* | grep -Po '<Resource [^>]*/>' | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/\$/\\$/g' | sed 's/\//\\\//g')\n<\/Resources>/g" "$WORK_DIR/wsa/$ARCH/AppxManifest.xml" &&
-#         echo -e "Merge Language Resources done\n"
-# } && [ -n "$res_merge_failed" ] && echo -e "Merge Language Resources failed\n" && unset res_merge_failed
 
 echo "Add extra packages"
 $SUDO cp -r "../$ARCH/system/"* "$SYSTEM_MNT" || abort
