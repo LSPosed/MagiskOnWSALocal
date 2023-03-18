@@ -132,7 +132,7 @@ resize_img() {
 }
 
 vhdx_to_img() {
-    qemu-img convert -f vhdx -O raw "$1" "$2" || return 1
+    qemu-img convert -q -f vhdx -O raw "$1" "$2" || return 1
     resize_img "$2" "$(($(du --apparent-size -sB512 "$2" | cut -f1) * 2))"s || return 1
     e2fsck -fp -E unshare_blocks "$2" || return 1
     resize_img "$2" || return 1
@@ -821,10 +821,10 @@ echo -e "Shrink images done\n"
 
 if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
     echo "Convert images to vhdx"
-    qemu-img convert -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/system_ext.img" "$WORK_DIR/wsa/$ARCH/system_ext.vhdx" || abort
-    qemu-img convert -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/product.img" "$WORK_DIR/wsa/$ARCH/product.vhdx" || abort
-    qemu-img convert -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/system.img" "$WORK_DIR/wsa/$ARCH/system.vhdx" || abort
-    qemu-img convert -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/vendor.img" "$WORK_DIR/wsa/$ARCH/vendor.vhdx" || abort
+    qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/system_ext.img" "$WORK_DIR/wsa/$ARCH/system_ext.vhdx" || abort
+    qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/product.img" "$WORK_DIR/wsa/$ARCH/product.vhdx" || abort
+    qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/system.img" "$WORK_DIR/wsa/$ARCH/system.vhdx" || abort
+    qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/vendor.img" "$WORK_DIR/wsa/$ARCH/vendor.vhdx" || abort
     rm -f "$WORK_DIR/wsa/$ARCH/"*.img || abort
     echo -e "Convert images to vhdx done\n"
 fi
