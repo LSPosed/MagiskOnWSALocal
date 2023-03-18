@@ -384,7 +384,7 @@ if [ -z ${OFFLINE+x} ]; then
     if [ "$DOWN_WSA" != "no" ]; then
         echo "Generate Download Links"
         python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
-        # shellcheck disable=SC1091
+        # shellcheck disable=SC1090
         source "$WSA_WORK_ENV" || abort
     else
         DOWN_WSA_MAIN_VERSION=$(python3 getWSAMainVersion.py "$ARCH" "$WSA_ZIP_PATH")
@@ -400,7 +400,7 @@ if [ -z ${OFFLINE+x} ]; then
     fi
     if [ "$ROOT_SOL" = "kernelsu" ]; then
         python3 generateKernelSULink.py "$ARCH" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" "$KERNEL_VER" "$KERNELSU_ZIP_NAME" || abort
-        # shellcheck disable=SC1091
+        # shellcheck disable=SC1090
         source "$WSA_WORK_ENV" || abort
         # shellcheck disable=SC2153
         echo "KERNELSU_VER=$KERNELSU_VER" >"$KERNELSU_INFO"
@@ -451,7 +451,7 @@ if [ -f "$WSA_ZIP_PATH" ]; then
         abort
     fi
     echo -e "Extract done\n"
-    # shellcheck disable=SC1091
+    # shellcheck disable=SC1090
     source "$WSA_WORK_ENV" || abort
 else
     echo "The WSA zip package does not exist, is the download incomplete?"
@@ -468,7 +468,7 @@ if [ "$GAPPS_BRAND" != "none" ] || [ "$ROOT_SOL" = "magisk" ]; then
             CLEAN_DOWNLOAD_MAGISK=1
             abort
         fi
-        # shellcheck disable=SC1091
+        # shellcheck disable=SC1090
         source "$WSA_WORK_ENV" || abort
         if [ "$MAGISK_VERSION_CODE" -lt 24000 ]; then
             echo "Please install Magisk v24+"
