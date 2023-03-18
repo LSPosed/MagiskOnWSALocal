@@ -385,7 +385,7 @@ if [ -z ${OFFLINE+x} ]; then
         echo "Generate Download Links"
         python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
         # shellcheck disable=SC1091
-        source "${WORK_DIR:?}/ENV" || abort
+        source "$WSA_WORK_ENV" || abort
     else
         DOWN_WSA_MAIN_VERSION=$(python3 getWSAMainVersion.py "$ARCH" "$WSA_ZIP_PATH")
     fi
@@ -401,7 +401,7 @@ if [ -z ${OFFLINE+x} ]; then
     if [ "$ROOT_SOL" = "kernelsu" ]; then
         python3 generateKernelSULink.py "$ARCH" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" "$KERNEL_VER" "$KERNELSU_ZIP_NAME" || abort
         # shellcheck disable=SC1091
-        source "${WORK_DIR:?}/ENV" || abort
+        source "$WSA_WORK_ENV" || abort
         # shellcheck disable=SC2153
         echo "KERNELSU_VER=$KERNELSU_VER" >"$KERNELSU_INFO"
     fi
@@ -445,14 +445,14 @@ fi
 
 echo "Extract WSA"
 if [ -f "$WSA_ZIP_PATH" ]; then
-    if ! python3 extractWSA.py "$ARCH" "$WSA_ZIP_PATH" "$WORK_DIR"; then
+    if ! python3 extractWSA.py "$ARCH" "$WSA_ZIP_PATH" "$WORK_DIR" "$WSA_WORK_ENV"; then
         echo "Unzip WSA failed, is the download incomplete?"
         CLEAN_DOWNLOAD_WSA=1
         abort
     fi
     echo -e "Extract done\n"
     # shellcheck disable=SC1091
-    source "${WORK_DIR:?}/ENV" || abort
+    source "$WSA_WORK_ENV" || abort
 else
     echo "The WSA zip package does not exist, is the download incomplete?"
     exit 1
@@ -469,7 +469,7 @@ if [ "$GAPPS_BRAND" != "none" ] || [ "$ROOT_SOL" = "magisk" ]; then
             abort
         fi
         # shellcheck disable=SC1091
-        source "${WORK_DIR:?}/ENV" || abort
+        source "$WSA_WORK_ENV" || abort
         if [ "$MAGISK_VERSION_CODE" -lt 24000 ]; then
             echo "Please install Magisk v24+"
             abort
@@ -741,23 +741,12 @@ elif [ "$ROOT_SOL" = "kernelsu" ]; then
     cp "$WORK_DIR/kernelsu/kernel" "$WORK_DIR/wsa/$ARCH/Tools/kernel"
     echo -e "Integrate KernelSU done\n"
 fi
-
-cp "$WORK_DIR/wsa/$ARCH/resources.pri" "$WORK_DIR/wsa/pri/en-us.pri" &&
-    cp "$WORK_DIR/wsa/$ARCH/AppxManifest.xml" "$WORK_DIR"/wsa/xml/en-us.xml && {
+[ -f "$WORK_DIR/wsa/pri" ] && {
     echo "Merge Language Resources"
-    tee "$WORK_DIR/wsa/priconfig.xml" <<EOF >/dev/null
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<resources targetOsVersion="10.0.0" majorVersion="1">
-<index root="\" startIndexAt="\">
-    <indexer-config type="folder" foldernameAsQualifier="true" filenameAsQualifier="true" qualifierDelimiter="."/>
-    <indexer-config type="PRI"/>
-</index>
-</resources>
-EOF
     if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ] && [ "$(id -u)" != "0" ]; then
-        "../wine/$HOST_ARCH/makepri.exe" new /pr "$(wslpath -w "$WORK_DIR"/wsa/pri)" /in MicrosoftCorporationII.WindowsSubsystemForAndroid /cf "$(wslpath -w "$WORK_DIR"/wsa/priconfig.xml)" /of "$(wslpath -w "$WORK_DIR/wsa/$ARCH/resources.pri")" /o || res_merge_failed=1
+        "../wine/$HOST_ARCH/makepri.exe" resourcepack /pr "$(wslpath -w "$WORK_DIR/wsa/pri")" /cf "$(wslpath -w "../xml/priconfig.xml")" /of "$(wslpath -w "$WORK_DIR/wsa/$ARCH/resources.pri")" /if "$(wslpath -w "$WORK_DIR/wsa/$ARCH/resources.pri")" /o || res_merge_failed=1
     elif which wine64 >/dev/null; then
-        wine64 "../wine/$HOST_ARCH/makepri.exe" new /pr "$WORK_DIR/wsa/pri" /in MicrosoftCorporationII.WindowsSubsystemForAndroid /cf "$WORK_DIR/wsa/priconfig.xml" /of "$WORK_DIR/wsa/$ARCH/resources.pri" /o || res_merge_failed=1
+        wine64 "../wine/$HOST_ARCH/makepri.exe" resourcepack /pr "$WORK_DIR/wsa/pri" /cf "../xml/priconfig.xml" /of "$WORK_DIR/wsa/$ARCH/resources.pri" /if "$WORK_DIR/wsa/$ARCH/resources.pri" /o || res_merge_failed=1
     else
         res_merge_failed=1
     fi
