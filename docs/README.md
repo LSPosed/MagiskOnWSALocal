@@ -8,10 +8,10 @@
 
   The following dependencies are required:
 
-  | DistrOS             |                                                                                                 |            |            |
-  |:-------------------:|-------------------------------------------------------------------------------------------------|------------|------------|
-  | Debian              | `lzip wine winetricks patchelf e2fsprogs aria2 python3 python3-pip aria2 p7zip-full attr unzip` | `whiptail` | `xz-utils` |
-  | openSUSE Tumbleweed | Same as above                                                                                   | `dialog`   | `xz`       |
+  | DistrOS             |                                                                                                 |            |            |              |
+  |:-------------------:|-------------------------------------------------------------------------------------------------|------------|------------|--------------|
+  | Debian              | `lzip wine winetricks patchelf e2fsprogs aria2 python3 python3-pip aria2 p7zip-full attr unzip` | `whiptail` | `xz-utils` | `qemu-utils` |
+  | openSUSE Tumbleweed | Same as above                                                                                   | `dialog`   | `xz`       | `qemu-tools` |
 
   The following components need to be installed using `winetricks`: `msxml6`
 
