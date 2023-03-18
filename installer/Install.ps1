@@ -48,6 +48,10 @@ If (((Test-Path -Path $FileList) -Eq $false).Count) {
     exit 1
 }
 
+If ((Test-Path -Path "MakePri.ps1") -Eq $true) {
+    Start-Process powershell.exe -Wait -Args "-ExecutionPolicy Bypass -File MakePri.ps1" -WorkingDirectory $PSScriptRoot
+}
+
 reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
 
 If ($(Get-WindowsOptionalFeature -Online -FeatureName 'VirtualMachinePlatform').State -Ne "Enabled") {

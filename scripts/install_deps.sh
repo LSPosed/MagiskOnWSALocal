@@ -40,10 +40,6 @@ echo "Checking and ensuring dependencies"
 check_dependencies() {
     command -v whiptail >/dev/null 2>&1 || command -v dialog >/dev/null 2>&1 || NEED_INSTALL+=("whiptail")
     command -v lzip >/dev/null 2>&1 || NEED_INSTALL+=("lzip")
-    if [ ! -f /proc/sys/fs/binfmt_misc/WSLInterop ] || [ "$(id -u)" == "0" ]; then
-        command -v wine64 >/dev/null 2>&1 || NEED_INSTALL+=("wine")
-        command -v winetricks >/dev/null 2>&1 || NEED_INSTALL+=("winetricks")
-    fi
     command -v patchelf >/dev/null 2>&1 || NEED_INSTALL+=("patchelf")
     command -v resize2fs >/dev/null 2>&1 || NEED_INSTALL+=("e2fsprogs")
     command -v pip >/dev/null 2>&1 || NEED_INSTALL+=("python3-pip")
@@ -121,10 +117,3 @@ if [ -n "${NEED_INSTALL[*]}" ]; then
     fi
 fi
 python3 -m pip install -r requirements.txt -q
-
-if [ ! -f /proc/sys/fs/binfmt_misc/WSLInterop ] || [ "$(id -u)" == "0" ] && which wine64 > /dev/null; then
-    winetricks list-installed | grep -E "^msxml6" >/dev/null 2>&1 || {
-        cp -r ../wine/.cache/* ~/.cache
-        winetricks msxml6 || abort
-    }
-fi

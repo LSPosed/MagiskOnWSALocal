@@ -76,11 +76,11 @@ with zipfile.ZipFile(wsa_zip_path) as zip:
             with zipfile.ZipFile(workdir / f.filename) as l:
                 for g in l.filelist:
                     if g.filename == 'resources.pri':
-                        g.filename = f'{name}.pri'
-                        l.extract(g, workdir / 'pri')
+                        g.filename = f'resources.{name}.pri'
+                        l.extract(g, workdir / archdir / 'pri')
                     elif g.filename == 'AppxManifest.xml':
-                        g.filename = f'{name}.xml'
-                        l.extract(g, workdir / 'xml')
+                        g.filename = f'resources.{name}.xml'
+                        l.extract(g, workdir / archdir / 'xml')
                     elif re.search(u'Images/.+\.png', g.filename):
                         l.extract(g, archdir)
 with zipfile.ZipFile(zip_path) as zip:

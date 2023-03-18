@@ -731,18 +731,18 @@ elif [ "$ROOT_SOL" = "kernelsu" ]; then
     cp "$WORK_DIR/kernelsu/kernel" "$WORK_DIR/wsa/$ARCH/Tools/kernel"
     echo -e "Integrate KernelSU done\n"
 fi
-[ -f "$WORK_DIR/wsa/pri" ] && {
-    echo "Merge Language Resources"
-    if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ] && [ "$(id -u)" != "0" ]; then
-        "../wine/$HOST_ARCH/makepri.exe" resourcepack /pr "$(wslpath -w "$WORK_DIR/wsa/pri")" /cf "$(wslpath -w "../xml/priconfig.xml")" /of "$(wslpath -w "$WORK_DIR/wsa/$ARCH/resources.pri")" /if "$(wslpath -w "$WORK_DIR/wsa/$ARCH/resources.pri")" /o || res_merge_failed=1
-    elif which wine64 >/dev/null; then
-        wine64 "../wine/$HOST_ARCH/makepri.exe" resourcepack /pr "$WORK_DIR/wsa/pri" /cf "../xml/priconfig.xml" /of "$WORK_DIR/wsa/$ARCH/resources.pri" /if "$WORK_DIR/wsa/$ARCH/resources.pri" /o || res_merge_failed=1
-    else
-        res_merge_failed=1
-    fi
-    [ -z "$res_merge_failed" ] && sed -i -zE "s/<Resources.*Resources>/<Resources>\n$(cat "$WORK_DIR/wsa/xml/"* | grep -Po '<Resource [^>]*/>' | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/\$/\\$/g' | sed 's/\//\\\//g')\n<\/Resources>/g" "$WORK_DIR/wsa/$ARCH/AppxManifest.xml" &&
-        echo -e "Merge Language Resources done\n"
-} && [ -n "$res_merge_failed" ] && echo -e "Merge Language Resources failed\n" && unset res_merge_failed
+# [ -f "$WORK_DIR/wsa/pri" ] && {
+#     echo "Merge Language Resources"
+#     if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ] && [ "$(id -u)" != "0" ]; then
+#         "../wine/$HOST_ARCH/makepri.exe" resourcepack /pr "$(wslpath -w "$WORK_DIR/wsa/pri")" /cf "$(wslpath -w "../xml/priconfig.xml")" /of "$(wslpath -w "$WORK_DIR/wsa/$ARCH/resources.pri")" /if "$(wslpath -w "$WORK_DIR/wsa/$ARCH/resources.pri")" /o || res_merge_failed=1
+#     elif which wine64 >/dev/null; then
+#         wine64 "../wine/$HOST_ARCH/makepri.exe" resourcepack /pr "$WORK_DIR/wsa/pri" /cf "../xml/priconfig.xml" /of "$WORK_DIR/wsa/$ARCH/resources.pri" /if "$WORK_DIR/wsa/$ARCH/resources.pri" /o || res_merge_failed=1
+#     else
+#         res_merge_failed=1
+#     fi
+#     [ -z "$res_merge_failed" ] && sed -i -zE "s/<Resources.*Resources>/<Resources>\n$(cat "$WORK_DIR/wsa/xml/"* | grep -Po '<Resource [^>]*/>' | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/\$/\\$/g' | sed 's/\//\\\//g')\n<\/Resources>/g" "$WORK_DIR/wsa/$ARCH/AppxManifest.xml" &&
+#         echo -e "Merge Language Resources done\n"
+# } && [ -n "$res_merge_failed" ] && echo -e "Merge Language Resources failed\n" && unset res_merge_failed
 
 echo "Add extra packages"
 $SUDO cp -r "../$ARCH/system/"* "$SYSTEM_MNT" || abort
@@ -844,6 +844,9 @@ fi
 echo "Remove signature and add scripts"
 $SUDO rm -rf "${WORK_DIR:?}"/wsa/"$ARCH"/\[Content_Types\].xml "$WORK_DIR/wsa/$ARCH/AppxBlockMap.xml" "$WORK_DIR/wsa/$ARCH/AppxSignature.p7x" "$WORK_DIR/wsa/$ARCH/AppxMetadata" || abort
 cp "$vclibs_PATH" "$xaml_PATH" "$WORK_DIR/wsa/$ARCH" || abort
+cp "../bin/$ARCH/makepri.exe" "$WORK_DIR/wsa/$ARCH" || abort
+cp "../xml/priconfig.xml" "$WORK_DIR/wsa/$ARCH/xml/" || abort
+cp ../installer/MakePri.ps1 "$WORK_DIR/wsa/$ARCH" || abort
 cp ../installer/Install.ps1 "$WORK_DIR/wsa/$ARCH" || abort
 cp ../installer/Run.bat "$WORK_DIR/wsa/$ARCH" || abort
 find "$WORK_DIR/wsa/$ARCH" -maxdepth 1 -mindepth 1 -printf "%P\n" >"$WORK_DIR/wsa/$ARCH/filelist.txt" || abort

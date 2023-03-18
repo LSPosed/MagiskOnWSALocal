@@ -8,12 +8,10 @@
 
   The following dependencies are required:
 
-  | DistrOS             |                                                                                                 |            |            |              |
-  |:-------------------:|-------------------------------------------------------------------------------------------------|------------|------------|--------------|
-  | Debian              | `lzip wine winetricks patchelf e2fsprogs aria2 python3 python3-pip aria2 p7zip-full attr unzip` | `whiptail` | `xz-utils` | `qemu-utils` |
-  | openSUSE Tumbleweed | Same as above                                                                                   | `dialog`   | `xz`       | `qemu-tools` |
-
-  The following components need to be installed using `winetricks`: `msxml6`
+  | DistrOS             |                                                                                 |            |            |              |
+  |:-------------------:|---------------------------------------------------------------------------------|------------|------------|--------------|
+  | Debian              | `lzip patchelf e2fsprogs aria2 python3 python3-pip aria2 p7zip-full attr unzip` | `whiptail` | `xz-utils` | `qemu-utils` |
+  | openSUSE Tumbleweed | Same as above                                                                   | `dialog`   | `xz`       | `qemu-tools` |
 
   The python3 library `requests` is used.
 
@@ -27,7 +25,7 @@
 
     - Debian (You can use [WSL2](https://apps.microsoft.com/store/detail/debian/9MSVKQC78PK6))
 
-      Need to add `contrib` sources to the source list to install winetricks.
+      Ready to use right out of the box.
 
     - openSUSE Tumbleweed (You can use [WSL2](https://apps.microsoft.com/store/detail/opensuse-tumbleweed/9MSSK2ZXXN11))
 
