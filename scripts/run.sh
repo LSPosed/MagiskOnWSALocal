@@ -48,7 +48,6 @@ function YesNoBox {
 ARCH=$(
     Radiolist '([title]="Build arch"
                 [default]="x64")' \
-        \
         'x64' "X86_64" 'on' \
         'arm64' "AArch64" 'off'
 )
@@ -56,7 +55,6 @@ ARCH=$(
 RELEASE_TYPE=$(
     Radiolist '([title]="WSA release type"
                 [default]="retail")' \
-        \
         'retail' "Stable Channel" 'on' \
         'release preview' "Release Preview Channel" 'off' \
         'insider slow' "Beta Channel" 'off' \
@@ -67,7 +65,6 @@ if (YesNoBox '([title]="Root" [text]="Do you want to Root WSA?")'); then
     ROOT_SOL=$(
         Radiolist '([title]="Root solution"
                         [default]="magisk")' \
-            \
             'magisk' "Magisk" 'on' \
             'kernelsu' "KernelSU" 'off'
     )
@@ -79,7 +76,6 @@ if [ "$ROOT_SOL" = "magisk" ]; then
     MAGISK_VER=$(
         Radiolist '([title]="Magisk version"
                         [default]="stable")' \
-            \
             'stable' "Stable Channel" 'on' \
             'beta' "Beta Channel" 'off' \
             'canary' "Canary Channel" 'off' \
@@ -93,7 +89,6 @@ if (YesNoBox '([title]="Install GApps" [text]="Do you want to install GApps?")')
     GAPPS_BRAND=$(
         Radiolist '([title]="Which GApps do you want to install?"
                  [default]="MindTheGapps")' \
-            \
             'OpenGApps' "This flavor may cause startup failure" 'off' \
             'MindTheGapps' "Recommend" 'on'
     )
@@ -106,7 +101,6 @@ if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
         GAPPS_VARIANT=$(
             Radiolist '([title]="Variants of GApps"
                         [default]="pico")' \
-                \
                 'super' "" 'off' \
                 'stock' "" 'off' \
                 'full' "" 'off' \
@@ -139,11 +133,10 @@ if [ "$COMPRESS_OUTPUT" = "--compress" ]; then
     COMPRESS_FORMAT=$(
         Radiolist '([title]="Compress format"
                         [default]="7z")' \
-            \
             'zip' "Zip" 'off' \
             '7z' "7-Zip" 'on' \
             'xz' "tar.xz" 'off'
-        )
+    )
 fi
 # if (YesNoBox '([title]="Off line mode" [text]="Do you want to enable off line mode?")'); then
 #     OFFLINE="--offline"
