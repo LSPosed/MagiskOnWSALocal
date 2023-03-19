@@ -134,6 +134,7 @@ If (($null -Ne $Installed) -And (-Not ($Installed.IsDevelopmentMode))) {
 }
 Clear-Host
 Write-Host "Installing MagiskOnWSA...."
+If (Test-CommandExists WsaClient) { Start-Process WsaClient -Wait -Args "/shutdown" }
 Stop-Process -Name "WsaClient" -ErrorAction SilentlyContinue
 Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Register .\AppxManifest.xml
 If ($?) {
