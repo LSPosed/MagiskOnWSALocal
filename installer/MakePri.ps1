@@ -16,34 +16,49 @@
 # Copyright (C) 2023 LSPosed Contributors
 #
 
+$Host.UI.RawUI.WindowTitle = "Merging resources...."
 If ((Test-Path -Path "pri") -Eq $true -And (Test-Path -Path "xml") -Eq $true) {
     $AppxManifestFile = ".\AppxManifest.xml"
     Copy-Item .\resources.pri -Destination ".\pri\resources.pri"
-    $proc = Start-Process -PassThru makepri.exe -Args "new /pr .\pri /cf .\xml\priconfig.xml /of .\resources.pri /mn $AppxManifestFile /o"
-    $proc.WaitForExit()
-    If ($proc.ExitCode -Ne 0) {
-        Write-Warning "Failed to merge resources`r`n"
-        exit 1
-    }
-    else {
-        $ProjectXml = [xml](Get-Content $AppxManifestFile)
-        $ProjectResources = $ProjectXml.Package.Resources;
-        $Item = Get-Item .\xml\* -Exclude "priconfig.xml" -Include "*.xml"
-        $Item | ForEach-Object {
-            $Xml = [xml](Get-Content $_)
-            $Resource = $Xml.Package.Resources.Resource
-            $newNode = $ProjectXml.ImportNode($Resource, $true)
-            $ProjectResources.AppendChild($newNode)
+    $ProcNew = Start-Process -PassThru makepri.exe -WindowStyle Hidden -Args "new /pr .\pri /cf .\xml\priconfig.xml /of .\resources.pri /mn $AppxManifestFile /o"
+    $ProcNew.WaitForExit()
+    If ($ProcNew.ExitCode -Ne 0) {
+        Write-Warning "Failed to merge resources from pri`r`nTrying to dump...."
+        New-Item -Path "." -Name "priinfo" -ItemType "directory"
+        $Processes = ForEach ($Item in Get-Item ".\pri\*" -Include "*.pri") {
+            $Name = $Item.Name
+            Write-Host "Dumping $Name....`r`n"
+            Start-Process -PassThru -WindowStyle Hidden makepri.exe -Args "dump /if $Item /o /es .\resources.pri /of .\priinfo\$Name.xml /dt detailed"
         }
-        $ProjectXml.Save($AppxManifestFile)
-        Remove-Item 'pri' -Recurse
-        Set-Content -Path "filelist.txt" -Value (Get-Content -Path "filelist.txt" | Select-String -Pattern '^pri$' -NotMatch)
-        Remove-Item 'xml' -Recurse
-        Set-Content -Path "filelist.txt" -Value (Get-Content -Path "filelist.txt" | Select-String -Pattern '^xml$' -NotMatch)
-        Remove-Item 'makepri.exe'
-        Set-Content -Path "filelist.txt" -Value (Get-Content -Path "filelist.txt" | Select-String -Pattern 'makepri.exe' -NotMatch)
-        Remove-Item $PSCommandPath -Force
-        Set-Content -Path "filelist.txt" -Value (Get-Content -Path "filelist.txt" | Select-String -Pattern 'MakePri.ps1' -NotMatch)
-        exit 0
+        Write-Host "Dumping resources....`r`n"
+        $Processes | Wait-Process
+        Write-Host "Creating pri from dumps....`r`n"
+        $ProcNewFromDump = Start-Process -PassThru -WindowStyle Hidden makepri.exe -Args "new /pr .\priinfo /cf .\xml\priconfig.xml /of .\resources.pri /mn $AppxManifestFile /o"    
+        $ProcNewFromDump.WaitForExit()
+        Remove-Item 'priinfo' -Recurse
+        If ($ProcNewFromDump.ExitCode -Ne 0) {
+            Write-Warning "Failed to merge resources from dump`r`n"
+            exit 1
+        }
     }
+
+    $ProjectXml = [xml](Get-Content $AppxManifestFile)
+    $ProjectResources = $ProjectXml.Package.Resources;
+    $Item = Get-Item .\xml\* -Exclude "priconfig.xml" -Include "*.xml"
+    $Item | ForEach-Object {
+        $Xml = [xml](Get-Content $_)
+        $Resource = $Xml.Package.Resources.Resource
+        $newNode = $ProjectXml.ImportNode($Resource, $true)
+        $ProjectResources.AppendChild($newNode)
+    }
+    $ProjectXml.Save($AppxManifestFile)
+    Remove-Item 'pri' -Recurse
+    Set-Content -Path "filelist.txt" -Value (Get-Content -Path "filelist.txt" | Select-String -Pattern '^pri$' -NotMatch)
+    Remove-Item 'xml' -Recurse
+    Set-Content -Path "filelist.txt" -Value (Get-Content -Path "filelist.txt" | Select-String -Pattern '^xml$' -NotMatch)
+    Remove-Item 'makepri.exe'
+    Set-Content -Path "filelist.txt" -Value (Get-Content -Path "filelist.txt" | Select-String -Pattern 'makepri.exe' -NotMatch)
+    Remove-Item $PSCommandPath -Force
+    Set-Content -Path "filelist.txt" -Value (Get-Content -Path "filelist.txt" | Select-String -Pattern 'MakePri.ps1' -NotMatch)
+    exit 0
 }

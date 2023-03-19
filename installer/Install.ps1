@@ -1,5 +1,5 @@
 # Automated Install script by Midonei
-$Host.UI.RawUI.WindowTitle = "Installing MagiskOnWSA..."
+$Host.UI.RawUI.WindowTitle = "Installing MagiskOnWSA...."
 function Test-Administrator {
     [OutputType([bool])]
     param()
@@ -49,7 +49,11 @@ If (((Test-Path -Path $FileList) -Eq $false).Count) {
 }
 
 If ((Test-Path -Path "MakePri.ps1") -Eq $true) {
-    Start-Process powershell.exe -Wait -Args "-ExecutionPolicy Bypass -File MakePri.ps1" -WorkingDirectory $PSScriptRoot
+    $ProcMakePri = Start-Process powershell.exe -PassThru -Args "-ExecutionPolicy Bypass -File MakePri.ps1" -WorkingDirectory $PSScriptRoot
+    $ProcMakePri.WaitForExit()
+    If ($ProcMakePri.ExitCode -Ne 0) {
+        Write-Warning "Failed to merge resources, WSA Seetings will always be in English`r`n"
+    }
 }
 
 reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
@@ -101,7 +105,7 @@ If (($null -Ne $Installed) -And (-Not ($Installed.IsDevelopmentMode))) {
     }
 }
 Clear-Host
-Write-Host "Installing MagiskOnWSA..."
+Write-Host "Installing MagiskOnWSA...."
 Stop-Process -Name "WsaClient" -ErrorAction SilentlyContinue
 Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Register .\AppxManifest.xml
 If ($?) {
