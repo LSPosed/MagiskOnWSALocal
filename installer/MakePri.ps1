@@ -17,14 +17,15 @@
 #
 
 If ((Test-Path -Path "pri") -Eq $true -And (Test-Path -Path "xml") -Eq $true) {
-    $proc = Start-Process -PassThru makepri.exe -Args "resourcepack /pr .\pri /cf .\xml\priconfig.xml /of .\resources.pri /if .\resources.pri /o"
+    $AppxManifestFile = ".\AppxManifest.xml"
+    Copy-Item .\resources.pri -Destination ".\pri\resources.pri"
+    $proc = Start-Process -PassThru makepri.exe -Args "new /pr .\pri /cf .\xml\priconfig.xml /of .\resources.pri /mn $AppxManifestFile /o"
     $proc.WaitForExit()
     If ($proc.ExitCode -Ne 0) {
         Write-Warning "Failed to merge resources`r`n"
         exit 1
     }
     else {
-        $AppxManifestFile = ".\AppxManifest.xml"
         $ProjectXml = [xml](Get-Content $AppxManifestFile)
         $ProjectResources = $ProjectXml.Package.Resources;
         $Item = Get-Item .\xml\* -Exclude "priconfig.xml" -Include "*.xml"
