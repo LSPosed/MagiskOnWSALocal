@@ -39,11 +39,11 @@ If ((Test-Path -Path "pri") -Eq $true -And (Test-Path -Path "xml") -Eq $true) {
         }
         $ProcNewFromDump = Start-Process -PassThru -WindowStyle Hidden makepri.exe -Args "new /pr .\priinfo /cf .\xml\priconfig.xml /of .\resources.pri /mn $AppxManifestFile /o"    
         $ProcNewFromDump.WaitForExit()
+        Remove-Item 'priinfo' -Recurse
         If ($ProcNewFromDump.ExitCode -Ne 0) {
             Write-Warning "Failed to merge resources from dump`r`n"
             exit 1
         }
-        Remove-Item 'priinfo' -Recurse
     }
 
     $ProjectXml = [xml](Get-Content $AppxManifestFile)
