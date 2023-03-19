@@ -89,8 +89,8 @@ if (YesNoBox '([title]="Install GApps" [text]="Do you want to install GApps?")')
     GAPPS_BRAND=$(
         Radiolist '([title]="Which GApps do you want to install?"
                  [default]="MindTheGapps")' \
-            'OpenGApps' "This flavor may cause startup failure" 'off' \
-            'MindTheGapps' "Recommend" 'on'
+            'MindTheGapps' "Recommend" 'on' \
+            'OpenGApps' "This flavor may cause startup failure" 'off'
     )
 else
     GAPPS_BRAND="none"
