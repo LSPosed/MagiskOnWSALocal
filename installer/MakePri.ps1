@@ -16,13 +16,14 @@
 # Copyright (C) 2023 LSPosed Contributors
 #
 
+$Host.UI.RawUI.WindowTitle = "Merging resources...."
 If ((Test-Path -Path "pri") -Eq $true -And (Test-Path -Path "xml") -Eq $true) {
     $AppxManifestFile = ".\AppxManifest.xml"
     Copy-Item .\resources.pri -Destination ".\pri\resources.pri"
     $ProcNew = Start-Process -PassThru makepri.exe -WindowStyle Hidden -Args "new /pr .\pri /cf .\xml\priconfig.xml /of .\resources.pri /mn $AppxManifestFile /o"
     $ProcNew.WaitForExit()
     If ($ProcNew.ExitCode -Ne 0) {
-        Write-Warning "Failed to merge resources from pri`r`nTrying to dump..."
+        Write-Warning "Failed to merge resources from pri`r`nTrying to dump...."
         New-Item -Path "." -Name "priinfo" -ItemType "directory"
         $Item = Get-Item .\pri\* -Include "*.pri"
         $Item | ForEach-Object {

@@ -898,7 +898,7 @@ if [ "$COMPRESS_OUTPUT" ] || [ -n "$COMPRESS_FORMAT" ]; then
     elif [ "$COMPRESS_FORMAT" = "xz" ]; then
         echo "Compressing with tar xz"
         if ! (tar -cP -I 'xz -9 -T0' -f "$OUTPUT_PATH" "$WORK_DIR/wsa/$artifact_name"); then
-            echo "Out of memory? Trying again with single threads..."
+            echo "Out of memory? Trying again with single threads...."
             tar -cPJvf "$OUTPUT_PATH" "$WORK_DIR/wsa/$artifact_name" || abort
         fi
     elif [ "$COMPRESS_FORMAT" = "zip" ]; then

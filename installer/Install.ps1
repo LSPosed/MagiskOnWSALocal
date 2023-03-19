@@ -1,5 +1,5 @@
 # Automated Install script by Midonei
-$Host.UI.RawUI.WindowTitle = "Installing MagiskOnWSA..."
+$Host.UI.RawUI.WindowTitle = "Installing MagiskOnWSA...."
 function Test-Administrator {
     [OutputType([bool])]
     param()
@@ -101,7 +101,7 @@ If (($null -Ne $Installed) -And (-Not ($Installed.IsDevelopmentMode))) {
     }
 }
 Clear-Host
-Write-Host "Installing MagiskOnWSA..."
+Write-Host "Installing MagiskOnWSA...."
 Stop-Process -Name "WsaClient" -ErrorAction SilentlyContinue
 Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Register .\AppxManifest.xml
 If ($?) {
