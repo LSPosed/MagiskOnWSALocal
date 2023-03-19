@@ -43,7 +43,7 @@ check_dependencies() {
     command -v patchelf >/dev/null 2>&1 || NEED_INSTALL+=("patchelf")
     command -v resize2fs >/dev/null 2>&1 || NEED_INSTALL+=("e2fsprogs")
     command -v pip >/dev/null 2>&1 || NEED_INSTALL+=("python3-pip")
-    command -v aria2c >/dev/null 2>&1 || NEED_INSTALL+=("aria2")
+    command -v aria2c >/dev/null 2>&1 || NEED_INSTALL+=("aria2 ca-certificates")
     command -v 7z > /dev/null 2>&1 || NEED_INSTALL+=("p7zip-full")
     command -v setfattr > /dev/null 2>&1 || NEED_INSTALL+=("attr")
     command -v xz > /dev/null 2>&1 || NEED_INSTALL+=("xz-utils")
