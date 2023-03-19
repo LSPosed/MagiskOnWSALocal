@@ -7,5 +7,6 @@
 		<indexer-config type="folder" foldernameAsQualifier="true" filenameAsQualifier="true"
 			qualifierDelimiter="." />
 		<indexer-config type="PRI" />
+		<indexer-config type="priinfo" />
 	</index>
 </resources>
