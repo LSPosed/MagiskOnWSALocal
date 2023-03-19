@@ -27,7 +27,7 @@ If ((Test-Path -Path "pri") -Eq $true -And (Test-Path -Path "xml") -Eq $true) {
         $Item = Get-Item .\pri\* -Include "*.pri"
         $Item | ForEach-Object {
             $PriName = $_.Name
-            $ProcDump = Start-Process -PassThru makepri.exe -Args "dump /if $_ /o /es .\resources.pri /of .\priinfo\$PriName.xml /dt detailed"
+            $ProcDump = Start-Process -PassThru -WindowStyle Hidden makepri.exe -Args "dump /if $_ /o /es .\resources.pri /of .\priinfo\$PriName.xml /dt detailed"
             $ProcDump.WaitForExit()
             If ($ProcDump.ExitCode -Ne 0) {
                 Write-Warning "Failed to dump $PriName`r`n"
@@ -36,7 +36,7 @@ If ((Test-Path -Path "pri") -Eq $true -And (Test-Path -Path "xml") -Eq $true) {
                 Write-Host "Dumped $PriName`r`n"
             }
         }
-        $ProcNewFromDump = Start-Process -PassThru makepri.exe -Args "new /pr .\priinfo /cf .\xml\priconfig.xml /of .\resources.pri /mn $AppxManifestFile /o"    
+        $ProcNewFromDump = Start-Process -PassThru -WindowStyle Hidden makepri.exe -Args "new /pr .\priinfo /cf .\xml\priconfig.xml /of .\resources.pri /mn $AppxManifestFile /o"    
         $ProcNewFromDump.WaitForExit()
         If ($ProcNewFromDump.ExitCode -Ne 0) {
             Write-Warning "Failed to merge resources from dump`r`n"
