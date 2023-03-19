@@ -10,7 +10,7 @@
 
   | DistrOS             |                                                                           |            |            |              |
   |:-------------------:|---------------------------------------------------------------------------|------------|------------|--------------|
-  | Debian              | `lzip patchelf e2fsprogs python3 python3-pip aria2 p7zip-full attr unzip` | `whiptail` | `xz-utils` | `qemu-utils` |
+  | Debian              | `lzip patchelf e2fsprogs python3 python3-pip aria2 p7zip-full attr unzip qemu-utils` | `whiptail` | `xz-utils` | `qemu-utils` |
   | openSUSE Tumbleweed | Same as above                                                             | `dialog`   | `xz`       | `qemu-tools` |
 
   The python3 library `requests` is used.
