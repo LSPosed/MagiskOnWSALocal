@@ -49,7 +49,11 @@ If (((Test-Path -Path $FileList) -Eq $false).Count) {
 }
 
 If ((Test-Path -Path "MakePri.ps1") -Eq $true) {
-    Start-Process powershell.exe -Wait -Args "-ExecutionPolicy Bypass -File MakePri.ps1" -WorkingDirectory $PSScriptRoot
+    $ProcMakePri = Start-Process powershell.exe -PassThru -Args "-ExecutionPolicy Bypass -File MakePri.ps1" -WorkingDirectory $PSScriptRoot
+    $ProcMakePri.WaitForExit()
+    If ($ProcMakePri.ExitCode -Ne 0) {
+        Write-Warning "Failed to merge resources, WSA Seetings will always be in English`r`n"
+    }
 }
 
 reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
