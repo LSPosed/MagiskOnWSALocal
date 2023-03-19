@@ -63,7 +63,19 @@ RELEASE_TYPE=$(
         'insider fast' "Dev Channel" 'off'
 )
 
-if [ -z "${CUSTOM_MAGISK+x}" ]; then
+if (YesNoBox '([title]="Root" [text]="Do you want to Root WSA?")'); then
+    ROOT_SOL=$(
+        Radiolist '([title]="Root solution"
+                        [default]="magisk")' \
+            \
+            'magisk' "Magisk" 'on' \
+            'kernelsu' "KernelSU" 'off'
+    )
+else
+    ROOT_SOL="none"
+fi
+
+if [ "$ROOT_SOL" = "magisk" ]; then
     MAGISK_VER=$(
         Radiolist '([title]="Magisk version"
                         [default]="stable")' \
@@ -74,7 +86,7 @@ if [ -z "${CUSTOM_MAGISK+x}" ]; then
             'debug' "Canary Channel Debug Build" 'off'
     )
 else
-    MAGISK_VER=debug
+    MAGISK_VER=stable
 fi
 
 if (YesNoBox '([title]="Install GApps" [text]="Do you want to install GApps?")'); then
@@ -91,20 +103,20 @@ fi
 if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
     # TODO: Keep it pico since other variants of opengapps are unable to boot successfully
     if [ "$DEBUG" = "1" ]; then
-    GAPPS_VARIANT=$(
-        Radiolist '([title]="Variants of GApps"
-                     [default]="pico")' \
-            \
-            'super' "" 'off' \
-            'stock' "" 'off' \
-            'full' "" 'off' \
-            'mini' "" 'off' \
-            'micro' "" 'off' \
-            'nano' "" 'off' \
-            'pico' "" 'on' \
-            'tvstock' "" 'off' \
-            'tvmini' "" 'off'
-    )
+        GAPPS_VARIANT=$(
+            Radiolist '([title]="Variants of GApps"
+                        [default]="pico")' \
+                \
+                'super' "" 'off' \
+                'stock' "" 'off' \
+                'full' "" 'off' \
+                'mini' "" 'off' \
+                'micro' "" 'off' \
+                'nano' "" 'off' \
+                'pico' "" 'on' \
+                'tvstock' "" 'off' \
+                'tvmini' "" 'off'
+        )
     else
         GAPPS_VARIANT=pico
     fi
@@ -117,15 +129,6 @@ if (YesNoBox '([title]="Remove Amazon Appstore" [text]="Do you want to keep Amaz
 else
     REMOVE_AMAZON="--remove-amazon"
 fi
-
-ROOT_SOL=$(
-    Radiolist '([title]="Root solution"
-                     [default]="magisk")' \
-        \
-        'magisk' "Magisk" 'on' \
-        'kernelsu' "KernelSU" 'off' \
-        'none' "Without root" 'off'
-)
 
 if (YesNoBox '([title]="Compress output" [text]="Do you want to compress the output?")'); then
     COMPRESS_OUTPUT="--compress"
