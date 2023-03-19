@@ -32,6 +32,9 @@ If ((Test-Path -Path "pri") -Eq $true -And (Test-Path -Path "xml") -Eq $true) {
             If ($ProcDump.ExitCode -Ne 0) {
                 Write-Warning "Failed to dump $PriName`r`n"
             }
+            else {
+                Write-Host "Dumped $PriName`r`n"
+            }
         }
         $ProcNewFromDump = Start-Process -PassThru makepri.exe -Args "new /pr .\priinfo /cf .\xml\priconfig.xml /of .\resources.pri /mn $AppxManifestFile /o"    
         $ProcNewFromDump.WaitForExit()
