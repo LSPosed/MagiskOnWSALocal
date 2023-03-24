@@ -58,8 +58,8 @@
    git clone https://github.com/LSPosed/MagiskOnWSALocal.git --depth 1
    ```
 
-3. Run `cd scripts`.
-4. Run `./run.sh` under scripts directory.
+3. Run `cd MagiskOnWSALocal`.
+4. Run `./scripts/run.sh`.
 5. Select the WSA version and its architecture (mostly x64).
 6. Select the version of Magisk.
 7. Choose which brand of GApps you want to install:
