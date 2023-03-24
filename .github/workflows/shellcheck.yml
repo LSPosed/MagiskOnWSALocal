@@ -2,8 +2,6 @@ name: Shell checker
 
 on:
   push:
-    branches:
-      - main
     paths:
       - '**.sh'
   workflow_dispatch:
@@ -21,7 +19,5 @@ jobs:
     - name: Run ShellCheck
       id: check
       uses: ludeeus/action-shellcheck@master
-      env:
-        SHELLCHECK_OPTS: -e SC2086
       with:
        scandir: './scripts'

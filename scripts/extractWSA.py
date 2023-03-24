@@ -22,9 +22,9 @@ import sys
 
 import warnings
 import zipfile
-import os
 from pathlib import Path
 import re
+import shutil
 
 warnings.filterwarnings("ignore")
 
@@ -32,10 +32,23 @@ arch = sys.argv[1]
 
 zip_name = ""
 wsa_zip_path= Path(sys.argv[2]).resolve()
-workdir = Path(sys.argv[3]) / "wsa"
+rootdir = Path(sys.argv[3]).resolve()
+env_file = Path(sys.argv[4]).resolve()
+
+workdir = rootdir / "wsa"
 archdir = Path(workdir / arch)
+
+if not Path(rootdir).is_dir():
+    rootdir.mkdir()
+
+if Path(workdir).is_dir():
+    shutil.rmtree(workdir)
+else:
+    workdir.unlink(missing_ok=True)
+
 if not Path(workdir).is_dir():
     workdir.mkdir()
+
 if not Path(archdir).is_dir():
     archdir.mkdir()
 with zipfile.ZipFile(wsa_zip_path) as zip:
@@ -53,21 +66,21 @@ with zipfile.ZipFile(wsa_zip_path) as zip:
                 main_ver = ver[0]
                 rel = ver_no[3].split(".")
                 rel_long = str(rel[0])
-                with open(os.environ['WSA_WORK_ENV'], 'a') as environ_file:
+                with open(env_file, 'a') as environ_file:
                     environ_file.write(f'WSA_VER={long_ver}\n')
                     environ_file.write(f'WSA_MAIN_VER={main_ver}\n')
                     environ_file.write(f'WSA_REL={rel_long}\n')
         if 'language' in f.filename.lower() or 'scale' in f.filename.lower():
-            name = f.filename.split("-", 1)[1].split(".")[0]
+            name = f.filename.split("_")[2].split(".")[0]
             zip.extract(f, workdir)
             with zipfile.ZipFile(workdir / f.filename) as l:
                 for g in l.filelist:
                     if g.filename == 'resources.pri':
-                        g.filename = f'{name}.pri'
-                        l.extract(g, workdir / 'pri')
+                        g.filename = f'resources.{name}.pri'
+                        l.extract(g, workdir / archdir / 'pri')
                     elif g.filename == 'AppxManifest.xml':
-                        g.filename = f'{name}.xml'
-                        l.extract(g, workdir / 'xml')
+                        g.filename = f'resources.{name}.xml'
+                        l.extract(g, workdir / archdir / 'xml')
                     elif re.search(u'Images/.+\.png', g.filename):
                         l.extract(g, archdir)
 with zipfile.ZipFile(zip_path) as zip:
