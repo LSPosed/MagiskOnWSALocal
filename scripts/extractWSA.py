@@ -20,13 +20,10 @@
 
 import sys
 
-import warnings
 import zipfile
 from pathlib import Path
 import re
 import shutil
-
-warnings.filterwarnings("ignore")
 
 arch = sys.argv[1]
 

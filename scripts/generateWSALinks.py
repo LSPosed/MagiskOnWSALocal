@@ -22,7 +22,7 @@ import html
 import os
 import re
 import sys
-import warnings
+
 from pathlib import Path
 from threading import Thread
 from typing import OrderedDict
@@ -43,8 +43,6 @@ class Prop(OrderedDict):
 
     def get(self, key: str) -> str:
         return self[key]
-
-warnings.filterwarnings("ignore")
 
 arch = sys.argv[1]
 
