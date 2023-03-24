@@ -31,7 +31,7 @@
 
       Ready to use right out of the box.
 
-    `run.sh` will handle all dependencies automatically.
+    `./run.sh` will handle all dependencies automatically.
 
     No need to type any commands.
 
@@ -39,7 +39,7 @@
 
     Install the dependencies manually.
 
-    Use the command-line program `build.sh`.
+    Use the command-line program `./build.sh`.
 
 ## Features
 
