@@ -19,16 +19,16 @@
 $Host.UI.RawUI.WindowTitle = "Merging resources...."
 If ((Test-Path -Path "pri") -Eq $true -And (Test-Path -Path "xml") -Eq $true) {
     $AppxManifestFile = ".\AppxManifest.xml"
-    Copy-Item .\resources.pri -Destination ".\pri\resources.pri"
+    Copy-Item .\resources.pri -Destination ".\pri\resources.pri" | Out-Null
     $ProcNew = Start-Process -PassThru makepri.exe -WindowStyle Hidden -Args "new /pr .\pri /cf .\xml\priconfig.xml /of .\resources.pri /mn $AppxManifestFile /o"
     $ProcNew.WaitForExit()
     If ($ProcNew.ExitCode -Ne 0) {
-        Write-Warning "Failed to merge resources from pri`r`nTrying to dump...."
+        Write-Warning "Failed to merge resources from pris`r`nTrying to dump pris to priinfo...."
         New-Item -Path "." -Name "priinfo" -ItemType "directory"
         $Processes = ForEach ($Item in Get-Item ".\pri\*" -Include "*.pri") {
             $Name = $Item.Name
             Write-Host "Dumping $Name....`r`n"
-            Start-Process -PassThru -WindowStyle Hidden makepri.exe -Args "dump /if $Item /o /es .\resources.pri /of .\priinfo\$Name.xml /dt detailed"
+            Start-Process -PassThru -WindowStyle Hidden makepri.exe -Args "dump /if ""$Item"" /o /es .\pri\resources.pri /of .\priinfo\$Name.xml /dt detailed"
         }
         Write-Host "Dumping resources....`r`n"
         $Processes | Wait-Process
@@ -37,7 +37,7 @@ If ((Test-Path -Path "pri") -Eq $true -And (Test-Path -Path "xml") -Eq $true) {
         $ProcNewFromDump.WaitForExit()
         Remove-Item 'priinfo' -Recurse
         If ($ProcNewFromDump.ExitCode -Ne 0) {
-            Write-Warning "Failed to merge resources from dump`r`n"
+            Write-Warning "Failed to create resources from priinfos`r`n"
             exit 1
         }
     }
