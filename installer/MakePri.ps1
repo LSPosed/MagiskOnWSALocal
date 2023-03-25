@@ -27,8 +27,9 @@ If ((Test-Path -Path "pri") -Eq $true -And (Test-Path -Path "xml") -Eq $true) {
         New-Item -Path "." -Name "priinfo" -ItemType "directory"
         $Processes = ForEach ($Item in Get-Item ".\pri\*" -Include "*.pri") {
             $Name = $Item.Name
+            $RelativePath = $Item | Resolve-Path -Relative
             Write-Host "Dumping $Name....`r`n"
-            Start-Process -PassThru -WindowStyle Hidden makepri.exe -Args "dump /if ""$Item"" /o /es .\pri\resources.pri /of .\priinfo\$Name.xml /dt detailed"
+            Start-Process -PassThru -WindowStyle Hidden makepri.exe -Args "dump /if $RelativePath /o /es .\pri\resources.pri /of .\priinfo\$Name.xml /dt detailed"
         }
         Write-Host "Dumping resources....`r`n"
         $Processes | Wait-Process
