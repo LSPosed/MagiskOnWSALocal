@@ -41,7 +41,7 @@ Function Test-CommandExists {
     $oldPreference = $ErrorActionPreference
     $ErrorActionPreference = 'stop'
     try { if (Get-Command $command) { RETURN $true } }
-    Catch { Write-Host "$command does not exist"; RETURN $false }
+    Catch { RETURN $false }
     Finally { $ErrorActionPreference = $oldPreference }
 } #end function test-CommandExists
 
