@@ -90,9 +90,5 @@ with zipfile.ZipFile(wsa_zip_path) as zip:
                         l.extract(g, archdir)
 with zipfile.ZipFile(zip_path) as zip:
     stat = Path(zip_path).stat()
-    print(f"stat {zip_path}: {stat}", flush=True)
     print(f"unzipping from {zip_path}", flush=True)
-    members = zip.namelist()
-    for member in members:
-        print(f"extracting {member}", flush=True)
-        zip.extract(member, archdir)
+    zip.extractall(archdir)
