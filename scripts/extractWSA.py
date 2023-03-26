@@ -39,7 +39,7 @@ print(
 env_file = Path(env_file_raw).resolve()
 
 workdir = rootdir / "wsa"
-archdir = Path(workdir / arch)
+archdir = Path(workdir / arch).resolve()
 pridir = workdir / archdir / 'pri'
 xmldir = workdir / archdir / 'xml'
 if not Path(rootdir).is_dir():
@@ -57,7 +57,7 @@ if not Path(archdir).is_dir():
     archdir.mkdir()
 uid = os.getuid()
 workdir_rw = os.access(workdir, os.W_OK)
-print(f"Uid {uid} can write to {workdir} {workdir_rw}", flush=True)
+print(f"Uid {uid} can write to {archdir} {workdir_rw}", flush=True)
 with zipfile.ZipFile(wsa_zip_path) as zip:
     for f in zip.filelist:
         if arch in f.filename.lower():
@@ -94,5 +94,7 @@ with zipfile.ZipFile(wsa_zip_path) as zip:
                         print(f"extracting {g.filename}", flush=True)
                         l.extract(g, archdir)
 with zipfile.ZipFile(zip_path) as zip:
+    stat = Path(zip_path).stat()
+    print(f"stat {zip_path}: {stat}", flush=True)
     print(f"unzipping from {zip_path}", flush=True)
     zip.extractall(archdir)
