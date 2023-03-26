@@ -18,6 +18,7 @@
 # Copyright (C) 2023 LSPosed Contributors
 #
 
+import os
 import sys
 
 import zipfile
@@ -28,9 +29,13 @@ import shutil
 arch = sys.argv[1]
 
 zip_name = ""
-wsa_zip_path= Path(sys.argv[2]).resolve()
+wsa_zip_path_raw = sys.argv[2]
+
+wsa_zip_path= Path(wsa_zip_path_raw).resolve()
 rootdir = Path(sys.argv[3]).resolve()
-env_file = Path(sys.argv[4]).resolve()
+env_file_raw = sys.argv[4]
+print(f"wsa_zip_path_raw: {wsa_zip_path_raw}, env_file_raw: {env_file_raw}", flush=True)
+env_file = Path(env_file_raw).resolve()
 
 workdir = rootdir / "wsa"
 archdir = Path(workdir / arch)
@@ -48,15 +53,19 @@ if not Path(workdir).is_dir():
 
 if not Path(archdir).is_dir():
     archdir.mkdir()
+print(f"extracting {arch} from {wsa_zip_path} to {archdir}", flush=True)
 with zipfile.ZipFile(wsa_zip_path) as zip:
     for f in zip.filelist:
         if arch in f.filename.lower():
             zip_name = f.filename
-            output_name = zip_name[11:-5]
             if not Path(workdir / zip_name).is_file():
                 zip_path = workdir / zip_name
-                print(f"unzipping to {workdir}", flush=True)
-                zip.extract(f, workdir)
+                print(f"unzipping {zip_name} to {workdir}", flush=True)
+                uid = os.getuid()
+                workdir_rw = os.access(workdir, os.W_OK)
+                print(f"Uid {uid} can write to \"{workdir}\"? : {workdir_rw}", flush=True)
+                extract_ret = zip.extract(f, workdir)
+                print(f"extract_ret: {extract_ret}", flush=True)
                 ver_no = zip_name.split("_")
                 long_ver = ver_no[1]
                 ver = long_ver.split(".")
