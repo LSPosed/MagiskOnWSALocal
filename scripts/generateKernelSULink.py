@@ -29,7 +29,7 @@ from pathlib import Path
 
 arch = sys.argv[1]
 download_dir = Path.cwd().parent / \
-    "download" if sys.argv[2] == "" else Path(sys.argv[2]).resolve()
+    "download" if sys.argv[2] == "" else Path(sys.argv[2])
 tempScript = sys.argv[3]
 kernelVersion = sys.argv[4]
 file_name = sys.argv[5]

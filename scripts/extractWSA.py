@@ -29,17 +29,12 @@ import shutil
 arch = sys.argv[1]
 
 zip_name = ""
-wsa_zip_path_raw = sys.argv[2]
-
-wsa_zip_path = Path(wsa_zip_path_raw).resolve()
-rootdir = Path(sys.argv[3]).resolve()
-env_file_raw = sys.argv[4]
-print(
-    f"wsa_zip_path_raw: {wsa_zip_path_raw}, env_file_raw: {env_file_raw}", flush=True)
-env_file = Path(env_file_raw).resolve()
+wsa_zip_path = Path(sys.argv[2])
+rootdir = Path(sys.argv[3])
+env_file = Path(sys.argv[4])
 
 workdir = rootdir / "wsa"
-archdir = Path(workdir / arch).resolve()
+archdir = Path(workdir / arch)
 pridir = workdir / archdir / 'pri'
 xmldir = workdir / archdir / 'xml'
 if not Path(rootdir).is_dir():
