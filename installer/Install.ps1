@@ -126,6 +126,7 @@ If (($null -Ne $Installed) -And (-Not ($Installed.IsDevelopmentMode))) {
     Write-Warning "There is already one installed WSA. Please uninstall it first.`r`nPress y to uninstall existing WSA or press any key to exit"
     $key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
     If ("y" -Eq $key.Character) {
+        Clear-Host
         Remove-AppxPackage -Package $Installed.PackageFullName
     }
     Else {
@@ -144,6 +145,7 @@ ElseIf ($null -Ne $Installed) {
     Clear-Host
     Write-Error "Failed to update.`r`nPress any key to uninstall existing installation while preserving user data.`r`nTake in mind that this will remove the Android apps' icon from the start menu.`r`nIf you want to cancel, close this window now."
     $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+    Clear-Host
     Remove-AppxPackage -PreserveApplicationData -Package $Installed.PackageFullName
     Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Register .\AppxManifest.xml
     If ($?) {

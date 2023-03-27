@@ -25,32 +25,35 @@ If ((Test-Path -Path "pri") -Eq $true -And (Test-Path -Path "xml") -Eq $true) {
     If ($ProcNew.ExitCode -Ne 0) {
         Write-Warning "Failed to merge resources from pris`r`nTrying to dump pris to priinfo...."
         New-Item -Path "." -Name "priinfo" -ItemType "directory"
-        $Processes = ForEach ($Item in Get-Item ".\pri\*" -Include "*.pri") {
-            $Name = $Item.Name
-            $RelativePath = $Item | Resolve-Path -Relative
-            Write-Host "Dumping $Name....`r`n"
-            Start-Process -PassThru -WindowStyle Hidden makepri.exe -Args "dump /if $RelativePath /o /es .\pri\resources.pri /of .\priinfo\$Name.xml /dt detailed"
+        Clear-Host
+        $i = 0
+        $PriItem = Get-Item ".\pri\*" -Include "*.pri"
+        Write-Host "Dumping resources...."
+        $Processes = ForEach ($Item in $PriItem) {
+            Start-Process -PassThru -WindowStyle Hidden makepri.exe -Args "dump /if $($Item | Resolve-Path -Relative) /o /es .\pri\resources.pri /of .\priinfo\$($Item.Name).xml /dt detailed"
+            $i = $i + 1
+            $Completed = ($i / $PriItem.count) * 100
+            Write-Progress -Activity "Dumping resources" -Status "Dumping $($Item.Name):" -PercentComplete $Completed
         }
-        Write-Host "Dumping resources....`r`n"
         $Processes | Wait-Process
-        Write-Host "Creating pri from dumps....`r`n"
+        Write-Progress -Activity "Dumping resources" -Status "Ready" -Completed
+        Clear-Host
+        Write-Host "Creating pri from dumps...."
         $ProcNewFromDump = Start-Process -PassThru -WindowStyle Hidden makepri.exe -Args "new /pr .\priinfo /cf .\xml\priconfig.xml /of .\resources.pri /mn $AppxManifestFile /o"    
         $ProcNewFromDump.WaitForExit()
         Remove-Item 'priinfo' -Recurse
         If ($ProcNewFromDump.ExitCode -Ne 0) {
-            Write-Warning "Failed to create resources from priinfos`r`n"
+            Write-Warning "Failed to create resources from priinfos"
             exit 1
         }
     }
 
     $ProjectXml = [xml](Get-Content $AppxManifestFile)
     $ProjectResources = $ProjectXml.Package.Resources;
-    $Item = Get-Item .\xml\* -Exclude "priconfig.xml" -Include "*.xml"
-    $Item | ForEach-Object {
-        $Xml = [xml](Get-Content $_)
-        $Resource = $Xml.Package.Resources.Resource
-        $newNode = $ProjectXml.ImportNode($Resource, $true)
-        $ProjectResources.AppendChild($newNode)
+    $(Get-Item .\xml\* -Exclude "priconfig.xml" -Include "*.xml") | ForEach-Object {
+        $($([xml](Get-Content $_)).Package.Resources.Resource) | ForEach-Object {
+            $ProjectResources.AppendChild($($ProjectXml.ImportNode($_, $true)))
+        }
     }
     $ProjectXml.Save($AppxManifestFile)
     Remove-Item 'pri' -Recurse
