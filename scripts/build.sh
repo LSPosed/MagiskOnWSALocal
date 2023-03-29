@@ -140,6 +140,10 @@ vhdx_to_img() {
     return 0
 }
 
+# workaround for Debian
+# In Debian /usr/sbin is not in PATH and some utilities are not in /bin
+[ -f /usr/sbin ] && export PATH="/usr/sbin:$PATH"
+# In Debian /etc/mtab is not exist
 [ -f /etc/mtab ] || ln -s /proc/self/mounts /etc/mtab
 
 ARCH_MAP=(
