@@ -45,6 +45,20 @@ function YesNoBox {
     $DIALOG --title "${o[title]}" --yesno "${o[text]}" 0 0
 }
 
+function DialogBox {
+    declare -A o="$1"
+    shift
+    $DIALOG --title "${o[title]}" --msgbox "${o[text]}" 0 0
+}
+intro="Welcome to MagiskOnWSA!
+
+    With this utility, you can integrate Magisk for WSA easily.
+    Use arrow keys to navigate, and press space to select.
+    Press enter to confirm.
+"
+DialogBox "([title]='Intro to MagiskOnWSA' \
+            [text]='$intro')"
+
 ARCH=$(
     Radiolist '([title]="Build arch"
                 [default]="x64")' \
