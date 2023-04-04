@@ -29,8 +29,8 @@ from pathlib import Path
 arch = sys.argv[1]
 brand = sys.argv[2]
 variant = sys.argv[3]
-download_dir = Path.cwd().parent / \
-    "download" if sys.argv[4] == "" else Path(sys.argv[4]).resolve()
+arg4 = sys.argv[4]
+download_dir = Path.cwd().parent / "download" if arg4 == "" else Path(arg4)
 tempScript = sys.argv[5]
 android_api = sys.argv[6]
 file_name = sys.argv[7]

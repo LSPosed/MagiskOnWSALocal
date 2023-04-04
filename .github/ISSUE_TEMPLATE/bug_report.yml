@@ -80,9 +80,12 @@ body:
       value: |
         <details>
         
+        [//]: <> (Don't modify above)
+        
         ```
         # Replace this line with the log / 将此行用日志替换
         ```
+        [//]: <> (Don't modify below)
         </details>
     validations:
       required: true

@@ -140,6 +140,10 @@ vhdx_to_img() {
     return 0
 }
 
+# workaround for Debian
+# In Debian /usr/sbin is not in PATH and some utilities in there are in use
+[ -d /usr/sbin ] && export PATH="/usr/sbin:$PATH"
+# In Debian /etc/mtab is not exist
 [ -f /etc/mtab ] || ln -s /proc/self/mounts /etc/mtab
 
 ARCH_MAP=(
@@ -188,7 +192,6 @@ ROOT_SOL_MAP=(
 
 COMPRESS_FORMAT_MAP=(
     "7z"
-    "xz"
     "zip"
 )
 
@@ -884,21 +887,12 @@ if [ "$COMPRESS_OUTPUT" ] || [ -n "$COMPRESS_FORMAT" ]; then
     fi
     if [ -n "$COMPRESS_FORMAT" ]; then
         FILE_EXT=".$COMPRESS_FORMAT"
-        if [ "$FILE_EXT" = ".xz" ]; then
-            FILE_EXT=".tar$FILE_EXT"
-        fi
         OUTPUT_PATH="$OUTPUT_PATH$FILE_EXT"
     fi
     rm -f "${OUTPUT_PATH:?}" || abort
     if [ "$COMPRESS_FORMAT" = "7z" ]; then
         echo "Compressing with 7z"
         7z a "${OUTPUT_PATH:?}" "$WORK_DIR/wsa/$artifact_name" || abort
-    elif [ "$COMPRESS_FORMAT" = "xz" ]; then
-        echo "Compressing with tar xz"
-        if ! (tar -cP -I 'xz -9 -T0' -f "$OUTPUT_PATH" "$WORK_DIR/wsa/$artifact_name"); then
-            echo "Out of memory? Trying again with single threads..."
-            tar -cPJvf "$OUTPUT_PATH" "$WORK_DIR/wsa/$artifact_name" || abort
-        fi
     elif [ "$COMPRESS_FORMAT" = "zip" ]; then
         echo "Compressing with zip"
         7z -tzip a "$OUTPUT_PATH" "$WORK_DIR/wsa/$artifact_name" || abort

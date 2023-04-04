@@ -26,7 +26,7 @@ from pathlib import Path
 arch = sys.argv[1]
 
 zip_name = ""
-wsa_zip_path= Path(sys.argv[2]).resolve()
+wsa_zip_path= Path(sys.argv[2])
 
 with zipfile.ZipFile(wsa_zip_path) as zip:
     for f in zip.filelist:
