@@ -494,8 +494,8 @@ if [ "$GAPPS_BRAND" != "none" ] || [ "$ROOT_SOL" = "magisk" ]; then
         fi
         # shellcheck disable=SC1090
         source "$WSA_WORK_ENV" || abort
-        if [ "$MAGISK_VERSION_CODE" -lt 24000 ]; then
-            echo "Please install Magisk v24+"
+        if [ "$MAGISK_VERSION_CODE" -lt 25211 ]; then
+            echo "Please install Magisk 25211+"
             abort
         fi
         "$SUDO" chmod +x "../linker/$HOST_ARCH/linker64" || abort
@@ -688,14 +688,12 @@ on post-fs-data
     mkdir /dev/$MAGISK_TMP_PATH/.magisk/mirror 0
     mkdir /dev/$MAGISK_TMP_PATH/.magisk/block 0
     mkdir /dev/$MAGISK_TMP_PATH/.magisk/worker 0
-    mkdir /dev/$MAGISK_TMP_PATH/.magisk/sepolicy.rules 0
+    exec u:r:magisk:s0 0 0 -- /system/bin/mknod -m 0600 /dev/$MAGISK_TMP_PATH/.magisk/block/rules b 8 0
     copy /sbin/magisk.apk /dev/$MAGISK_TMP_PATH/stub.apk
     chmod 0644 /dev/$MAGISK_TMP_PATH/stub.apk
     rm /dev/.magisk_unblock
     exec_start $LOAD_POLICY_SVC_NAME
     start $PFD_SVC_NAME
-    mkdir /data/adb/modules 700
-    mount none /data/adb/modules /dev/$MAGISK_TMP_PATH/.magisk/sepolicy.rules bind
     wait /dev/.magisk_unblock 40
     rm /dev/.magisk_unblock
 
