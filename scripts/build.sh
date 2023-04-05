@@ -494,8 +494,8 @@ if [ "$GAPPS_BRAND" != "none" ] || [ "$ROOT_SOL" = "magisk" ]; then
         fi
         # shellcheck disable=SC1090
         source "$WSA_WORK_ENV" || abort
-        if [ "$MAGISK_VERSION_CODE" -lt 25210 ]; then
-            echo "Please install Magisk v25.3+"
+        if [ "$MAGISK_VERSION_CODE" -lt 25211 ]; then
+            echo "Please install Magisk 25211+"
             abort
         fi
         "$SUDO" chmod +x "../linker/$HOST_ARCH/linker64" || abort
