@@ -688,7 +688,6 @@ on post-fs-data
     mkdir /dev/$MAGISK_TMP_PATH/.magisk/mirror 0
     mkdir /dev/$MAGISK_TMP_PATH/.magisk/block 0
     mkdir /dev/$MAGISK_TMP_PATH/.magisk/worker 0
-    exec u:r:magisk:s0 0 0 -- /system/bin/mknod -m 0600 /dev/$MAGISK_TMP_PATH/.magisk/block/preinit b 8 0
     copy /sbin/magisk.apk /dev/$MAGISK_TMP_PATH/stub.apk
     chmod 0644 /dev/$MAGISK_TMP_PATH/stub.apk
     rm /dev/.magisk_unblock
@@ -696,6 +695,7 @@ on post-fs-data
     start $PFD_SVC_NAME
     wait /dev/.magisk_unblock 40
     rm /dev/.magisk_unblock
+    exec u:r:magisk:s0 0 0 -- /system/bin/mknod -m 0600 /dev/$MAGISK_TMP_PATH/.magisk/block/preinit b 8 0
 
 service $LOAD_POLICY_SVC_NAME /system/bin/sh /sbin/loadpolicy.sh
     user root
