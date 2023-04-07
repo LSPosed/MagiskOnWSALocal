@@ -61,7 +61,7 @@ elif brand == "MindTheGapps":
             '.zip/download', '.zip').replace('sourceforge.net/projects/wsa-mtg/files', 'downloads.sourceforge.net/project/wsa-mtg')
     else:
         print(f"Failed to fetch from SourceForge RSS, fallbacking to Github API...", flush=True)
-        res = requests.get(f"https://api.github.com/repos/s1204IT/MindTheGappsBuilder/releases/latest")
+        res = requests.get(f"https://api.github.com/repos/Howard20181/MindTheGappsBuilder/releases/latest")
         json_data = json.loads(res.content)
         headers = res.headers
         x_ratelimit_remaining = headers["x-ratelimit-remaining"]
