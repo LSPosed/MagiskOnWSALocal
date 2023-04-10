@@ -45,6 +45,7 @@ class Prop(OrderedDict):
     def get(self, key: str) -> str:
         return self[key]
 
+
 logging.captureWarnings(True)
 arch = sys.argv[1]
 
@@ -97,7 +98,7 @@ for node in doc.getElementsByTagName('ExtendedUpdateInfo')[0].getElementsByTagNa
         for node_file in node_files[0].getElementsByTagName('File'):
             if node_file.hasAttribute('InstallerSpecificIdentifier') and node_file.hasAttribute('FileName'):
                 filenames[node.getElementsByTagName('ID')[0].firstChild.nodeValue] = (f"{node_file.attributes['InstallerSpecificIdentifier'].value}_{node_file.attributes['FileName'].value}",
-                                            node_xml.getElementsByTagName('ExtendedProperties')[0].attributes['PackageIdentityName'].value)
+                                                                                      node_xml.getElementsByTagName('ExtendedProperties')[0].attributes['PackageIdentityName'].value)
 
 identities = {}
 for node in doc.getElementsByTagName('NewUpdates')[0].getElementsByTagName('UpdateInfo'):
@@ -105,7 +106,7 @@ for node in doc.getElementsByTagName('NewUpdates')[0].getElementsByTagName('Upda
     if not node_xml.getElementsByTagName('SecuredFragment'):
         continue
     else:
-        id = node.getElementsByTagName('ID')[0].firstChild.nodeValue        
+        id = node.getElementsByTagName('ID')[0].firstChild.nodeValue
         update_identity = node_xml.getElementsByTagName('UpdateIdentity')[0]
         if id in filenames:
             fileinfo = filenames[id]
@@ -121,6 +122,7 @@ if not download_dir.is_dir():
 
 tmpdownlist = open(download_dir/tempScript, 'a')
 
+
 def send_req(i, v, out_file, out_file_name):
     out = session.post(
         'https://fe3.delivery.mp.microsoft.com/ClientWebService/client.asmx/secured',
@@ -135,6 +137,7 @@ def send_req(i, v, out_file, out_file_name):
             tmpdownlist.writelines(url + '\n')
             tmpdownlist.writelines(f'  dir={download_dir}\n')
             tmpdownlist.writelines(f'  out={out_file_name}\n')
+
 
 threads = []
 for filename, values in identities.items():
