@@ -96,7 +96,7 @@ if [ "$ROOT_SOL" = "magisk" ]; then
             'debug' "Canary Channel Debug Build" 'off'
     )
 else
-    MAGISK_VER=stable
+    MAGISK_VER=""
 fi
 
 if (YesNoBox '([title]="Install GApps" [text]="Do you want to install GApps?")'); then
@@ -109,6 +109,7 @@ if (YesNoBox '([title]="Install GApps" [text]="Do you want to install GApps?")')
 else
     GAPPS_BRAND="none"
 fi
+
 if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
     # TODO: Keep it pico since other variants of opengapps are unable to boot successfully
     if [ "$DEBUG" = "1" ]; then
@@ -126,10 +127,10 @@ if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
                 'tvmini' "" 'off'
         )
     else
-        GAPPS_VARIANT=pico
+        GAPPS_VARIANT=""
     fi
 else
-    GAPPS_VARIANT="pico"
+    GAPPS_VARIANT=""
 fi
 
 if (YesNoBox '([title]="Remove Amazon Appstore" [text]="Do you want to keep Amazon Appstore?")'); then
@@ -154,7 +155,26 @@ fi
 
 clear
 declare -A RELEASE_TYPE_MAP=(["retail"]="retail" ["release preview"]="RP" ["insider slow"]="WIS" ["insider fast"]="WIF")
-COMMAND_LINE=(--arch "$ARCH" --release-type "${RELEASE_TYPE_MAP[$RELEASE_TYPE]}" --magisk-ver "$MAGISK_VER" --gapps-brand "$GAPPS_BRAND" --gapps-variant "$GAPPS_VARIANT" "$REMOVE_AMAZON" --root-sol "$ROOT_SOL" "$COMPRESS_OUTPUT" "$OFFLINE" "$DEBUG" "$CUSTOM_MAGISK" --compress-format "$COMPRESS_FORMAT")
+COMMAND_LINE=(--arch "$ARCH" --release-type "${RELEASE_TYPE_MAP[$RELEASE_TYPE]}" --root-sol "$ROOT_SOL" --gapps-brand "$GAPPS_BRAND")
+CHECK_NULL_LIST=("$REMOVE_AMAZON" "$COMPRESS_OUTPUT" "$OFFLINE" "$DEBUG" "$CUSTOM_MAGISK")
+for i in "${CHECK_NULL_LIST[@]}"; do
+    if [ -n "$i" ]; then
+        COMMAND_LINE+=("$i")
+    fi
+done
+
+if [ -n "$MAGISK_VER" ]; then
+    COMMAND_LINE+=(--magisk-ver "$MAGISK_VER")
+fi
+
+if [ -n "$GAPPS_VARIANT" ]; then
+    COMMAND_LINE+=(--gapps-variant "$GAPPS_VARIANT")
+fi
+
+if [ -n "$COMPRESS_FORMAT" ]; then
+    COMMAND_LINE+=(--compress-format "$COMPRESS_FORMAT")
+fi
+
 echo "COMMAND_LINE=${COMMAND_LINE[*]}"
 chmod +x ./build.sh
 ./build.sh "${COMMAND_LINE[@]}"
