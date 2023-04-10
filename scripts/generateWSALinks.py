@@ -64,7 +64,7 @@ if ms_account_conf.is_file():
     with open(ms_account_conf, "r") as f:
         conf = Prop(f.read())
         user = conf.get('user_code')
-print(f"Generating WSA download link: arch={arch} release_type={release_name}", flush=True)
+print(f"Generating WSA download link: arch={arch} release_type={release_name}\n", flush=True)
 with open(Path.cwd().parent / ("xml/GetCookie.xml"), "r") as f:
     cookie_content = f.read().format(user)
 
@@ -88,26 +88,36 @@ out = session.post(
 doc = minidom.parseString(html.unescape(out.text))
 
 filenames = {}
-for node in doc.getElementsByTagName('Files'):
-    filenames[node.parentNode.parentNode.getElementsByTagName(
-        'ID')[0].firstChild.nodeValue] = f"{node.firstChild.attributes['InstallerSpecificIdentifier'].value}_{node.firstChild.attributes['FileName'].value}"
-    pass
+for node in doc.getElementsByTagName('ExtendedUpdateInfo')[0].getElementsByTagName('Updates')[0].getElementsByTagName('Update'):
+    node_xml = node.getElementsByTagName('Xml')[0]
+    node_files = node_xml.getElementsByTagName('Files')
+    if not node_files:
+        continue
+    else:
+        for node_file in node_files[0].getElementsByTagName('File'):
+            if node_file.hasAttribute('InstallerSpecificIdentifier') and node_file.hasAttribute('FileName'):
+                filenames[node.getElementsByTagName('ID')[0].firstChild.nodeValue] = (f"{node_file.attributes['InstallerSpecificIdentifier'].value}_{node_file.attributes['FileName'].value}",
+                                            node_xml.getElementsByTagName('ExtendedProperties')[0].attributes['PackageIdentityName'].value)
 
-identities = []
-for node in doc.getElementsByTagName('SecuredFragment'):
-    filename = filenames[node.parentNode.parentNode.parentNode.getElementsByTagName('ID')[
-        0].firstChild.nodeValue]
-    update_identity = node.parentNode.parentNode.firstChild
-    identities += [(update_identity.attributes['UpdateID'].value,
-                    update_identity.attributes['RevisionNumber'].value, filename)]
+identities = {}
+for node in doc.getElementsByTagName('NewUpdates')[0].getElementsByTagName('UpdateInfo'):
+    node_xml = node.getElementsByTagName('Xml')[0]
+    if not node_xml.getElementsByTagName('SecuredFragment'):
+        continue
+    else:
+        id = node.getElementsByTagName('ID')[0].firstChild.nodeValue        
+        update_identity = node_xml.getElementsByTagName('UpdateIdentity')[0]
+        if id in filenames:
+            fileinfo = filenames[id]
+            if fileinfo[0] not in identities:
+                identities[fileinfo[0]] = ([update_identity.attributes['UpdateID'].value,
+                                            update_identity.attributes['RevisionNumber'].value], fileinfo[1])
 
 with open(Path.cwd().parent / "xml/FE3FileUrl.xml", "r") as f:
     FE3_file_content = f.read()
 
 if not download_dir.is_dir():
     download_dir.mkdir()
-tmpdownlist = open(download_dir/tempScript, 'a')
-
 
 def send_req(i, v, out_file, out_file_name):
     out = session.post(
@@ -119,22 +129,25 @@ def send_req(i, v, out_file, out_file_name):
     for l in doc.getElementsByTagName("FileLocation"):
         url = l.getElementsByTagName("Url")[0].firstChild.nodeValue
         if len(url) != 99:
-            print(f"download link: {url} to {out_file}", flush=True)
-            tmpdownlist.writelines(url + '\n')
-            tmpdownlist.writelines(f'  dir={download_dir}\n')
-            tmpdownlist.writelines(f'  out={out_file_name}\n')
-
+            print(f"download link: {url}\npath: {out_file}\n", flush=True)
+            with open(download_dir/tempScript, 'a') as tmpdownlist:
+                tmpdownlist.writelines(url + '\n')
+                tmpdownlist.writelines(f'  dir={download_dir}\n')
+                tmpdownlist.writelines(f'  out={out_file_name}\n')
 
 threads = []
-for i, v, f in identities:
-    if re.match(f"Microsoft\.UI\.Xaml\..*_{arch}_.*\.appx", f):
-        out_file_name = f"Microsoft.UI.Xaml_{arch}.appx"
+for filename, values in identities.items():
+    if re.match(f"Microsoft\.UI\.Xaml\..*_{arch}_.*\.appx", filename):
+        out_file_name = f"{values[1]}_{arch}.appx"
         out_file = download_dir / out_file_name
-    # elif re.match(f"Microsoft\.VCLibs\..+\.UWPDesktop_.*_{arch}_.*\.appx", f):
-    #     out_file_name = f"Microsoft.VCLibs.140.00.UWPDesktop_{arch}.appx"
-    #     out_file = download_dir / out_file_name
-    elif re.match(f"MicrosoftCorporationII\.WindowsSubsystemForAndroid_.*\.msixbundle", f):
-        wsa_long_ver = re.search(u'\d{4}.\d{5}.\d{1,}.\d{1,}', f).group()
+    elif re.match(f"Microsoft\.VCLibs\..+\.UWPDesktop_.*_{arch}_.*\.appx", filename):
+        out_file_name = f"{values[1]}_{arch}.appx"
+        out_file = download_dir / out_file_name
+    elif re.match(f"Microsoft\.VCLibs\..+_.*_{arch}_.*\.appx", filename):
+        out_file_name = f"{values[1]}_{arch}.appx"
+        out_file = download_dir / out_file_name
+    elif re.match(f"MicrosoftCorporationII\.WindowsSubsystemForAndroid_.*\.msixbundle", filename):
+        wsa_long_ver = re.search(u'\d{4}.\d{5}.\d{1,}.\d{1,}', filename).group()
         print(f'WSA Version={wsa_long_ver}\n', flush=True)
         main_ver = wsa_long_ver.split(".")[0]
         with open(os.environ['WSA_WORK_ENV'], 'a') as environ_file:
@@ -144,12 +157,9 @@ for i, v, f in identities:
         out_file = download_dir / out_file_name
     else:
         continue
-    th = Thread(target=send_req, args=(i, v, out_file, out_file_name))
+    th = Thread(target=send_req, args=(values[0][0], values[0][1], out_file, out_file_name))
     threads.append(th)
     th.daemon = True
     th.start()
-tmpdownlist.writelines(f'https://aka.ms/Microsoft.VCLibs.{arch}.14.00.Desktop.appx\n')
-tmpdownlist.writelines(f'  dir={download_dir}\n')
 for th in threads:
     th.join()
-tmpdownlist.close()

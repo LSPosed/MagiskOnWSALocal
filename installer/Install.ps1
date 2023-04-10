@@ -101,20 +101,17 @@ If ($(Get-WindowsOptionalFeature -Online -FeatureName 'VirtualMachinePlatform').
 
 [xml]$Xml = Get-Content ".\AppxManifest.xml";
 $Name = $Xml.Package.Identity.Name;
+Write-Host "Installing $Name version: $($Xml.Package.Identity.Version)"
 $ProcessorArchitecture = $Xml.Package.Identity.ProcessorArchitecture;
 $Dependencies = $Xml.Package.Dependencies.PackageDependency;
 $Dependencies | ForEach-Object {
-    If ($_.Name -Eq "Microsoft.VCLibs.140.00.UWPDesktop") {
-        $HighestInstalledVCLibsVersion = Get-InstalledDependencyVersion -Name $_.Name -ProcessorArchitecture $ProcessorArchitecture;
-        If ( $HighestInstalledVCLibsVersion -Lt $_.MinVersion ) {
-            Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Path "Microsoft.VCLibs.$ProcessorArchitecture.14.00.Desktop.appx"
-        }
+    $InstalledVersion = Get-InstalledDependencyVersion -Name $_.Name -ProcessorArchitecture $ProcessorArchitecture;
+    If ( $InstalledVersion -Lt $_.MinVersion ) {
+        Write-Host "Dependency package $($_.Name) $ProcessorArchitecture required minimum version: $($_.MinVersion). Installing...."
+        Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Path "$($_.Name)_$ProcessorArchitecture.appx"
     }
-    ElseIf ($_.Name -Match "Microsoft.UI.Xaml") {
-        $HighestInstalledXamlVersion = Get-InstalledDependencyVersion -Name $_.Name -ProcessorArchitecture $ProcessorArchitecture;
-        If ( $HighestInstalledXamlVersion -Lt $_.MinVersion ) {
-            Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Path "Microsoft.UI.Xaml_$ProcessorArchitecture.appx"
-        }
+    Else {
+        Write-Host "Dependency package $($_.Name) $ProcessorArchitecture current version: $InstalledVersion. Nothing to do."
     }
 }
 
