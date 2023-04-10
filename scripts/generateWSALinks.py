@@ -119,6 +119,8 @@ with open(Path.cwd().parent / "xml/FE3FileUrl.xml", "r") as f:
 if not download_dir.is_dir():
     download_dir.mkdir()
 
+tmpdownlist = open(download_dir/tempScript, 'a')
+
 def send_req(i, v, out_file, out_file_name):
     out = session.post(
         'https://fe3.delivery.mp.microsoft.com/ClientWebService/client.asmx/secured',
@@ -130,10 +132,9 @@ def send_req(i, v, out_file, out_file_name):
         url = l.getElementsByTagName("Url")[0].firstChild.nodeValue
         if len(url) != 99:
             print(f"download link: {url}\npath: {out_file}\n", flush=True)
-            with open(download_dir/tempScript, 'a') as tmpdownlist:
-                tmpdownlist.writelines(url + '\n')
-                tmpdownlist.writelines(f'  dir={download_dir}\n')
-                tmpdownlist.writelines(f'  out={out_file_name}\n')
+            tmpdownlist.writelines(url + '\n')
+            tmpdownlist.writelines(f'  dir={download_dir}\n')
+            tmpdownlist.writelines(f'  out={out_file_name}\n')
 
 threads = []
 for filename, values in identities.items():
@@ -163,3 +164,5 @@ for filename, values in identities.items():
     th.start()
 for th in threads:
     th.join()
+
+tmpdownlist.close()
