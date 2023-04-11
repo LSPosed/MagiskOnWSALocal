@@ -377,10 +377,6 @@ UWPVCLibs_PATH="$DOWNLOAD_DIR/Microsoft.VCLibs.140.00.UWPDesktop_$ARCH.appx"
 xaml_PATH="$DOWNLOAD_DIR/Microsoft.UI.Xaml.2.8_$ARCH.appx"
 MAGISK_ZIP=magisk-$MAGISK_VER.zip
 MAGISK_PATH=$DOWNLOAD_DIR/$MAGISK_ZIP
-KERNEL_VER="5.10.117.2" # TODO: Get from kernel
-KERNELSU_ZIP_NAME=kernelsu-$ARCH-$KERNEL_VER.zip
-KERNELSU_PATH=$DOWNLOAD_DIR/$KERNELSU_ZIP_NAME
-KERNELSU_INFO="$KERNELSU_PATH.info"
 if [ "$CUSTOM_MAGISK" ]; then
     if [ ! -f "$MAGISK_PATH" ]; then
         echo "Custom Magisk $MAGISK_ZIP not found"
@@ -403,7 +399,18 @@ update_gapps_zip_name() {
     fi
     GAPPS_PATH=$DOWNLOAD_DIR/$GAPPS_ZIP_NAME
 }
+update_ksu_zip_name() {
+    if [ "$DOWN_WSA_MAIN_VERSION" -lt "2303" ]; then
+        KERNEL_VER="5.10.117.2"
+    else
+        KERNEL_VER="5.15.78.1"
+    fi
+    KERNELSU_ZIP_NAME=kernelsu-$ARCH-$KERNEL_VER.zip
+    KERNELSU_PATH=$DOWNLOAD_DIR/$KERNELSU_ZIP_NAME
+    KERNELSU_INFO="$KERNELSU_PATH.info"
+}
 update_gapps_zip_name
+update_ksu_zip_name
 if [ -z ${OFFLINE+x} ]; then
     require_su
     if [ "$DOWN_WSA" != "no" ]; then
@@ -417,6 +424,9 @@ if [ -z ${OFFLINE+x} ]; then
     if [[ "$DOWN_WSA_MAIN_VERSION" -lt 2211 ]]; then
         ANDROID_API=32
         update_gapps_zip_name
+    fi
+    if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2303 ]]; then
+        update_ksu_zip_name
     fi
     if [ "$ROOT_SOL" = "magisk" ] || [ "$GAPPS_BRAND" != "none" ]; then
         if [ -z ${CUSTOM_MAGISK+x} ]; then
@@ -444,6 +454,9 @@ else # Offline mode
     if [[ "$DOWN_WSA_MAIN_VERSION" -lt 2211 ]]; then
         ANDROID_API=32
         update_gapps_zip_name
+    fi
+    if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2303 ]]; then
+        update_ksu_zip_name
     fi
     declare -A FILES_CHECK_LIST=([WSA_ZIP_PATH]="$WSA_ZIP_PATH" [xaml_PATH]="$xaml_PATH" [vclibs_PATH]="$vclibs_PATH" [UWPVCLibs_PATH]="$UWPVCLibs_PATH")
     if [ "$GAPPS_BRAND" != "none" ] || [ "$ROOT_SOL" = "magisk" ]; then
