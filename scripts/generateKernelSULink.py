@@ -40,11 +40,15 @@ json_data = json.loads(res.content)
 headers = res.headers
 x_ratelimit_remaining = headers["x-ratelimit-remaining"]
 if res.status_code == 200:
+    link = ""
     assets = json_data["assets"]
     for asset in assets:
         if re.match(f'kernel-WSA-{abi_map[arch]}-{kernelVersion}.*\.zip$', asset["name"]) and asset["content_type"] == "application/zip":
             link = asset["browser_download_url"]
             break
+    if link == "":
+        print(f"Error: No KernelSU release found for arch={abi_map[arch]}, kernel version={kernelVersion}", flush=True)
+        exit(1)
     release_name = json_data["name"]
     with open(os.environ['WSA_WORK_ENV'], 'a') as environ_file:
         environ_file.write(f'KERNELSU_VER={release_name}\n')
