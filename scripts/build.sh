@@ -399,6 +399,7 @@ update_gapps_zip_name() {
     fi
     GAPPS_PATH=$DOWNLOAD_DIR/$GAPPS_ZIP_NAME
 }
+DOWN_WSA_MAIN_VERSION=0
 update_ksu_zip_name() {
     if [ "$DOWN_WSA_MAIN_VERSION" -lt "2303" ]; then
         KERNEL_VER="5.10.117.2"
