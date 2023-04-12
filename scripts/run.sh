@@ -26,7 +26,7 @@ if [ ! "$BASH_VERSION" ]; then
 fi
 cd "$(dirname "$0")" || exit 1
 
-./install_deps.sh
+./install_deps.sh || exit 1
 
 WHIPTAIL=$(command -v whiptail 2>/dev/null)
 DIALOG=$(command -v dialog 2>/dev/null)
