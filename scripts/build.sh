@@ -38,8 +38,7 @@ SYSTEM_MNT="$ROOT_MNT/system"
 VENDOR_MNT="$ROOT_MNT/vendor"
 PRODUCT_MNT="$ROOT_MNT/product"
 SYSTEM_EXT_MNT="$ROOT_MNT/system_ext"
-SUDO=""
-command -v sudo >/dev/null 2>&1 && SUDO="$(which sudo 2>/dev/null)"
+SUDO="$(which sudo 2>/dev/null)"
 DOWNLOAD_DIR=../download
 DOWNLOAD_CONF_NAME=download.list
 umount_clean() {
