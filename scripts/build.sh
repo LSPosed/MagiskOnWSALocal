@@ -45,17 +45,17 @@ umount_clean() {
     if [ -d "$ROOT_MNT" ]; then
         echo "Cleanup Mount Directory"
         if [ -d "$VENDOR_MNT" ]; then
-            "$SUDO" umount -v "$VENDOR_MNT"
+            $SUDO umount -v "$VENDOR_MNT"
         fi
         if [ -d "$PRODUCT_MNT" ]; then
-            "$SUDO" umount -v "$PRODUCT_MNT"
+            $SUDO umount -v "$PRODUCT_MNT"
         fi
         if [ -d "$SYSTEM_EXT_MNT" ]; then
-            "$SUDO" umount -v "$SYSTEM_EXT_MNT"
+            $SUDO umount -v "$SYSTEM_EXT_MNT"
         fi
-        "$SUDO" umount -v "$ROOT_MNT"
+        $SUDO umount -v "$ROOT_MNT"
 
-        "$SUDO" rm -rf "${WORK_DIR:?}"
+        $SUDO rm -rf "${WORK_DIR:?}"
     else
         rm -rf "${WORK_DIR:?}"
     fi
@@ -512,8 +512,8 @@ if [ "$GAPPS_BRAND" != "none" ] || [ "$ROOT_SOL" = "magisk" ]; then
             echo "Please install Magisk 25211+"
             abort
         fi
-        "$SUDO" chmod +x "../linker/$HOST_ARCH/linker64" || abort
-        "$SUDO" patchelf --set-interpreter "../linker/$HOST_ARCH/linker64" "$WORK_DIR/magisk/magiskpolicy" || abort
+        $SUDO chmod +x "../linker/$HOST_ARCH/linker64" || abort
+        $SUDO patchelf --set-interpreter "../linker/$HOST_ARCH/linker64" "$WORK_DIR/magisk/magiskpolicy" || abort
         chmod +x "$WORK_DIR/magisk/magiskpolicy" || abort
     elif [ -z "${CUSTOM_MAGISK+x}" ]; then
         echo "The Magisk zip package does not exist, is the download incomplete?"
@@ -639,8 +639,8 @@ echo -e "done\n"
 
 if [ "$REMOVE_AMAZON" ]; then
     echo "Remove Amazon Appstore"
-    find "${PRODUCT_MNT:?}"/{etc/permissions,etc/sysconfig,framework,priv-app} 2>/dev/null | grep -e amazon -e venezia | "$SUDO" xargs rm -rf
-    find "${SYSTEM_EXT_MNT:?}"/{etc/*permissions,framework,priv-app} 2>/dev/null | grep -e amazon -e venezia | "$SUDO" xargs rm -rf
+    find "${PRODUCT_MNT:?}"/{etc/permissions,etc/sysconfig,framework,priv-app} 2>/dev/null | grep -e amazon -e venezia | $SUDO xargs rm -rf
+    find "${SYSTEM_EXT_MNT:?}"/{etc/*permissions,framework,priv-app} 2>/dev/null | grep -e amazon -e venezia | $SUDO xargs rm -rf
     echo -e "done\n"
 fi
 
@@ -651,13 +651,13 @@ echo -e "done\n"
 
 if [ "$ROOT_SOL" = 'magisk' ]; then
     echo "Integrate Magisk"
-    "$SUDO" mkdir "$ROOT_MNT/sbin"
-    "$SUDO" setfattr -n security.selinux -v "u:object_r:rootfs:s0" "$ROOT_MNT/sbin" || abort
-    "$SUDO" chown root:root "$ROOT_MNT/sbin"
-    "$SUDO" chmod 0700 "$ROOT_MNT/sbin"
-    "$SUDO" cp "$WORK_DIR/magisk/magisk/"* "$ROOT_MNT/sbin/"
-    "$SUDO" cp "$MAGISK_PATH" "$ROOT_MNT/sbin/magisk.apk" || abort
-    "$SUDO" tee -a "$ROOT_MNT/sbin/loadpolicy.sh" <<EOF >/dev/null || abort
+    $SUDO mkdir "$ROOT_MNT/sbin"
+    $SUDO setfattr -n security.selinux -v "u:object_r:rootfs:s0" "$ROOT_MNT/sbin" || abort
+    $SUDO chown root:root "$ROOT_MNT/sbin"
+    $SUDO chmod 0700 "$ROOT_MNT/sbin"
+    $SUDO cp "$WORK_DIR/magisk/magisk/"* "$ROOT_MNT/sbin/"
+    $SUDO cp "$MAGISK_PATH" "$ROOT_MNT/sbin/magisk.apk" || abort
+    $SUDO tee -a "$ROOT_MNT/sbin/loadpolicy.sh" <<EOF >/dev/null || abort
 #!/system/bin/sh
 mkdir -p /data/adb/magisk
 cp /sbin/* /data/adb/magisk/
@@ -671,18 +671,18 @@ for module in \$(ls /data/adb/modules); do
 done
 EOF
 
-    "$SUDO" find "$ROOT_MNT/sbin" -type f -exec chmod 0755 {} \;
-    "$SUDO" find "$ROOT_MNT/sbin" -type f -exec chown root:root {} \;
-    "$SUDO" find "$ROOT_MNT/sbin" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
+    $SUDO find "$ROOT_MNT/sbin" -type f -exec chmod 0755 {} \;
+    $SUDO find "$ROOT_MNT/sbin" -type f -exec chown root:root {} \;
+    $SUDO find "$ROOT_MNT/sbin" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
 
     MAGISK_TMP_PATH=$(Gen_Rand_Str 14)
-    echo "/dev/$MAGISK_TMP_PATH(/.*)?    u:object_r:magisk_file:s0" | "$SUDO" tee -a "$VENDOR_MNT/etc/selinux/vendor_file_contexts"
-    echo '/data/adb/magisk(/.*)?   u:object_r:magisk_file:s0' | "$SUDO" tee -a "$VENDOR_MNT/etc/selinux/vendor_file_contexts"
-    "$SUDO" LD_LIBRARY_PATH="../linker/$HOST_ARCH" "$WORK_DIR/magisk/magiskpolicy" --load "$VENDOR_MNT/etc/selinux/precompiled_sepolicy" --save "$VENDOR_MNT/etc/selinux/precompiled_sepolicy" --magisk || abort
+    echo "/dev/$MAGISK_TMP_PATH(/.*)?    u:object_r:magisk_file:s0" | $SUDO tee -a "$VENDOR_MNT/etc/selinux/vendor_file_contexts"
+    echo '/data/adb/magisk(/.*)?   u:object_r:magisk_file:s0' | $SUDO tee -a "$VENDOR_MNT/etc/selinux/vendor_file_contexts"
+    $SUDO LD_LIBRARY_PATH="../linker/$HOST_ARCH" "$WORK_DIR/magisk/magiskpolicy" --load "$VENDOR_MNT/etc/selinux/precompiled_sepolicy" --save "$VENDOR_MNT/etc/selinux/precompiled_sepolicy" --magisk || abort
     LOAD_POLICY_SVC_NAME=$(Gen_Rand_Str 12)
     PFD_SVC_NAME=$(Gen_Rand_Str 12)
     LS_SVC_NAME=$(Gen_Rand_Str 12)
-    "$SUDO" tee -a "$SYSTEM_MNT/etc/init/hw/init.rc" <<EOF >/dev/null
+    $SUDO tee -a "$SYSTEM_MNT/etc/init/hw/init.rc" <<EOF >/dev/null
 on post-fs-data
     start adbd
     mkdir /dev/$MAGISK_TMP_PATH
@@ -761,19 +761,19 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
     find "$WORK_DIR/gapps/" -mindepth 1 -type d -exec "$SUDO" chown root:root {} \;
     file_list="$(find "$WORK_DIR/gapps/" -mindepth 1 -type f | cut -d/ -f5-)"
     for file in $file_list; do
-        "$SUDO" chown root:root "$WORK_DIR/gapps/${file}"
-        "$SUDO" chmod 0644 "$WORK_DIR/gapps/${file}"
+        $SUDO chown root:root "$WORK_DIR/gapps/${file}"
+        $SUDO chmod 0644 "$WORK_DIR/gapps/${file}"
     done
 
     if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
         find "$WORK_DIR/gapps/" -maxdepth 1 -mindepth 1 -type d -not -path '*product' -exec "$SUDO" cp --preserve=all -r {} "$SYSTEM_MNT" \; || abort
     elif [ "$GAPPS_BRAND" = "MindTheGapps" ]; then
-        "$SUDO" cp --preserve=all -r "$WORK_DIR/gapps/system_ext/"* "$SYSTEM_EXT_MNT/" || abort
+        $SUDO cp --preserve=all -r "$WORK_DIR/gapps/system_ext/"* "$SYSTEM_EXT_MNT/" || abort
         if [ -e "$SYSTEM_EXT_MNT/priv-app/SetupWizard" ]; then
             rm -rf "${SYSTEM_EXT_MNT:?}/priv-app/Provision"
         fi
     fi
-    "$SUDO" cp --preserve=all -r "$WORK_DIR/gapps/product/"* "$PRODUCT_MNT" || abort
+    $SUDO cp --preserve=all -r "$WORK_DIR/gapps/product/"* "$PRODUCT_MNT" || abort
 
     find "$WORK_DIR/gapps/product/overlay" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder "$SUDO" find "$PRODUCT_MNT/overlay/placeholder" -type f -exec setfattr -n security.selinux -v "u:object_r:vendor_overlay_file:s0" {} \; || abort
 
@@ -798,7 +798,7 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
         find "$WORK_DIR/gapps/product/framework/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder "$SUDO" find "$PRODUCT_MNT/framework/placeholder" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
         find "$WORK_DIR/gapps/system_ext/etc/permissions/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder "$SUDO" find "$SYSTEM_EXT_MNT/etc/permissions/placeholder" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
 
-        "$SUDO" setfattr -n security.selinux -v "u:object_r:system_lib_file:s0" "$PRODUCT_MNT/lib" || abort
+        $SUDO setfattr -n security.selinux -v "u:object_r:system_lib_file:s0" "$PRODUCT_MNT/lib" || abort
         find "$WORK_DIR/gapps/product/lib/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder "$SUDO" find "$PRODUCT_MNT/lib/placeholder" -exec setfattr -n security.selinux -v "u:object_r:system_lib_file:s0" {} \; || abort
         find "$WORK_DIR/gapps/product/lib64/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder "$SUDO" find "$PRODUCT_MNT/lib64/placeholder" -type f -exec setfattr -n security.selinux -v "u:object_r:system_lib_file:s0" {} \; || abort
         find "$WORK_DIR/gapps/system_ext/priv-app/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder "$SUDO" find "$SYSTEM_EXT_MNT/priv-app/placeholder" -type d -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
@@ -806,7 +806,7 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
         find "$WORK_DIR/gapps/system_ext/priv-app/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder "$SUDO" find "$SYSTEM_EXT_MNT/priv-app/placeholder" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
     fi
 
-    "$SUDO" LD_LIBRARY_PATH="../linker/$HOST_ARCH" "$WORK_DIR/magisk/magiskpolicy" --load "$VENDOR_MNT/etc/selinux/precompiled_sepolicy" --save "$VENDOR_MNT/etc/selinux/precompiled_sepolicy" "allow gmscore_app gmscore_app vsock_socket { create connect write read }" "allow gmscore_app device_config_runtime_native_boot_prop file read" "allow gmscore_app system_server_tmpfs dir search" "allow gmscore_app system_server_tmpfs file open" "allow gmscore_app system_server_tmpfs filesystem getattr" "allow gmscore_app gpu_device dir search" || abort
+    $SUDO LD_LIBRARY_PATH="../linker/$HOST_ARCH" "$WORK_DIR/magisk/magiskpolicy" --load "$VENDOR_MNT/etc/selinux/precompiled_sepolicy" --save "$VENDOR_MNT/etc/selinux/precompiled_sepolicy" "allow gmscore_app gmscore_app vsock_socket { create connect write read }" "allow gmscore_app device_config_runtime_native_boot_prop file read" "allow gmscore_app system_server_tmpfs dir search" "allow gmscore_app system_server_tmpfs file open" "allow gmscore_app system_server_tmpfs filesystem getattr" "allow gmscore_app gpu_device dir search" || abort
     echo -e "Integrate $GAPPS_BRAND done\n"
 fi
 
@@ -815,7 +815,7 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
         echo -e "Skip fix $GAPPS_BRAND prop!\n$GAPPS_PROPS_MSG1\n$GAPPS_PROPS_MSG2\n$GAPPS_PROPS_MSG3\n"
     else
         echo "Fix $GAPPS_BRAND prop"
-        "$SUDO" python3 fixGappsProp.py "$ROOT_MNT" || abort
+        $SUDO python3 fixGappsProp.py "$ROOT_MNT" || abort
         echo -e "done\n"
     fi
 fi
@@ -889,7 +889,7 @@ fi
 echo "$artifact_name"
 echo -e "\nFinishing building...."
 if [ -f "$OUTPUT_DIR" ]; then
-    "$SUDO" rm -rf ${OUTPUT_DIR:?}
+    $SUDO rm -rf ${OUTPUT_DIR:?}
 fi
 if [ ! -d "$OUTPUT_DIR" ]; then
     mkdir -p "$OUTPUT_DIR"
