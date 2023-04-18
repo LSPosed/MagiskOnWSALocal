@@ -48,6 +48,7 @@ check_dependencies() {
     command -v setfattr >/dev/null 2>&1 || NEED_INSTALL+=("attr")
     command -v unzip >/dev/null 2>&1 || NEED_INSTALL+=("unzip")
     command -v qemu-img >/dev/null 2>&1 || NEED_INSTALL+=("qemu-utils")
+    command -v sudo >/dev/null 2>&1 || NEED_INSTALL+=("sudo")
 }
 check_dependencies
 osrel=$(sed -n '/^ID_LIKE=/s/^.*=//p' /etc/os-release)
