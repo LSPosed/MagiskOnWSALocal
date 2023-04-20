@@ -83,7 +83,7 @@ If (((Test-Path -Path $FileList) -Eq $false).Count) {
     exit 1
 }
 
-If ((Test-Path -Path "MakePri.ps1") -Eq $true) {
+If (((Test-Path -Path "MakePri.ps1") -And (Test-Path -Path "makepri.exe")) -Eq $true) {
     $ProcMakePri = Start-Process $pwsh -PassThru -Args "-ExecutionPolicy Bypass -File MakePri.ps1" -WorkingDirectory $PSScriptRoot
     $ProcMakePri.WaitForExit()
     If ($ProcMakePri.ExitCode -Ne 0) {
