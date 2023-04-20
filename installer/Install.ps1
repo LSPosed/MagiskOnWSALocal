@@ -53,9 +53,17 @@ function Finish {
     Start-Process "wsa://com.android.vending"
 }
 
+try {
+    pwsh.exe -NoLogo -NoProfile -Command "{}"
+    $pwsh = "pwsh.exe"
+}
+catch {
+    $pwsh = "powershell.exe"
+}
+
 If (-Not (Test-Administrator)) {
     Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass -Force
-    $proc = Start-Process -PassThru -WindowStyle Hidden -Verb RunAs ConHost.exe -Args "powershell -ExecutionPolicy Bypass -Command Set-Location '$PSScriptRoot'; &'$PSCommandPath' EVAL"
+    $proc = Start-Process -PassThru -WindowStyle Hidden -Verb RunAs $pwsh -Args "-ExecutionPolicy Bypass -Command Set-Location '$PSScriptRoot'; &'$PSCommandPath' EVAL"
     $proc.WaitForExit()
     If ($proc.ExitCode -Ne 0) {
         Clear-Host
@@ -65,7 +73,7 @@ If (-Not (Test-Administrator)) {
     exit
 }
 ElseIf (($args.Count -Eq 1) -And ($args[0] -Eq "EVAL")) {
-    Start-Process ConHost.exe -Args "powershell -ExecutionPolicy Bypass -Command Set-Location '$PSScriptRoot'; &'$PSCommandPath'"
+    Start-Process $pwsh -Args "-ExecutionPolicy Bypass -Command Set-Location '$PSScriptRoot'; &'$PSCommandPath'"
     exit
 }
 
@@ -77,7 +85,7 @@ If (((Test-Path -Path $FileList) -Eq $false).Count) {
 }
 
 If ((Test-Path -Path "MakePri.ps1") -Eq $true) {
-    $ProcMakePri = Start-Process powershell.exe -PassThru -Args "-ExecutionPolicy Bypass -File MakePri.ps1" -WorkingDirectory $PSScriptRoot
+    $ProcMakePri = Start-Process $pwsh -PassThru -Args "-ExecutionPolicy Bypass -File MakePri.ps1" -WorkingDirectory $PSScriptRoot
     $ProcMakePri.WaitForExit()
     If ($ProcMakePri.ExitCode -Ne 0) {
         Write-Warning "Failed to merge resources, WSA Seetings will always be in English`r`n"
