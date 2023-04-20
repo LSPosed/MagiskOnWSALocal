@@ -53,11 +53,10 @@ function Finish {
     Start-Process "wsa://com.android.vending"
 }
 
-try {
-    pwsh.exe -NoLogo -NoProfile -Command "{}"
+if (Test-CommandExists pwsh.exe) {
     $pwsh = "pwsh.exe"
 }
-catch {
+else {
     $pwsh = "powershell.exe"
 }
 
