@@ -92,9 +92,11 @@ If (((Test-Path -Path "MakePri.ps1") -And (Test-Path -Path "makepri.exe")) -Eq $
 }
 
 reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
-if ((Get-Process -Id $PID).Path.contains("8wekyb3d8bbwe")) {
+
+if ($PSHOME.contains("8wekyb3d8bbwe")) {
     Import-Module DISM -UseWindowsPowerShell
 }
+
 If ($(Get-WindowsOptionalFeature -Online -FeatureName 'VirtualMachinePlatform').State -Ne "Enabled") {
     Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName 'VirtualMachinePlatform'
     Clear-Host
@@ -116,6 +118,12 @@ $Dependencies = $Xml.Package.Dependencies.PackageDependency;
 $Dependencies | ForEach-Object {
     $InstalledVersion = Get-InstalledDependencyVersion -Name $_.Name -ProcessorArchitecture $ProcessorArchitecture;
     If ( $InstalledVersion -Lt $_.MinVersion ) {
+        If ($env:WT_SESSION) {
+            $env:WT_SESSION = $null
+            Write-Host "Dependency should be installed but Windows Terminal is in use. Restarting to conhost.exe"
+            Start-Process conhost.exe -Args "powershell.exe -ExecutionPolicy Bypass -Command Set-Location '$PSScriptRoot'; &'$PSCommandPath'"
+            exit 1
+        }
         Write-Host "Dependency package $($_.Name) $ProcessorArchitecture required minimum version: $($_.MinVersion). Installing...."
         Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Path "$($_.Name)_$ProcessorArchitecture.appx"
     }
