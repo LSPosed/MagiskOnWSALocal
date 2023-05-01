@@ -62,7 +62,7 @@ else {
 
 If (-Not (Test-Administrator)) {
     Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass -Force
-    $proc = Start-Process -PassThru -WindowStyle Hidden -Verb RunAs $pwsh -Args "-ExecutionPolicy Bypass -Command Set-Location '$PSScriptRoot'; &'$PSCommandPath' EVAL"
+    $proc = Start-Process -PassThru -WindowStyle Hidden -NoNewWindow -Verb RunAs $pwsh -Args "-ExecutionPolicy Bypass -Command Set-Location '$PSScriptRoot'; &'$PSCommandPath' EVAL"
     $proc.WaitForExit()
     If ($proc.ExitCode -Ne 0) {
         Clear-Host
@@ -72,7 +72,7 @@ If (-Not (Test-Administrator)) {
     exit
 }
 ElseIf (($args.Count -Eq 1) -And ($args[0] -Eq "EVAL")) {
-    Start-Process $pwsh -Args "-ExecutionPolicy Bypass -Command Set-Location '$PSScriptRoot'; &'$PSCommandPath'"
+    Start-Process $pwsh -NoNewWindow -Args "-ExecutionPolicy Bypass -Command Set-Location '$PSScriptRoot'; &'$PSCommandPath'"
     exit
 }
 
@@ -84,7 +84,7 @@ If (((Test-Path -Path $FileList) -Eq $false).Count) {
 }
 
 If (((Test-Path -Path "MakePri.ps1") -And (Test-Path -Path "makepri.exe")) -Eq $true) {
-    $ProcMakePri = Start-Process $pwsh -PassThru -Args "-ExecutionPolicy Bypass -File MakePri.ps1" -WorkingDirectory $PSScriptRoot
+    $ProcMakePri = Start-Process $pwsh -PassThru -NoNewWindow -Args "-ExecutionPolicy Bypass -File MakePri.ps1" -WorkingDirectory $PSScriptRoot
     $ProcMakePri.WaitForExit()
     If ($ProcMakePri.ExitCode -Ne 0) {
         Write-Warning "Failed to merge resources, WSA Seetings will always be in English`r`n"
@@ -92,7 +92,9 @@ If (((Test-Path -Path "MakePri.ps1") -And (Test-Path -Path "makepri.exe")) -Eq $
 }
 
 reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
-
+if ((Get-Process -Id $PID).Path.contains("8wekyb3d8bbwe")) {
+    Import-Module DISM -UseWindowsPowerShell
+}
 If ($(Get-WindowsOptionalFeature -Online -FeatureName 'VirtualMachinePlatform').State -Ne "Enabled") {
     Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName 'VirtualMachinePlatform'
     Clear-Host
