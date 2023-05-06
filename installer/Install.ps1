@@ -86,7 +86,7 @@ If ((Test-Path -Path "MakePri.ps1") -Eq $true) {
 
 reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
 
-If ($(Get-WindowsOptionalFeature -Online -FeatureName 'VirtualMachinePlatform').State -Ne "Enabled") {
+If ($(Get-WindowsOptionalFeature -Online -FeatureName 'VirtualMachinePlatform').State -Ne "Enabled" -And $(Get-WindowsOptionalFeature -Online -FeatureName 'Containers-DisposableClientVM').State -Ne "Enabled" -And ($(Get-WindowsOptionalFeature -Online -FeatureName 'Containers').State -Ne "Enabled" -Or $(Get-WindowsOptionalFeature -Online -FeatureName 'Microsoft-Hyper-V-Hypervisor').State -Ne "Enabled" -Or $(Get-WindowsOptionalFeature -Online -FeatureName 'Microsoft-Hyper-V-Services').State -Ne "Enabled")) {
     Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName 'VirtualMachinePlatform'
     Clear-Host
     Write-Warning "Need restart to enable virtual machine platform`r`nPress y to restart or press any key to exit"
