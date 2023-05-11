@@ -401,8 +401,10 @@ DOWN_WSA_MAIN_VERSION=0
 update_ksu_zip_name() {
     if [ "$DOWN_WSA_MAIN_VERSION" -lt "2303" ]; then
         KERNEL_VER="5.10.117.2"
-    else
+    elif [ "$DOWN_WSA_MAIN_VERSION" -lt "2304" ]; then
         KERNEL_VER="5.15.78.1"
+    else
+        KERNEL_VER="5.15.94.1"
     fi
     KERNELSU_ZIP_NAME=kernelsu-$ARCH-$KERNEL_VER.zip
     KERNELSU_PATH=$DOWNLOAD_DIR/$KERNELSU_ZIP_NAME
