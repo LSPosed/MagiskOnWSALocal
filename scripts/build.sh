@@ -38,6 +38,7 @@ SYSTEM_MNT="$ROOT_MNT/system"
 VENDOR_MNT="$ROOT_MNT/vendor"
 PRODUCT_MNT="$ROOT_MNT/product"
 SYSTEM_EXT_MNT="$ROOT_MNT/system_ext"
+declare -A ANDROID_PARTITION=(["system"]="$SYSTEM_MNT" ["vendor"]="$VENDOR_MNT" ["product"]="$PRODUCT_MNT" ["system_ext"]="$SYSTEM_EXT_MNT")
 DOWNLOAD_DIR=../download
 DOWNLOAD_CONF_NAME=download.list
 PYTHON_VENV_DIR="$(dirname "$PWD")/python3-env"
@@ -125,17 +126,41 @@ exit_with_message() {
 }
 
 resize_img() {
-    e2fsck -pf "$1" || return 1
+    sudo e2fsck -pf "$1" || return 1
     if [ "$2" ]; then
-        resize2fs "$1" "$2" || return 1
+        sudo resize2fs "$1" "$2" || return 1
     else
-        resize2fs -M "$1" || return 1
+        sudo resize2fs -M "$1" || return 1
     fi
     return 0
 }
 
-vhdx_to_img() {
+vhdx_to_raw_img() {
     qemu-img convert -q -f vhdx -O raw "$1" "$2" || return 1
+    rm -f "$1" || return 1
+}
+
+erofs_to_ext4_img() {
+    local filename=$(basename -- "$1")
+    filename="${filename%.*}"
+    local ROOT="$WORK_DIR/erofs/$filename"
+    mkdir -p "$ROOT" || return 1
+    sudo mount -o loop "$1" "$ROOT" || return 1
+    sudo mke2fs -t ext4 -d "$ROOT" -L "$filename" -O ^has_journal -E root_owner=0:0 "$2"  "$(($(sudo du -s "$ROOT" | cut -f1)*2))" || return 1
+    sudo umount "$ROOT" || return 1
+    rm -f "$1" || return 1
+    rm -rf "${ROOT:?}" || return 1
+    resize_img "$2" || return 1
+}
+
+mk_erofs_umount() {
+    sudo mkfs.erofs -zlz4 -T1230764400 --exclude-regex="lost+found" "$2".erofs "$1"
+    sudo umount -v "$1"
+    sudo rm -f "$2"
+    sudo mv "$2".erofs "$2"
+}
+
+ro_ext4_img_to_rw() {
     resize_img "$2" "$(($(du --apparent-size -sB512 "$2" | cut -f1) * 2))"s || return 1
     e2fsck -fp -E unshare_blocks "$2" || return 1
     resize_img "$2" || return 1
@@ -612,12 +637,27 @@ echo -e "done\n"
 
 echo "Expand images"
 if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
-    echo "Convert vhdx to img and remove read-only flag"
-    vhdx_to_img "$WORK_DIR/wsa/$ARCH/system_ext.vhdx" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
-    vhdx_to_img "$WORK_DIR/wsa/$ARCH/product.vhdx" "$WORK_DIR/wsa/$ARCH/product.img" || abort
-    vhdx_to_img "$WORK_DIR/wsa/$ARCH/system.vhdx" "$WORK_DIR/wsa/$ARCH/system.img" || abort
-    vhdx_to_img "$WORK_DIR/wsa/$ARCH/vendor.vhdx" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
-    echo -e "Convert vhdx to img and remove read-only flag done\n"
+    echo "Convert vhdx to RAW image"
+    vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/system_ext.vhdx" "$WORK_DIR/wsa/$ARCH/system_ext.raw" || abort
+    vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/product.vhdx" "$WORK_DIR/wsa/$ARCH/product.raw" || abort
+    vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/system.vhdx" "$WORK_DIR/wsa/$ARCH/system.raw" || abort
+    vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/vendor.vhdx" "$WORK_DIR/wsa/$ARCH/vendor.raw" || abort
+    echo -e "Convert vhdx to RAW image done\n"
+fi
+if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2304 ]]; then
+    echo "Convert EROFS image to EXT4"
+    erofs_to_ext4_img "$WORK_DIR/wsa/$ARCH/system_ext.raw" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
+    erofs_to_ext4_img "$WORK_DIR/wsa/$ARCH/product.raw" "$WORK_DIR/wsa/$ARCH/product.img" || abort
+    erofs_to_ext4_img "$WORK_DIR/wsa/$ARCH/system.raw" "$WORK_DIR/wsa/$ARCH/system.img" || abort
+    erofs_to_ext4_img "$WORK_DIR/wsa/$ARCH/vendor.raw" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
+    echo -e "Convert EROFS image to EXT4 done\n"
+elif [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
+    echo "Remove read-only flag for read-only EXT4 image"
+    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/system_ext.raw" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
+    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/product.raw" "$WORK_DIR/wsa/$ARCH/product.img" || abort
+    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/system.raw" "$WORK_DIR/wsa/$ARCH/system.img" || abort
+    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/vendor.raw" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
+    echo -e "Remove read-only flag for read-only EXT4 image\n"
 fi
 
 SYSTEM_EXT_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/system_ext.img" | cut -f1)
@@ -826,20 +866,31 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
         echo -e "done\n"
     fi
 fi
-echo "Umount images"
-sudo find "$ROOT_MNT" -exec touch -ht 200901010000.00 {} \;
-sudo umount -v "$VENDOR_MNT"
-sudo umount -v "$PRODUCT_MNT"
-sudo umount -v "$SYSTEM_EXT_MNT"
-sudo umount -v "$ROOT_MNT"
-echo -e "done\n"
 
-echo "Shrink images"
-resize_img "$WORK_DIR/wsa/$ARCH/system.img" || abort
-resize_img "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
-resize_img "$WORK_DIR/wsa/$ARCH/product.img" || abort
-resize_img "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
-echo -e "Shrink images done\n"
+for MNT in ${ANDROID_PARTITION[@]}; do
+    [ -d "$MNT/lost+found" ] && sudo rm -rf "$MNT/lost+found"
+done
+sudo find "$ROOT_MNT" -exec touch -ht 200901010000.00 {} \;
+
+if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2304 ]]; then
+    mk_erofs_umount "$VENDOR_MNT" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
+    mk_erofs_umount "$PRODUCT_MNT" "$WORK_DIR/wsa/$ARCH/product.img" || abort
+    mk_erofs_umount "$SYSTEM_EXT_MNT" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
+    mk_erofs_umount "$ROOT_MNT" "$WORK_DIR/wsa/$ARCH/system.img" || abort
+else
+    echo "Umount images"
+    sudo umount -v "$VENDOR_MNT"
+    sudo umount -v "$PRODUCT_MNT"
+    sudo umount -v "$SYSTEM_EXT_MNT"
+    sudo umount -v "$ROOT_MNT"
+    echo -e "done\n"
+    echo "Shrink images"
+    resize_img "$WORK_DIR/wsa/$ARCH/system.img" || abort
+    resize_img "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
+    resize_img "$WORK_DIR/wsa/$ARCH/product.img" || abort
+    resize_img "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
+    echo -e "Shrink images done\n"
+fi
 
 if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
     echo "Convert images to vhdx"
@@ -847,7 +898,7 @@ if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
     qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/product.img" "$WORK_DIR/wsa/$ARCH/product.vhdx" || abort
     qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/system.img" "$WORK_DIR/wsa/$ARCH/system.vhdx" || abort
     qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/vendor.img" "$WORK_DIR/wsa/$ARCH/vendor.vhdx" || abort
-    rm -f "$WORK_DIR/wsa/$ARCH/"*.img || abort
+    # rm -f "$WORK_DIR/wsa/$ARCH/"*.img || abort # debug
     echo -e "Convert images to vhdx done\n"
 fi
 
