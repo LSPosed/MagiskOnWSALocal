@@ -33,29 +33,35 @@ if [ "$TMPDIR" ] && [ ! -d "$TMPDIR" ]; then
     mkdir -p "$TMPDIR"
 fi
 WORK_DIR=$(mktemp -d -t wsa-build-XXXXXXXXXX_) || exit 1
-ROOT_MNT="$WORK_DIR/system_root"
+
+# lowerdir
+ROOT_MNT_RO="$WORK_DIR/erofs"
+SYSTEM_MNT_RO="$ROOT_MNT_RO/system"
+VENDOR_MNT_RO="$ROOT_MNT_RO/vendor"
+PRODUCT_MNT_RO="$ROOT_MNT_RO/product"
+SYSTEM_EXT_MNT_RO="$ROOT_MNT_RO/system_ext"
+
+# merged
+ROOT_MNT="$WORK_DIR/system_root_merged"
 SYSTEM_MNT="$ROOT_MNT/system"
 VENDOR_MNT="$ROOT_MNT/vendor"
 PRODUCT_MNT="$ROOT_MNT/product"
 SYSTEM_EXT_MNT="$ROOT_MNT/system_ext"
-declare -A ANDROID_PARTITION=(["system"]="$SYSTEM_MNT" ["vendor"]="$VENDOR_MNT" ["product"]="$PRODUCT_MNT" ["system_ext"]="$SYSTEM_EXT_MNT")
+
+declare -A LOWER_PARTITION=(["system"]="$SYSTEM_MNT_RO" ["vendor"]="$VENDOR_MNT_RO" ["product"]="$PRODUCT_MNT_RO" ["system_ext"]="$SYSTEM_EXT_MNT_RO")
+declare -A MERGED_PARTITION=(["zsystem"]="$ROOT_MNT" ["vendor"]="$VENDOR_MNT" ["product"]="$PRODUCT_MNT" ["system_ext"]="$SYSTEM_EXT_MNT")
 DOWNLOAD_DIR=../download
 DOWNLOAD_CONF_NAME=download.list
 PYTHON_VENV_DIR="$(dirname "$PWD")/python3-env"
 umount_clean() {
-    if [ -d "$ROOT_MNT" ]; then
+    if [ -d "$ROOT_MNT" ] || [ -d "$SYSTEM_MNT_RO" ] || [ -d "$ROOT_MNT_F" ]; then
         echo "Cleanup Mount Directory"
-        if [ -d "$VENDOR_MNT" ]; then
-            sudo umount -v "$VENDOR_MNT"
-        fi
-        if [ -d "$PRODUCT_MNT" ]; then
-            sudo umount -v "$PRODUCT_MNT"
-        fi
-        if [ -d "$SYSTEM_EXT_MNT" ]; then
-            sudo umount -v "$SYSTEM_EXT_MNT"
-        fi
-        sudo umount -v "$ROOT_MNT"
-
+        for PART in "${LOWER_PARTITION[@]}"; do
+            [ -d "$PART" ] && sudo umount -v "$PART"
+        done
+        for PART in "${MERGED_PARTITION[@]}"; do
+            [ -d "$PART" ] && sudo umount -v "$PART"
+        done
         sudo rm -rf "${WORK_DIR:?}"
     else
         rm -rf "${WORK_DIR:?}"
@@ -140,24 +146,28 @@ vhdx_to_raw_img() {
     rm -f "$1" || return 1
 }
 
-erofs_to_ext4_img() {
-    local filename=$(basename -- "$1")
-    filename="${filename%.*}"
-    local ROOT="$WORK_DIR/erofs/$filename"
-    mkdir -p "$ROOT" || return 1
-    sudo mount -o loop "$1" "$ROOT" || return 1
-    sudo mke2fs -t ext4 -d "$ROOT" -L "$filename" -O ^has_journal -E root_owner=0:0 "$2"  "$(($(sudo du -s "$ROOT" | cut -f1)*2))" || return 1
-    sudo umount "$ROOT" || return 1
-    rm -f "$1" || return 1
-    rm -rf "${ROOT:?}" || return 1
-    resize_img "$2" || return 1
+mk_overlayfs() {
+    local lowerdir="$1"
+    local workdir="$WORK_DIR/worker/$2"
+    local upperdir merged
+    upperdir="$WORK_DIR/upper/$2"
+    merged="$3"
+    # case "$2" in
+    #     system)
+    #         upperdir="$ROOT_MNT"
+    #         ;;
+    #     *)
+    #         upperdir="$ROOT_MNT/$2"
+    #         ;;
+    # esac
+    echo "mk_overlayfs: $1 workdir=$workdir upperdir=$upperdir merged=$merged"
+    sudo mkdir -p "$workdir" "$upperdir" "$merged"
+    sudo mount -vt overlay overlay -olowerdir="$lowerdir",upperdir="$upperdir",workdir="$workdir" "$merged"
 }
 
 mk_erofs_umount() {
-    sudo mkfs.erofs -zlz4 -T1230764400 --exclude-regex="lost+found" "$2".erofs "$1"
+    sudo mkfs.erofs -zlz4hc -T1230764400 --chunksize=4096 --exclude-regex="lost+found" "$2" "$1" || abort "Failed to make erofs image from $1"
     sudo umount -v "$1"
-    sudo rm -f "$2"
-    sudo mv "$2".erofs "$2"
 }
 
 ro_ext4_img_to_rw() {
@@ -638,52 +648,60 @@ echo -e "done\n"
 echo "Expand images"
 if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
     echo "Convert vhdx to RAW image"
-    vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/system_ext.vhdx" "$WORK_DIR/wsa/$ARCH/system_ext.raw" || abort
-    vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/product.vhdx" "$WORK_DIR/wsa/$ARCH/product.raw" || abort
-    vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/system.vhdx" "$WORK_DIR/wsa/$ARCH/system.raw" || abort
-    vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/vendor.vhdx" "$WORK_DIR/wsa/$ARCH/vendor.raw" || abort
+    vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/system_ext.vhdx" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
+    vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/product.vhdx" "$WORK_DIR/wsa/$ARCH/product.img" || abort
+    vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/system.vhdx" "$WORK_DIR/wsa/$ARCH/system.img" || abort
+    vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/vendor.vhdx" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
     echo -e "Convert vhdx to RAW image done\n"
 fi
 if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2304 ]]; then
-    echo "Convert EROFS image to EXT4"
-    erofs_to_ext4_img "$WORK_DIR/wsa/$ARCH/system_ext.raw" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
-    erofs_to_ext4_img "$WORK_DIR/wsa/$ARCH/product.raw" "$WORK_DIR/wsa/$ARCH/product.img" || abort
-    erofs_to_ext4_img "$WORK_DIR/wsa/$ARCH/system.raw" "$WORK_DIR/wsa/$ARCH/system.img" || abort
-    erofs_to_ext4_img "$WORK_DIR/wsa/$ARCH/vendor.raw" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
-    echo -e "Convert EROFS image to EXT4 done\n"
+    echo "Create overlayfs for EROFS"
+    sudo mkdir -p "$SYSTEM_MNT_RO" || abort
+    sudo mkdir -p "$VENDOR_MNT_RO" || abort
+    sudo mkdir -p "$PRODUCT_MNT_RO" || abort
+    sudo mkdir -p "$SYSTEM_EXT_MNT_RO" || abort
+    sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/system.img" "$SYSTEM_MNT_RO" || abort
+    sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_MNT_RO" || abort
+    sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_MNT_RO" || abort
+    sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/system_ext.img" "$SYSTEM_EXT_MNT_RO" || abort
+    mk_overlayfs "$SYSTEM_MNT_RO" system "$ROOT_MNT" || abort 
+    mk_overlayfs "$VENDOR_MNT_RO" vendor "$VENDOR_MNT" || abort
+    mk_overlayfs "$PRODUCT_MNT_RO" product "$PRODUCT_MNT" || abort
+    mk_overlayfs "$SYSTEM_EXT_MNT_RO" system_ext "$SYSTEM_EXT_MNT" || abort
+    echo -e "Create overlayfs for EROFS done\n"
 elif [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
     echo "Remove read-only flag for read-only EXT4 image"
-    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/system_ext.raw" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
-    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/product.raw" "$WORK_DIR/wsa/$ARCH/product.img" || abort
-    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/system.raw" "$WORK_DIR/wsa/$ARCH/system.img" || abort
-    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/vendor.raw" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
+    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/system_ext.img" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
+    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/product.img" "$WORK_DIR/wsa/$ARCH/product.img" || abort
+    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/system.img" "$WORK_DIR/wsa/$ARCH/system.img" || abort
+    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/vendor.img" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
     echo -e "Remove read-only flag for read-only EXT4 image\n"
 fi
+if [[ "$DOWN_WSA_MAIN_VERSION" -lt 2304 ]]; then
+    SYSTEM_EXT_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/system_ext.img" | cut -f1)
+    PRODUCT_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/product.img" | cut -f1)
+    SYSTEM_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/system.img" | cut -f1)
+    VENDOR_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/vendor.img" | cut -f1)
+    SYSTEM_EXT_TARGET_SIZE=$((SYSTEM_EXT_NEED_SIZE * 2 + SYSTEM_EXT_IMG_SIZE))
+    PRODUCT_TAGET_SIZE=$((PRODUCT_NEED_SIZE * 2 + PRODUCT_IMG_SIZE))
+    SYSTEM_TAGET_SIZE=$((SYSTEM_IMG_SIZE * 2))
+    VENDOR_TAGET_SIZE=$((VENDOR_NEED_SIZE * 2 + VENDOR_IMG_SIZE))
 
-SYSTEM_EXT_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/system_ext.img" | cut -f1)
-PRODUCT_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/product.img" | cut -f1)
-SYSTEM_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/system.img" | cut -f1)
-VENDOR_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/vendor.img" | cut -f1)
-SYSTEM_EXT_TARGET_SIZE=$((SYSTEM_EXT_NEED_SIZE * 2 + SYSTEM_EXT_IMG_SIZE))
-PRODUCT_TAGET_SIZE=$((PRODUCT_NEED_SIZE * 2 + PRODUCT_IMG_SIZE))
-SYSTEM_TAGET_SIZE=$((SYSTEM_IMG_SIZE * 2))
-VENDOR_TAGET_SIZE=$((VENDOR_NEED_SIZE * 2 + VENDOR_IMG_SIZE))
+    resize_img "$WORK_DIR/wsa/$ARCH/system_ext.img" "$SYSTEM_EXT_TARGET_SIZE"s || abort
+    resize_img "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_TAGET_SIZE"s || abort
+    resize_img "$WORK_DIR/wsa/$ARCH/system.img" "$SYSTEM_TAGET_SIZE"s || abort
+    resize_img "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_TAGET_SIZE"s || abort
 
-resize_img "$WORK_DIR/wsa/$ARCH/system_ext.img" "$SYSTEM_EXT_TARGET_SIZE"s || abort
-resize_img "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_TAGET_SIZE"s || abort
-resize_img "$WORK_DIR/wsa/$ARCH/system.img" "$SYSTEM_TAGET_SIZE"s || abort
-resize_img "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_TAGET_SIZE"s || abort
+    echo -e "Expand images done\n"
 
-echo -e "Expand images done\n"
-
-echo "Mount images"
-sudo mkdir "$ROOT_MNT" || abort
-sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/system.img" "$ROOT_MNT" || abort
-sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_MNT" || abort
-sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_MNT" || abort
-sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/system_ext.img" "$SYSTEM_EXT_MNT" || abort
-echo -e "done\n"
-
+    echo "Mount images"
+    sudo mkdir "$ROOT_MNT" || abort
+    sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/system.img" "$ROOT_MNT" || abort
+    sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_MNT" || abort
+    sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_MNT" || abort
+    sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/system_ext.img" "$SYSTEM_EXT_MNT" || abort
+    echo -e "done\n"
+fi
 if [ "$REMOVE_AMAZON" ]; then
     echo "Remove Amazon Appstore"
     find "${PRODUCT_MNT:?}"/{etc/permissions,etc/sysconfig,framework,priv-app} 2>/dev/null | grep -e amazon -e venezia | sudo xargs rm -rf
@@ -867,9 +885,9 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
     fi
 fi
 
-for MNT in ${ANDROID_PARTITION[@]}; do
-    [ -d "$MNT/lost+found" ] && sudo rm -rf "$MNT/lost+found"
-done
+# for MNT in "${ANDROID_PARTITION[@]}"; do
+#     [ -d "$MNT/lost+found" ] && sudo rm -rf "$MNT/lost+found"
+# done
 sudo find "$ROOT_MNT" -exec touch -ht 200901010000.00 {} \;
 
 if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2304 ]]; then
@@ -877,6 +895,10 @@ if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2304 ]]; then
     mk_erofs_umount "$PRODUCT_MNT" "$WORK_DIR/wsa/$ARCH/product.img" || abort
     mk_erofs_umount "$SYSTEM_EXT_MNT" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
     mk_erofs_umount "$ROOT_MNT" "$WORK_DIR/wsa/$ARCH/system.img" || abort
+    sudo umount -v "$VENDOR_MNT_RO"
+    sudo umount -v "$PRODUCT_MNT_RO"
+    sudo umount -v "$SYSTEM_EXT_MNT_RO"
+    sudo umount -v "$SYSTEM_MNT_RO"
 else
     echo "Umount images"
     sudo umount -v "$VENDOR_MNT"
