@@ -740,7 +740,6 @@ if [ "$ROOT_SOL" = 'magisk' ]; then
     sudo cp "$MAGISK_PATH" "$ROOT_MNT/sbin/magisk.apk" || abort
     sudo tee -a "$ROOT_MNT/sbin/loadpolicy.sh" <<EOF >/dev/null || abort
 #!/system/bin/sh
-ASH_STANDALONE=1 /sbin/busybox unshare -m --propagation shared /sbin/busybox sh -c 'mount --make-slave /;'
 mkdir -p /data/adb/magisk
 cp /sbin/* /data/adb/magisk/
 sync
@@ -751,10 +750,6 @@ for module in \$(ls /data/adb/modules); do
         /sbin/magiskpolicy --live --apply "/data/adb/modules/\$module/sepolicy.rule"
     fi
 done
-EOF
-    sudo tee -a "$ROOT_MNT/sbin/debug.sh" <<EOF >/dev/null || abort
-#!/system/bin/sh
-ASH_STANDALONE=1 /sbin/busybox unshare -m --propagation shared /sbin/busybox sh -c 'mount --make-slave /;'
 EOF
     sudo find "$ROOT_MNT/sbin" -type f -exec chmod 0755 {} \;
     sudo find "$ROOT_MNT/sbin" -type f -exec chown root:root {} \;
@@ -787,7 +782,6 @@ on post-fs-data
     mkdir /dev/$MAGISK_TMP_PATH/.magisk/block 0
     mkdir /dev/$MAGISK_TMP_PATH/.magisk/worker 0
     exec u:r:magisk:s0 0 0 -- /system/bin/setenforce 0
-    exec u:r:magisk:s0 0 0 -- /system/bin/sh /sbin/debug.sh
     exec u:r:magisk:s0 0 0 -- /dev/$MAGISK_TMP_PATH/resetprop ro.debuggable 1
     exec u:r:magisk:s0 0 0 -- /dev/$MAGISK_TMP_PATH/resetprop ro.force.debuggable 1
     exec u:r:magisk:s0 0 0 -- /dev/$MAGISK_TMP_PATH/resetprop ro.adb.secure 0
