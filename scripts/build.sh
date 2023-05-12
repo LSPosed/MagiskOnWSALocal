@@ -40,6 +40,7 @@ PRODUCT_MNT="$ROOT_MNT/product"
 SYSTEM_EXT_MNT="$ROOT_MNT/system_ext"
 DOWNLOAD_DIR=../download
 DOWNLOAD_CONF_NAME=download.list
+PYTHON_VENV_DIR="$(dirname "$PWD")/python3-env"
 umount_clean() {
     if [ -d "$ROOT_MNT" ]; then
         echo "Cleanup Mount Directory"
@@ -64,6 +65,10 @@ umount_clean() {
         unset TMPDIR
     fi
     rm -f "${DOWNLOAD_DIR:?}/$DOWNLOAD_CONF_NAME"
+    if [ "$(which python)" == "$PYTHON_VENV_DIR/bin/python" ]; then
+        echo "deactivate python3 venv"
+        deactivate
+    fi
 }
 trap umount_clean EXIT
 OUTPUT_DIR=../output
@@ -362,7 +367,10 @@ require_su() {
         fi
     fi
 }
-
+# shellcheck disable=SC1091
+[ -f "$PYTHON_VENV_DIR/bin/activate" ] && {
+    source "$PYTHON_VENV_DIR/bin/activate" || abort "Failed to activate virtual environment, please re-run install_deps.sh"
+}
 declare -A RELEASE_NAME_MAP=(["retail"]="Retail" ["RP"]="Release Preview" ["WIS"]="Insider Slow" ["WIF"]="Insider Fast")
 declare -A ANDROID_API_MAP=(["30"]="11.0" ["32"]="12.1" ["33"]="13.0")
 RELEASE_NAME=${RELEASE_NAME_MAP[$RELEASE_TYPE]} || abort
