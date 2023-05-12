@@ -147,21 +147,36 @@ vhdx_to_raw_img() {
 
 mk_overlayfs() {
     local lowerdir="$1"
-    local workdir="$WORK_DIR/worker/$2"
-    local upperdir merged
-    upperdir="$WORK_DIR/upper/$2"
+    local upperdir workdir merged
     merged="$3"
-    # case "$2" in
-    #     system)
-    #         upperdir="$ROOT_MNT"
-    #         ;;
-    #     *)
-    #         upperdir="$ROOT_MNT/$2"
-    #         ;;
-    # esac
-    echo "mk_overlayfs: $1 workdir=$workdir upperdir=$upperdir merged=$merged"
-    sudo mkdir -p "$workdir" "$upperdir" "$merged"
-    sudo mount -vt overlay overlay -olowerdir="$lowerdir",upperdir="$upperdir",workdir="$workdir" "$merged"
+    case "$2" in
+        system)
+            upperdir="$WORK_DIR/upper/$2"
+            workdir="$WORK_DIR/worker/$2"
+            ;;
+        *)
+            upperdir="$WORK_DIR/upper/system/$2"
+            workdir="$WORK_DIR/worker/system/$2"
+            ;;
+    esac
+    echo "mk_overlayfs: label $2
+        lowerdir=$1 
+        upperdir=$upperdir 
+        workdir=$workdir 
+        merged=$merged"
+    sudo mkdir -p -m 755 "$workdir" "$upperdir" "$merged"
+    case "$2" in
+        vendor)
+            context="u:object_r:vendor_file:s0"
+            ;;
+        *)
+            context="u:object_r:system_file:s0"
+            ;;
+    esac
+    sudo setfattr -n security.selinux -v "$context" "$upperdir"
+    sudo setfattr -n security.selinux -v "$context" "$workdir"
+    sudo setfattr -n security.selinux -v "$context" "$merged"
+    sudo mount -vt overlay overlay -ouserxattr,lowerdir="$lowerdir",upperdir="$upperdir",workdir="$workdir" "$merged"
 }
 
 mk_erofs_umount() {
