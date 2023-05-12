@@ -147,7 +147,7 @@ vhdx_to_raw_img() {
 
 mk_overlayfs() {
     local lowerdir="$1"
-    local upperdir workdir merged
+    local upperdir workdir merged context own
     merged="$3"
     case "$2" in
         system)
@@ -160,19 +160,22 @@ mk_overlayfs() {
             ;;
     esac
     echo "mk_overlayfs: label $2
-        lowerdir=$1 
-        upperdir=$upperdir 
-        workdir=$workdir 
+        lowerdir=$lowerdir
+        upperdir=$upperdir
+        workdir=$workdir
         merged=$merged"
     sudo mkdir -p -m 755 "$workdir" "$upperdir" "$merged"
     case "$2" in
         vendor)
             context="u:object_r:vendor_file:s0"
+            own="0:2000"
             ;;
         *)
             context="u:object_r:system_file:s0"
+            own="0:0"
             ;;
     esac
+    sudo chown -R "$own" "$upperdir" "$workdir" "$merged"
     sudo setfattr -n security.selinux -v "$context" "$upperdir"
     sudo setfattr -n security.selinux -v "$context" "$workdir"
     sudo setfattr -n security.selinux -v "$context" "$merged"
@@ -627,41 +630,6 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
     echo -e "Extract done\n"
 fi
 
-echo "Calculate the required space"
-EXTRA_SIZE=10240
-
-SYSTEM_EXT_NEED_SIZE=$EXTRA_SIZE
-if [ -d "$WORK_DIR/gapps/system_ext" ]; then
-    SYSTEM_EXT_NEED_SIZE=$((SYSTEM_EXT_NEED_SIZE + $(du --apparent-size -sB512 "$WORK_DIR/gapps/system_ext" | cut -f1)))
-fi
-
-PRODUCT_NEED_SIZE=$EXTRA_SIZE
-if [ -d "$WORK_DIR/gapps/product" ]; then
-    PRODUCT_NEED_SIZE=$((PRODUCT_NEED_SIZE + $(du --apparent-size -sB512 "$WORK_DIR/gapps/product" | cut -f1)))
-fi
-
-SYSTEM_NEED_SIZE=$EXTRA_SIZE
-if [ -d "$WORK_DIR/gapps" ]; then
-    SYSTEM_NEED_SIZE=$((SYSTEM_NEED_SIZE + $(du --apparent-size -sB512 "$WORK_DIR/gapps" | cut -f1) - PRODUCT_NEED_SIZE - SYSTEM_EXT_NEED_SIZE))
-fi
-if [ "$ROOT_SOL" = "magisk" ]; then
-    if [ -d "$WORK_DIR/magisk" ]; then
-        MAGISK_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/magisk/magisk" | cut -f1)
-        SYSTEM_NEED_SIZE=$((SYSTEM_NEED_SIZE + MAGISK_SIZE))
-    fi
-    if [ -f "$MAGISK_PATH" ]; then
-        MAGISK_APK_SIZE=$(du --apparent-size -sB512 "$MAGISK_PATH" | cut -f1)
-        SYSTEM_NEED_SIZE=$((SYSTEM_NEED_SIZE + MAGISK_APK_SIZE))
-    fi
-fi
-if [ -d "../$ARCH/system" ]; then
-    SYSTEM_NEED_SIZE=$((SYSTEM_NEED_SIZE + $(du --apparent-size -sB512 "../$ARCH/system" | cut -f1)))
-fi
-
-VENDOR_NEED_SIZE=$EXTRA_SIZE
-echo -e "done\n"
-
-echo "Expand images"
 if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
     echo "Convert vhdx to RAW image"
     vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/system_ext.vhdx" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
@@ -672,7 +640,9 @@ if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
 fi
 if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2304 ]]; then
     echo "Create overlayfs for EROFS"
-    sudo mkdir -p "$ROOT_MNT_RO" || abort
+    sudo mkdir -p -m 755 "$ROOT_MNT_RO" || abort
+    sudo chown "0:0" "$ROOT_MNT_RO" || abort
+    sudo setfattr -n security.selinux -v "u:object_r:system_file:s0" "$ROOT_MNT_RO" || abort
     sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/system.img" "$ROOT_MNT_RO" || abort
     sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_MNT_RO" || abort
     sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_MNT_RO" || abort
@@ -691,6 +661,39 @@ elif [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
     echo -e "Remove read-only flag for read-only EXT4 image\n"
 fi
 if [[ "$DOWN_WSA_MAIN_VERSION" -lt 2304 ]]; then
+    echo "Calculate the required space"
+    EXTRA_SIZE=10240
+
+    SYSTEM_EXT_NEED_SIZE=$EXTRA_SIZE
+    if [ -d "$WORK_DIR/gapps/system_ext" ]; then
+        SYSTEM_EXT_NEED_SIZE=$((SYSTEM_EXT_NEED_SIZE + $(du --apparent-size -sB512 "$WORK_DIR/gapps/system_ext" | cut -f1)))
+    fi
+
+    PRODUCT_NEED_SIZE=$EXTRA_SIZE
+    if [ -d "$WORK_DIR/gapps/product" ]; then
+        PRODUCT_NEED_SIZE=$((PRODUCT_NEED_SIZE + $(du --apparent-size -sB512 "$WORK_DIR/gapps/product" | cut -f1)))
+    fi
+
+    SYSTEM_NEED_SIZE=$EXTRA_SIZE
+    if [ -d "$WORK_DIR/gapps" ]; then
+        SYSTEM_NEED_SIZE=$((SYSTEM_NEED_SIZE + $(du --apparent-size -sB512 "$WORK_DIR/gapps" | cut -f1) - PRODUCT_NEED_SIZE - SYSTEM_EXT_NEED_SIZE))
+    fi
+    if [ "$ROOT_SOL" = "magisk" ]; then
+        if [ -d "$WORK_DIR/magisk" ]; then
+            MAGISK_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/magisk/magisk" | cut -f1)
+            SYSTEM_NEED_SIZE=$((SYSTEM_NEED_SIZE + MAGISK_SIZE))
+        fi
+        if [ -f "$MAGISK_PATH" ]; then
+            MAGISK_APK_SIZE=$(du --apparent-size -sB512 "$MAGISK_PATH" | cut -f1)
+            SYSTEM_NEED_SIZE=$((SYSTEM_NEED_SIZE + MAGISK_APK_SIZE))
+        fi
+    fi
+    if [ -d "../$ARCH/system" ]; then
+        SYSTEM_NEED_SIZE=$((SYSTEM_NEED_SIZE + $(du --apparent-size -sB512 "../$ARCH/system" | cut -f1)))
+    fi
+    VENDOR_NEED_SIZE=$EXTRA_SIZE
+    echo -e "done\n"
+    echo "Expand images"
     SYSTEM_EXT_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/system_ext.img" | cut -f1)
     PRODUCT_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/product.img" | cut -f1)
     SYSTEM_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/system.img" | cut -f1)
