@@ -183,7 +183,7 @@ mk_overlayfs() {
 }
 
 mk_erofs_umount() {
-    sudo mkfs.erofs -zlz4hc -T1230764400 --chunksize=4096 --exclude-regex="lost+found" "$2".erofs "$1" || abort "Failed to make erofs image from $1"
+    sudo mkfs.erofs -zlz4hc -T1230768000 --chunksize=4096 --exclude-regex="lost+found" "$2".erofs "$1" || abort "Failed to make erofs image from $1"
     sudo umount -v "$1"
     sudo rm -f "$2"
     sudo mv "$2".erofs "$2"
@@ -740,6 +740,7 @@ if [ "$ROOT_SOL" = 'magisk' ]; then
     sudo cp "$MAGISK_PATH" "$ROOT_MNT/sbin/magisk.apk" || abort
     sudo tee -a "$ROOT_MNT/sbin/loadpolicy.sh" <<EOF >/dev/null || abort
 #!/system/bin/sh
+ASH_STANDALONE=1 /sbin/busybox unshare -m --propagation shared /sbin/busybox sh -c 'mount --make-slave /;'
 mkdir -p /data/adb/magisk
 cp /sbin/* /data/adb/magisk/
 sync
@@ -751,7 +752,10 @@ for module in \$(ls /data/adb/modules); do
     fi
 done
 EOF
-
+    sudo tee -a "$ROOT_MNT/sbin/debug.sh" <<EOF >/dev/null || abort
+#!/system/bin/sh
+ASH_STANDALONE=1 /sbin/busybox unshare -m --propagation shared /sbin/busybox sh -c 'mount --make-slave /;'
+EOF
     sudo find "$ROOT_MNT/sbin" -type f -exec chmod 0755 {} \;
     sudo find "$ROOT_MNT/sbin" -type f -exec chown root:root {} \;
     sudo find "$ROOT_MNT/sbin" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
@@ -764,8 +768,6 @@ EOF
     PFD_SVC_NAME=$(Gen_Rand_Str 12)
     LS_SVC_NAME=$(Gen_Rand_Str 12)
     sudo tee -a "$SYSTEM_MNT/etc/init/hw/init.rc" <<EOF >/dev/null
-on post-fs
-    exec -- /system/bin/setenforce 0
 on post-fs-data
     mkdir /dev/$MAGISK_TMP_PATH
     mount tmpfs tmpfs /dev/$MAGISK_TMP_PATH mode=0755
@@ -784,6 +786,8 @@ on post-fs-data
     mkdir /dev/$MAGISK_TMP_PATH/.magisk/mirror 0
     mkdir /dev/$MAGISK_TMP_PATH/.magisk/block 0
     mkdir /dev/$MAGISK_TMP_PATH/.magisk/worker 0
+    exec u:r:magisk:s0 0 0 -- /system/bin/setenforce 0
+    exec u:r:magisk:s0 0 0 -- /system/bin/sh /sbin/debug.sh
     exec u:r:magisk:s0 0 0 -- /dev/$MAGISK_TMP_PATH/resetprop ro.debuggable 1
     exec u:r:magisk:s0 0 0 -- /dev/$MAGISK_TMP_PATH/resetprop ro.force.debuggable 1
     exec u:r:magisk:s0 0 0 -- /dev/$MAGISK_TMP_PATH/resetprop ro.adb.secure 0
