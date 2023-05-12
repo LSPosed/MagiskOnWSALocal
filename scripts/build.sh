@@ -36,7 +36,6 @@ WORK_DIR=$(mktemp -d -t wsa-build-XXXXXXXXXX_) || exit 1
 
 # lowerdir
 ROOT_MNT_RO="$WORK_DIR/erofs"
-SYSTEM_MNT_RO="$ROOT_MNT_RO/system"
 VENDOR_MNT_RO="$ROOT_MNT_RO/vendor"
 PRODUCT_MNT_RO="$ROOT_MNT_RO/product"
 SYSTEM_EXT_MNT_RO="$ROOT_MNT_RO/system_ext"
@@ -48,13 +47,13 @@ VENDOR_MNT="$ROOT_MNT/vendor"
 PRODUCT_MNT="$ROOT_MNT/product"
 SYSTEM_EXT_MNT="$ROOT_MNT/system_ext"
 
-declare -A LOWER_PARTITION=(["system"]="$SYSTEM_MNT_RO" ["vendor"]="$VENDOR_MNT_RO" ["product"]="$PRODUCT_MNT_RO" ["system_ext"]="$SYSTEM_EXT_MNT_RO")
+declare -A LOWER_PARTITION=(["system"]="$ROOT_MNT_RO" ["vendor"]="$VENDOR_MNT_RO" ["product"]="$PRODUCT_MNT_RO" ["system_ext"]="$SYSTEM_EXT_MNT_RO")
 declare -A MERGED_PARTITION=(["zsystem"]="$ROOT_MNT" ["vendor"]="$VENDOR_MNT" ["product"]="$PRODUCT_MNT" ["system_ext"]="$SYSTEM_EXT_MNT")
 DOWNLOAD_DIR=../download
 DOWNLOAD_CONF_NAME=download.list
 PYTHON_VENV_DIR="$(dirname "$PWD")/python3-env"
 umount_clean() {
-    if [ -d "$ROOT_MNT" ] || [ -d "$SYSTEM_MNT_RO" ] || [ -d "$ROOT_MNT_F" ]; then
+    if [ -d "$ROOT_MNT" ] || [ -d "$ROOT_MNT_RO" ]; then
         echo "Cleanup Mount Directory"
         for PART in "${LOWER_PARTITION[@]}"; do
             [ -d "$PART" ] && sudo umount -v "$PART"
@@ -166,8 +165,10 @@ mk_overlayfs() {
 }
 
 mk_erofs_umount() {
-    sudo mkfs.erofs -zlz4hc -T1230764400 --chunksize=4096 --exclude-regex="lost+found" "$2" "$1" || abort "Failed to make erofs image from $1"
+    sudo mkfs.erofs -zlz4hc -T1230764400 --chunksize=4096 --exclude-regex="lost+found" "$2".erofs "$1" || abort "Failed to make erofs image from $1"
     sudo umount -v "$1"
+    sudo rm -f "$2"
+    sudo mv "$2".erofs "$2"
 }
 
 ro_ext4_img_to_rw() {
@@ -656,15 +657,12 @@ if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
 fi
 if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2304 ]]; then
     echo "Create overlayfs for EROFS"
-    sudo mkdir -p "$SYSTEM_MNT_RO" || abort
-    sudo mkdir -p "$VENDOR_MNT_RO" || abort
-    sudo mkdir -p "$PRODUCT_MNT_RO" || abort
-    sudo mkdir -p "$SYSTEM_EXT_MNT_RO" || abort
-    sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/system.img" "$SYSTEM_MNT_RO" || abort
+    sudo mkdir -p "$ROOT_MNT_RO" || abort
+    sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/system.img" "$ROOT_MNT_RO" || abort
     sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_MNT_RO" || abort
     sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_MNT_RO" || abort
     sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/system_ext.img" "$SYSTEM_EXT_MNT_RO" || abort
-    mk_overlayfs "$SYSTEM_MNT_RO" system "$ROOT_MNT" || abort 
+    mk_overlayfs "$ROOT_MNT_RO" system "$ROOT_MNT" || abort 
     mk_overlayfs "$VENDOR_MNT_RO" vendor "$VENDOR_MNT" || abort
     mk_overlayfs "$PRODUCT_MNT_RO" product "$PRODUCT_MNT" || abort
     mk_overlayfs "$SYSTEM_EXT_MNT_RO" system_ext "$SYSTEM_EXT_MNT" || abort
@@ -888,7 +886,6 @@ fi
 # for MNT in "${ANDROID_PARTITION[@]}"; do
 #     [ -d "$MNT/lost+found" ] && sudo rm -rf "$MNT/lost+found"
 # done
-sudo find "$ROOT_MNT" -exec touch -ht 200901010000.00 {} \;
 
 if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2304 ]]; then
     mk_erofs_umount "$VENDOR_MNT" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
@@ -898,9 +895,10 @@ if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2304 ]]; then
     sudo umount -v "$VENDOR_MNT_RO"
     sudo umount -v "$PRODUCT_MNT_RO"
     sudo umount -v "$SYSTEM_EXT_MNT_RO"
-    sudo umount -v "$SYSTEM_MNT_RO"
+    sudo umount -v "$ROOT_MNT_RO"
 else
     echo "Umount images"
+    sudo find "$ROOT_MNT" -exec touch -ht 200901010000.00 {} \;
     sudo umount -v "$VENDOR_MNT"
     sudo umount -v "$PRODUCT_MNT"
     sudo umount -v "$SYSTEM_EXT_MNT"
@@ -920,7 +918,7 @@ if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
     qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/product.img" "$WORK_DIR/wsa/$ARCH/product.vhdx" || abort
     qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/system.img" "$WORK_DIR/wsa/$ARCH/system.vhdx" || abort
     qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/vendor.img" "$WORK_DIR/wsa/$ARCH/vendor.vhdx" || abort
-    # rm -f "$WORK_DIR/wsa/$ARCH/"*.img || abort # debug
+    rm -f "$WORK_DIR/wsa/$ARCH/"*.img || abort # debug
     echo -e "Convert images to vhdx done\n"
 fi
 
