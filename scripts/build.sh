@@ -764,8 +764,9 @@ EOF
     PFD_SVC_NAME=$(Gen_Rand_Str 12)
     LS_SVC_NAME=$(Gen_Rand_Str 12)
     sudo tee -a "$SYSTEM_MNT/etc/init/hw/init.rc" <<EOF >/dev/null
+on post-fs
+    exec -- /system/bin/setenforce 0
 on post-fs-data
-    start adbd
     mkdir /dev/$MAGISK_TMP_PATH
     mount tmpfs tmpfs /dev/$MAGISK_TMP_PATH mode=0755
     copy /sbin/magisk64 /dev/$MAGISK_TMP_PATH/magisk64
@@ -783,6 +784,10 @@ on post-fs-data
     mkdir /dev/$MAGISK_TMP_PATH/.magisk/mirror 0
     mkdir /dev/$MAGISK_TMP_PATH/.magisk/block 0
     mkdir /dev/$MAGISK_TMP_PATH/.magisk/worker 0
+    exec u:r:magisk:s0 0 0 -- /dev/$MAGISK_TMP_PATH/resetprop ro.debuggable 1
+    exec u:r:magisk:s0 0 0 -- /dev/$MAGISK_TMP_PATH/resetprop ro.force.debuggable 1
+    exec u:r:magisk:s0 0 0 -- /dev/$MAGISK_TMP_PATH/resetprop ro.adb.secure 0
+    start adbd
     copy /sbin/magisk.apk /dev/$MAGISK_TMP_PATH/stub.apk
     chmod 0644 /dev/$MAGISK_TMP_PATH/stub.apk
     rm /dev/.magisk_unblock
