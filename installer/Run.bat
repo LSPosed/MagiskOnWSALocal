@@ -18,7 +18,7 @@
 
 @echo off
 %~d0
-cd %~dp0
+cd "%~dp0"
 if not exist Install.ps1 (
     echo "Install.ps1" is not found.
     echo Press any key to exit
