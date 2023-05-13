@@ -148,5 +148,5 @@ if [ "$python_version" -ge 311 ]; then
     }
     deactivate
 else
-    python3 -m pip install -r requirements.txt || abort "Failed to install python3 dependencies"
+    python3 -m pip install -r requirements.txt -q || abort "Failed to install python3 dependencies"
 fi
