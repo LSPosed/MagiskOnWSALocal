@@ -33,28 +33,34 @@ if [ "$TMPDIR" ] && [ ! -d "$TMPDIR" ]; then
     mkdir -p "$TMPDIR"
 fi
 WORK_DIR=$(mktemp -d -t wsa-build-XXXXXXXXXX_) || exit 1
-ROOT_MNT="$WORK_DIR/system_root"
+
+# lowerdir
+ROOT_MNT_RO="$WORK_DIR/erofs"
+VENDOR_MNT_RO="$ROOT_MNT_RO/vendor"
+PRODUCT_MNT_RO="$ROOT_MNT_RO/product"
+SYSTEM_EXT_MNT_RO="$ROOT_MNT_RO/system_ext"
+
+# merged
+ROOT_MNT="$WORK_DIR/system_root_merged"
 SYSTEM_MNT="$ROOT_MNT/system"
 VENDOR_MNT="$ROOT_MNT/vendor"
 PRODUCT_MNT="$ROOT_MNT/product"
 SYSTEM_EXT_MNT="$ROOT_MNT/system_ext"
+
+declare -A LOWER_PARTITION=(["zsystem"]="$ROOT_MNT_RO" ["vendor"]="$VENDOR_MNT_RO" ["product"]="$PRODUCT_MNT_RO" ["system_ext"]="$SYSTEM_EXT_MNT_RO")
+declare -A MERGED_PARTITION=(["zsystem"]="$ROOT_MNT" ["vendor"]="$VENDOR_MNT" ["product"]="$PRODUCT_MNT" ["system_ext"]="$SYSTEM_EXT_MNT")
 DOWNLOAD_DIR=../download
 DOWNLOAD_CONF_NAME=download.list
 PYTHON_VENV_DIR="$(dirname "$PWD")/python3-env"
 umount_clean() {
-    if [ -d "$ROOT_MNT" ]; then
+    if [ -d "$ROOT_MNT" ] || [ -d "$ROOT_MNT_RO" ]; then
         echo "Cleanup Mount Directory"
-        if [ -d "$VENDOR_MNT" ]; then
-            sudo umount -v "$VENDOR_MNT"
-        fi
-        if [ -d "$PRODUCT_MNT" ]; then
-            sudo umount -v "$PRODUCT_MNT"
-        fi
-        if [ -d "$SYSTEM_EXT_MNT" ]; then
-            sudo umount -v "$SYSTEM_EXT_MNT"
-        fi
-        sudo umount -v "$ROOT_MNT"
-
+        for PART in "${LOWER_PARTITION[@]}"; do
+            [ -d "$PART" ] && sudo umount -v "$PART"
+        done
+        for PART in "${MERGED_PARTITION[@]}"; do
+            [ -d "$PART" ] && sudo umount -v "$PART"
+        done
         sudo rm -rf "${WORK_DIR:?}"
     else
         rm -rf "${WORK_DIR:?}"
@@ -125,17 +131,69 @@ exit_with_message() {
 }
 
 resize_img() {
-    e2fsck -pf "$1" || return 1
+    sudo e2fsck -pf "$1" || return 1
     if [ "$2" ]; then
-        resize2fs "$1" "$2" || return 1
+        sudo resize2fs "$1" "$2" || return 1
     else
-        resize2fs -M "$1" || return 1
+        sudo resize2fs -M "$1" || return 1
     fi
     return 0
 }
 
-vhdx_to_img() {
+vhdx_to_raw_img() {
     qemu-img convert -q -f vhdx -O raw "$1" "$2" || return 1
+    rm -f "$1" || return 1
+}
+
+mk_overlayfs() {
+    local lowerdir="$1"
+    local upperdir workdir merged context own
+    merged="$3"
+    case "$2" in
+        system)
+            upperdir="$WORK_DIR/upper/$2"
+            workdir="$WORK_DIR/worker/$2"
+            ;;
+        *)
+            upperdir="$WORK_DIR/upper/system/$2"
+            workdir="$WORK_DIR/worker/system/$2"
+            ;;
+    esac
+    echo "mk_overlayfs: label $2
+        lowerdir=$lowerdir
+        upperdir=$upperdir
+        workdir=$workdir
+        merged=$merged"
+    sudo mkdir -p -m 755 "$workdir" "$upperdir" "$merged"
+    case "$2" in
+        vendor)
+            context="u:object_r:vendor_file:s0"
+            own="0:2000"
+            ;;
+        system)
+            context="u:object_r:rootfs:s0"
+            own="0:0"
+            ;;
+        *)
+            context="u:object_r:system_file:s0"
+            own="0:0"
+            ;;
+    esac
+    sudo chown -R "$own" "$upperdir" "$workdir" "$merged"
+    sudo setfattr -n security.selinux -v "$context" "$upperdir"
+    sudo setfattr -n security.selinux -v "$context" "$workdir"
+    sudo setfattr -n security.selinux -v "$context" "$merged"
+    sudo mount -vt overlay overlay -ouserxattr,lowerdir="$lowerdir",upperdir="$upperdir",workdir="$workdir" "$merged"
+}
+
+mk_erofs_umount() {
+    sudo mkfs.erofs -zlz4hc -T1230768000 --chunksize=4096 --exclude-regex="lost+found" "$2".erofs "$1" || abort "Failed to make erofs image from $1"
+    sudo umount -v "$1"
+    sudo rm -f "$2"
+    sudo mv "$2".erofs "$2"
+}
+
+ro_ext4_img_to_rw() {
     resize_img "$2" "$(($(du --apparent-size -sB512 "$2" | cut -f1) * 2))"s || return 1
     e2fsck -fp -E unshare_blocks "$2" || return 1
     resize_img "$2" || return 1
@@ -576,74 +634,96 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
     echo -e "Extract done\n"
 fi
 
-echo "Calculate the required space"
-EXTRA_SIZE=10240
-
-SYSTEM_EXT_NEED_SIZE=$EXTRA_SIZE
-if [ -d "$WORK_DIR/gapps/system_ext" ]; then
-    SYSTEM_EXT_NEED_SIZE=$((SYSTEM_EXT_NEED_SIZE + $(du --apparent-size -sB512 "$WORK_DIR/gapps/system_ext" | cut -f1)))
-fi
-
-PRODUCT_NEED_SIZE=$EXTRA_SIZE
-if [ -d "$WORK_DIR/gapps/product" ]; then
-    PRODUCT_NEED_SIZE=$((PRODUCT_NEED_SIZE + $(du --apparent-size -sB512 "$WORK_DIR/gapps/product" | cut -f1)))
-fi
-
-SYSTEM_NEED_SIZE=$EXTRA_SIZE
-if [ -d "$WORK_DIR/gapps" ]; then
-    SYSTEM_NEED_SIZE=$((SYSTEM_NEED_SIZE + $(du --apparent-size -sB512 "$WORK_DIR/gapps" | cut -f1) - PRODUCT_NEED_SIZE - SYSTEM_EXT_NEED_SIZE))
-fi
-if [ "$ROOT_SOL" = "magisk" ]; then
-    if [ -d "$WORK_DIR/magisk" ]; then
-        MAGISK_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/magisk/magisk" | cut -f1)
-        SYSTEM_NEED_SIZE=$((SYSTEM_NEED_SIZE + MAGISK_SIZE))
-    fi
-    if [ -f "$MAGISK_PATH" ]; then
-        MAGISK_APK_SIZE=$(du --apparent-size -sB512 "$MAGISK_PATH" | cut -f1)
-        SYSTEM_NEED_SIZE=$((SYSTEM_NEED_SIZE + MAGISK_APK_SIZE))
-    fi
-fi
-if [ -d "../$ARCH/system" ]; then
-    SYSTEM_NEED_SIZE=$((SYSTEM_NEED_SIZE + $(du --apparent-size -sB512 "../$ARCH/system" | cut -f1)))
-fi
-
-VENDOR_NEED_SIZE=$EXTRA_SIZE
-echo -e "done\n"
-
-echo "Expand images"
 if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
-    echo "Convert vhdx to img and remove read-only flag"
-    vhdx_to_img "$WORK_DIR/wsa/$ARCH/system_ext.vhdx" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
-    vhdx_to_img "$WORK_DIR/wsa/$ARCH/product.vhdx" "$WORK_DIR/wsa/$ARCH/product.img" || abort
-    vhdx_to_img "$WORK_DIR/wsa/$ARCH/system.vhdx" "$WORK_DIR/wsa/$ARCH/system.img" || abort
-    vhdx_to_img "$WORK_DIR/wsa/$ARCH/vendor.vhdx" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
-    echo -e "Convert vhdx to img and remove read-only flag done\n"
+    echo "Convert vhdx to RAW image"
+    vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/system_ext.vhdx" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
+    vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/product.vhdx" "$WORK_DIR/wsa/$ARCH/product.img" || abort
+    vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/system.vhdx" "$WORK_DIR/wsa/$ARCH/system.img" || abort
+    vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/vendor.vhdx" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
+    echo -e "Convert vhdx to RAW image done\n"
 fi
+if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2304 ]]; then
+    echo "Mount images"
+    sudo mkdir -p -m 755 "$ROOT_MNT_RO" || abort
+    sudo chown "0:0" "$ROOT_MNT_RO" || abort
+    sudo setfattr -n security.selinux -v "u:object_r:rootfs:s0" "$ROOT_MNT_RO" || abort
+    sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/system.img" "$ROOT_MNT_RO" || abort
+    sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_MNT_RO" || abort
+    sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_MNT_RO" || abort
+    sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/system_ext.img" "$SYSTEM_EXT_MNT_RO" || abort
+    echo -e "done\n"
+    echo "Create overlayfs for EROFS"
+    mk_overlayfs "$ROOT_MNT_RO" system "$ROOT_MNT" || abort 
+    mk_overlayfs "$VENDOR_MNT_RO" vendor "$VENDOR_MNT" || abort
+    mk_overlayfs "$PRODUCT_MNT_RO" product "$PRODUCT_MNT" || abort
+    mk_overlayfs "$SYSTEM_EXT_MNT_RO" system_ext "$SYSTEM_EXT_MNT" || abort
+    echo -e "Create overlayfs for EROFS done\n"
+elif [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
+    echo "Remove read-only flag for read-only EXT4 image"
+    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/system_ext.img" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
+    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/product.img" "$WORK_DIR/wsa/$ARCH/product.img" || abort
+    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/system.img" "$WORK_DIR/wsa/$ARCH/system.img" || abort
+    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/vendor.img" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
+    echo -e "Remove read-only flag for read-only EXT4 image\n"
+fi
+if [[ "$DOWN_WSA_MAIN_VERSION" -lt 2304 ]]; then
+    echo "Calculate the required space"
+    EXTRA_SIZE=10240
 
-SYSTEM_EXT_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/system_ext.img" | cut -f1)
-PRODUCT_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/product.img" | cut -f1)
-SYSTEM_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/system.img" | cut -f1)
-VENDOR_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/vendor.img" | cut -f1)
-SYSTEM_EXT_TARGET_SIZE=$((SYSTEM_EXT_NEED_SIZE * 2 + SYSTEM_EXT_IMG_SIZE))
-PRODUCT_TAGET_SIZE=$((PRODUCT_NEED_SIZE * 2 + PRODUCT_IMG_SIZE))
-SYSTEM_TAGET_SIZE=$((SYSTEM_IMG_SIZE * 2))
-VENDOR_TAGET_SIZE=$((VENDOR_NEED_SIZE * 2 + VENDOR_IMG_SIZE))
+    SYSTEM_EXT_NEED_SIZE=$EXTRA_SIZE
+    if [ -d "$WORK_DIR/gapps/system_ext" ]; then
+        SYSTEM_EXT_NEED_SIZE=$((SYSTEM_EXT_NEED_SIZE + $(du --apparent-size -sB512 "$WORK_DIR/gapps/system_ext" | cut -f1)))
+    fi
 
-resize_img "$WORK_DIR/wsa/$ARCH/system_ext.img" "$SYSTEM_EXT_TARGET_SIZE"s || abort
-resize_img "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_TAGET_SIZE"s || abort
-resize_img "$WORK_DIR/wsa/$ARCH/system.img" "$SYSTEM_TAGET_SIZE"s || abort
-resize_img "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_TAGET_SIZE"s || abort
+    PRODUCT_NEED_SIZE=$EXTRA_SIZE
+    if [ -d "$WORK_DIR/gapps/product" ]; then
+        PRODUCT_NEED_SIZE=$((PRODUCT_NEED_SIZE + $(du --apparent-size -sB512 "$WORK_DIR/gapps/product" | cut -f1)))
+    fi
 
-echo -e "Expand images done\n"
+    SYSTEM_NEED_SIZE=$EXTRA_SIZE
+    if [ -d "$WORK_DIR/gapps" ]; then
+        SYSTEM_NEED_SIZE=$((SYSTEM_NEED_SIZE + $(du --apparent-size -sB512 "$WORK_DIR/gapps" | cut -f1) - PRODUCT_NEED_SIZE - SYSTEM_EXT_NEED_SIZE))
+    fi
+    if [ "$ROOT_SOL" = "magisk" ]; then
+        if [ -d "$WORK_DIR/magisk" ]; then
+            MAGISK_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/magisk/magisk" | cut -f1)
+            SYSTEM_NEED_SIZE=$((SYSTEM_NEED_SIZE + MAGISK_SIZE))
+        fi
+        if [ -f "$MAGISK_PATH" ]; then
+            MAGISK_APK_SIZE=$(du --apparent-size -sB512 "$MAGISK_PATH" | cut -f1)
+            SYSTEM_NEED_SIZE=$((SYSTEM_NEED_SIZE + MAGISK_APK_SIZE))
+        fi
+    fi
+    if [ -d "../$ARCH/system" ]; then
+        SYSTEM_NEED_SIZE=$((SYSTEM_NEED_SIZE + $(du --apparent-size -sB512 "../$ARCH/system" | cut -f1)))
+    fi
+    VENDOR_NEED_SIZE=$EXTRA_SIZE
+    echo -e "done\n"
+    echo "Expand images"
+    SYSTEM_EXT_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/system_ext.img" | cut -f1)
+    PRODUCT_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/product.img" | cut -f1)
+    SYSTEM_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/system.img" | cut -f1)
+    VENDOR_IMG_SIZE=$(du --apparent-size -sB512 "$WORK_DIR/wsa/$ARCH/vendor.img" | cut -f1)
+    SYSTEM_EXT_TARGET_SIZE=$((SYSTEM_EXT_NEED_SIZE * 2 + SYSTEM_EXT_IMG_SIZE))
+    PRODUCT_TAGET_SIZE=$((PRODUCT_NEED_SIZE * 2 + PRODUCT_IMG_SIZE))
+    SYSTEM_TAGET_SIZE=$((SYSTEM_IMG_SIZE * 2))
+    VENDOR_TAGET_SIZE=$((VENDOR_NEED_SIZE * 2 + VENDOR_IMG_SIZE))
 
-echo "Mount images"
-sudo mkdir "$ROOT_MNT" || abort
-sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/system.img" "$ROOT_MNT" || abort
-sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_MNT" || abort
-sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_MNT" || abort
-sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/system_ext.img" "$SYSTEM_EXT_MNT" || abort
-echo -e "done\n"
+    resize_img "$WORK_DIR/wsa/$ARCH/system_ext.img" "$SYSTEM_EXT_TARGET_SIZE"s || abort
+    resize_img "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_TAGET_SIZE"s || abort
+    resize_img "$WORK_DIR/wsa/$ARCH/system.img" "$SYSTEM_TAGET_SIZE"s || abort
+    resize_img "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_TAGET_SIZE"s || abort
 
+    echo -e "Expand images done\n"
+
+    echo "Mount images"
+    sudo mkdir "$ROOT_MNT" || abort
+    sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/system.img" "$ROOT_MNT" || abort
+    sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_MNT" || abort
+    sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_MNT" || abort
+    sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/system_ext.img" "$SYSTEM_EXT_MNT" || abort
+    echo -e "done\n"
+fi
 if [ "$REMOVE_AMAZON" ]; then
     echo "Remove Amazon Appstore"
     find "${PRODUCT_MNT:?}"/{etc/permissions,etc/sysconfig,framework,priv-app} 2>/dev/null | grep -e amazon -e venezia | sudo xargs rm -rf
@@ -677,7 +757,6 @@ for module in \$(ls /data/adb/modules); do
     fi
 done
 EOF
-
     sudo find "$ROOT_MNT/sbin" -type f -exec chmod 0755 {} \;
     sudo find "$ROOT_MNT/sbin" -type f -exec chown root:root {} \;
     sudo find "$ROOT_MNT/sbin" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
@@ -691,7 +770,6 @@ EOF
     LS_SVC_NAME=$(Gen_Rand_Str 12)
     sudo tee -a "$SYSTEM_MNT/etc/init/hw/init.rc" <<EOF >/dev/null
 on post-fs-data
-    start adbd
     mkdir /dev/$MAGISK_TMP_PATH
     mount tmpfs tmpfs /dev/$MAGISK_TMP_PATH mode=0755
     copy /sbin/magisk64 /dev/$MAGISK_TMP_PATH/magisk64
@@ -773,7 +851,7 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
     done
 
     if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
-        find "$WORK_DIR/gapps/" -maxdepth 1 -mindepth 1 -type d -not -path '*product' -exec sudo cp --preserve=all -r {} "$SYSTEM_MNT" \; || abort
+        find "$WORK_DIR/gapps/" -maxdepth 1 -mindepth 1 -type d -exec sudo cp --preserve=all -r {} "$SYSTEM_MNT" \; || abort
     elif [ "$GAPPS_BRAND" = "MindTheGapps" ]; then
         sudo cp --preserve=all -r "$WORK_DIR/gapps/system_ext/"* "$SYSTEM_EXT_MNT/" || abort
         if [ -e "$SYSTEM_EXT_MNT/priv-app/SetupWizard" ]; then
@@ -783,6 +861,8 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
     sudo cp --preserve=all -r "$WORK_DIR/gapps/product/"* "$PRODUCT_MNT" || abort
 
     find "$WORK_DIR/gapps/product/overlay" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$PRODUCT_MNT/overlay/placeholder" -type f -exec setfattr -n security.selinux -v "u:object_r:vendor_overlay_file:s0" {} \; || abort
+    find "$WORK_DIR/gapps/product/etc/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$PRODUCT_MNT/etc/placeholder" -type d -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
+    find "$WORK_DIR/gapps/product/etc/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$PRODUCT_MNT/etc/placeholder" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
 
     if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
         find "$WORK_DIR/gapps/app/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$SYSTEM_MNT/app/placeholder" -type d -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
@@ -795,12 +875,10 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
         find "$WORK_DIR/gapps/etc/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$SYSTEM_MNT/etc/placeholder" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
     else
         find "$WORK_DIR/gapps/product/app/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$PRODUCT_MNT/app/placeholder" -type d -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
-        find "$WORK_DIR/gapps/product/etc/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$PRODUCT_MNT/etc/placeholder" -type d -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
         find "$WORK_DIR/gapps/product/priv-app/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$PRODUCT_MNT/priv-app/placeholder" -type d -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
         find "$WORK_DIR/gapps/product/framework/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$PRODUCT_MNT/framework/placeholder" -type d -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
 
         find "$WORK_DIR/gapps/product/app/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$PRODUCT_MNT/app/placeholder" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
-        find "$WORK_DIR/gapps/product/etc/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$PRODUCT_MNT/etc/placeholder" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
         find "$WORK_DIR/gapps/product/priv-app/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$PRODUCT_MNT/priv-app/placeholder" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
         find "$WORK_DIR/gapps/product/framework/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$PRODUCT_MNT/framework/placeholder" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
         find "$WORK_DIR/gapps/system_ext/etc/permissions/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$SYSTEM_EXT_MNT/etc/permissions/placeholder" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
@@ -826,20 +904,35 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
         echo -e "done\n"
     fi
 fi
-echo "Umount images"
-sudo find "$ROOT_MNT" -exec touch -ht 200901010000.00 {} \;
-sudo umount -v "$VENDOR_MNT"
-sudo umount -v "$PRODUCT_MNT"
-sudo umount -v "$SYSTEM_EXT_MNT"
-sudo umount -v "$ROOT_MNT"
-echo -e "done\n"
 
-echo "Shrink images"
-resize_img "$WORK_DIR/wsa/$ARCH/system.img" || abort
-resize_img "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
-resize_img "$WORK_DIR/wsa/$ARCH/product.img" || abort
-resize_img "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
-echo -e "Shrink images done\n"
+if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2304 ]]; then
+    echo "Create EROFS images"
+    mk_erofs_umount "$VENDOR_MNT" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
+    mk_erofs_umount "$PRODUCT_MNT" "$WORK_DIR/wsa/$ARCH/product.img" || abort
+    mk_erofs_umount "$SYSTEM_EXT_MNT" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
+    mk_erofs_umount "$ROOT_MNT" "$WORK_DIR/wsa/$ARCH/system.img" || abort
+    echo -e "Create EROFS images done\n"
+    echo "Umount images"
+    sudo umount -v "$VENDOR_MNT_RO"
+    sudo umount -v "$PRODUCT_MNT_RO"
+    sudo umount -v "$SYSTEM_EXT_MNT_RO"
+    sudo umount -v "$ROOT_MNT_RO"
+    echo -e "done\n"
+else
+    echo "Umount images"
+    sudo find "$ROOT_MNT" -exec touch -ht 200901010000.00 {} \;
+    sudo umount -v "$VENDOR_MNT"
+    sudo umount -v "$PRODUCT_MNT"
+    sudo umount -v "$SYSTEM_EXT_MNT"
+    sudo umount -v "$ROOT_MNT"
+    echo -e "done\n"
+    echo "Shrink images"
+    resize_img "$WORK_DIR/wsa/$ARCH/system.img" || abort
+    resize_img "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
+    resize_img "$WORK_DIR/wsa/$ARCH/product.img" || abort
+    resize_img "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
+    echo -e "Shrink images done\n"
+fi
 
 if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
     echo "Convert images to vhdx"
