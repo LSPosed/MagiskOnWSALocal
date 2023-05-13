@@ -52,7 +52,7 @@ if not Path(archdir).is_dir():
     archdir.mkdir()
 uid = os.getuid()
 workdir_rw = os.access(workdir, os.W_OK)
-print(f"Uid {uid} can write to {archdir} {workdir_rw}", flush=True)
+
 with zipfile.ZipFile(wsa_zip_path) as zip:
     for f in zip.filelist:
         if arch in f.filename.lower():
@@ -72,21 +72,17 @@ with zipfile.ZipFile(wsa_zip_path) as zip:
                     environ_file.write(f'WSA_REL={rel_long}\n')
         filename_lower = f.filename.lower()
         if 'language' in filename_lower or 'scale' in filename_lower:
-            print(f"unzipping {filename_lower}", flush=True)
             name = f.filename.split("_")[2].split(".")[0]
             zip.extract(f, workdir)
             with zipfile.ZipFile(workdir / f.filename) as l:
                 for g in l.filelist:
                     if g.filename == 'resources.pri':
                         g.filename = f'resources.{name}.pri'
-                        print(f"extracting {g.filename}", flush=True)
                         l.extract(g, pridir)
                     elif g.filename == 'AppxManifest.xml':
                         g.filename = f'resources.{name}.xml'
-                        print(f"extracting {g.filename}", flush=True)
                         l.extract(g, xmldir)
                     elif re.search(u'Images/.+\.png', g.filename):
-                        print(f"extracting {g.filename}", flush=True)
                         l.extract(g, archdir)
 with zipfile.ZipFile(zip_path) as zip:
     stat = Path(zip_path).stat()

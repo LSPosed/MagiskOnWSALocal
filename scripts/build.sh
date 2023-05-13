@@ -47,7 +47,7 @@ VENDOR_MNT="$ROOT_MNT/vendor"
 PRODUCT_MNT="$ROOT_MNT/product"
 SYSTEM_EXT_MNT="$ROOT_MNT/system_ext"
 
-declare -A LOWER_PARTITION=(["system"]="$ROOT_MNT_RO" ["vendor"]="$VENDOR_MNT_RO" ["product"]="$PRODUCT_MNT_RO" ["system_ext"]="$SYSTEM_EXT_MNT_RO")
+declare -A LOWER_PARTITION=(["zsystem"]="$ROOT_MNT_RO" ["vendor"]="$VENDOR_MNT_RO" ["product"]="$PRODUCT_MNT_RO" ["system_ext"]="$SYSTEM_EXT_MNT_RO")
 declare -A MERGED_PARTITION=(["zsystem"]="$ROOT_MNT" ["vendor"]="$VENDOR_MNT" ["product"]="$PRODUCT_MNT" ["system_ext"]="$SYSTEM_EXT_MNT")
 DOWNLOAD_DIR=../download
 DOWNLOAD_CONF_NAME=download.list
@@ -643,7 +643,7 @@ if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
     echo -e "Convert vhdx to RAW image done\n"
 fi
 if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2304 ]]; then
-    echo "Create overlayfs for EROFS"
+    echo "Mount images"
     sudo mkdir -p -m 755 "$ROOT_MNT_RO" || abort
     sudo chown "0:0" "$ROOT_MNT_RO" || abort
     sudo setfattr -n security.selinux -v "u:object_r:system_file:s0" "$ROOT_MNT_RO" || abort
@@ -651,6 +651,8 @@ if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2304 ]]; then
     sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_MNT_RO" || abort
     sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_MNT_RO" || abort
     sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/system_ext.img" "$SYSTEM_EXT_MNT_RO" || abort
+    echo -e "done\n"
+    echo "Create overlayfs for EROFS"
     mk_overlayfs "$ROOT_MNT_RO" system "$ROOT_MNT" || abort 
     mk_overlayfs "$VENDOR_MNT_RO" vendor "$VENDOR_MNT" || abort
     mk_overlayfs "$PRODUCT_MNT_RO" product "$PRODUCT_MNT" || abort
@@ -904,14 +906,18 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
 fi
 
 if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2304 ]]; then
+    echo "Create EROFS images"
     mk_erofs_umount "$VENDOR_MNT" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
     mk_erofs_umount "$PRODUCT_MNT" "$WORK_DIR/wsa/$ARCH/product.img" || abort
     mk_erofs_umount "$SYSTEM_EXT_MNT" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
     mk_erofs_umount "$ROOT_MNT" "$WORK_DIR/wsa/$ARCH/system.img" || abort
+    echo -e "Create EROFS images done\n"
+    echo "Umount images"
     sudo umount -v "$VENDOR_MNT_RO"
     sudo umount -v "$PRODUCT_MNT_RO"
     sudo umount -v "$SYSTEM_EXT_MNT_RO"
     sudo umount -v "$ROOT_MNT_RO"
+    echo -e "done\n"
 else
     echo "Umount images"
     sudo find "$ROOT_MNT" -exec touch -ht 200901010000.00 {} \;
