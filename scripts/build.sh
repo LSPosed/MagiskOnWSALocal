@@ -903,10 +903,6 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
     fi
 fi
 
-# for MNT in "${ANDROID_PARTITION[@]}"; do
-#     [ -d "$MNT/lost+found" ] && sudo rm -rf "$MNT/lost+found"
-# done
-
 if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2304 ]]; then
     mk_erofs_umount "$VENDOR_MNT" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
     mk_erofs_umount "$PRODUCT_MNT" "$WORK_DIR/wsa/$ARCH/product.img" || abort
@@ -938,7 +934,7 @@ if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
     qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/product.img" "$WORK_DIR/wsa/$ARCH/product.vhdx" || abort
     qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/system.img" "$WORK_DIR/wsa/$ARCH/system.vhdx" || abort
     qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/vendor.img" "$WORK_DIR/wsa/$ARCH/vendor.vhdx" || abort
-    rm -f "$WORK_DIR/wsa/$ARCH/"*.img || abort # debug
+    rm -f "$WORK_DIR/wsa/$ARCH/"*.img || abort
     echo -e "Convert images to vhdx done\n"
 fi
 
