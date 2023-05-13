@@ -50,6 +50,7 @@ check_dependencies() {
     command -v unzip >/dev/null 2>&1 || NEED_INSTALL+=("unzip")
     command -v qemu-img >/dev/null 2>&1 || NEED_INSTALL+=("qemu-utils")
     command -v sudo >/dev/null 2>&1 || NEED_INSTALL+=("sudo")
+    command -v mkfs.erofs >/dev/null 2>&1 || NEED_INSTALL+=("erofs-utils")
     python3 -c "import venv" >/dev/null 2>&1 || NEED_INSTALL+=("python3-venv")
 }
 check_dependencies
