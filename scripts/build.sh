@@ -633,9 +633,6 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
     echo -e "Extract done\n"
 fi
 
-cat "$WSA_WORK_ENV"
-echo -e "\n"
-
 if [[ "$WSA_MAIN_VER" -ge 2302 ]]; then
     echo "Convert vhdx to RAW image"
     vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/system_ext.vhdx" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
