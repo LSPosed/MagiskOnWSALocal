@@ -646,7 +646,7 @@ if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2304 ]]; then
     echo "Mount images"
     sudo mkdir -p -m 755 "$ROOT_MNT_RO" || abort
     sudo chown "0:0" "$ROOT_MNT_RO" || abort
-    sudo setfattr -n security.selinux -v "u:object_r:system_file:s0" "$ROOT_MNT_RO" || abort
+    sudo setfattr -n security.selinux -v "u:object_r:rootfs:s0" "$ROOT_MNT_RO" || abort
     sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/system.img" "$ROOT_MNT_RO" || abort
     sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_MNT_RO" || abort
     sudo mount -vo loop "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_MNT_RO" || abort
