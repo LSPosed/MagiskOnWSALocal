@@ -20,11 +20,30 @@
 
 import os
 import sys
+from typing import Any, OrderedDict
 
 import zipfile
 from pathlib import Path
 import re
 import shutil
+
+
+class Prop(OrderedDict):
+    def __init__(self, props: str = ...) -> None:
+        super().__init__()
+        for i, line in enumerate(props.splitlines(False)):
+            if '=' in line:
+                k, v = line.split('=', 1)
+                self[k] = v
+            else:
+                self[f".{i}"] = line
+
+    def __setattr__(self, __name: str, __value: Any) -> None:
+        self[__name] = __value
+
+    def __repr__(self):
+        return '\n'.join(f'{item}={self[item]}' for item in self)
+
 
 arch = sys.argv[1]
 
@@ -66,10 +85,13 @@ with zipfile.ZipFile(wsa_zip_path) as zip:
                 main_ver = ver[0]
                 rel = ver_no[3].split(".")
                 rel_long = str(rel[0])
-                with open(env_file, 'a') as environ_file:
-                    environ_file.write(f'WSA_VER={long_ver}\n')
-                    environ_file.write(f'WSA_MAIN_VER={main_ver}\n')
-                    environ_file.write(f'WSA_REL={rel_long}\n')
+                with open(env_file, 'r') as environ_file:
+                    env = Prop(environ_file.read())
+                    env.WSA_VER = long_ver
+                    env.WSA_MAIN_VER = main_ver
+                    env.WSA_REL = rel_long
+                with open(env_file, 'w') as environ_file:
+                    environ_file.write(str(env))
         filename_lower = f.filename.lower()
         if 'language' in filename_lower or 'scale' in filename_lower:
             name = f.filename.split("_")[2].split(".")[0]

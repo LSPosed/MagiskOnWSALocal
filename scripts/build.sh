@@ -194,10 +194,9 @@ mk_erofs_umount() {
 }
 
 ro_ext4_img_to_rw() {
-    resize_img "$2" "$(($(du --apparent-size -sB512 "$2" | cut -f1) * 2))"s || return 1
-    e2fsck -fp -E unshare_blocks "$2" || return 1
-    resize_img "$2" || return 1
-    rm -f "$1" || return 1
+    resize_img "$1" "$(($(du --apparent-size -sB512 "$1" | cut -f1) * 2))"s || return 1
+    e2fsck -fp -E unshare_blocks "$1" || return 1
+    resize_img "$1" || return 1
     return 0
 }
 
@@ -463,9 +462,9 @@ update_gapps_zip_name() {
     fi
     GAPPS_PATH=$DOWNLOAD_DIR/$GAPPS_ZIP_NAME
 }
-DOWN_WSA_MAIN_VERSION=0
+WSA_MAIN_VER=0
 update_ksu_zip_name() {
-    if [ "$DOWN_WSA_MAIN_VERSION" -lt "2303" ]; then
+    if [ "$WSA_MAIN_VER" -lt "2303" ]; then
         KERNEL_VER="5.10.117.2"
     else
         KERNEL_VER="5.15.78.1"
@@ -484,13 +483,13 @@ if [ -z ${OFFLINE+x} ]; then
         # shellcheck disable=SC1090
         source "$WSA_WORK_ENV" || abort
     else
-        DOWN_WSA_MAIN_VERSION=$(python3 getWSAMainVersion.py "$ARCH" "$WSA_ZIP_PATH")
+        WSA_MAIN_VER=$(python3 getWSAMainVersion.py "$ARCH" "$WSA_ZIP_PATH")
     fi
-    if [[ "$DOWN_WSA_MAIN_VERSION" -lt 2211 ]]; then
+    if [[ "$WSA_MAIN_VER" -lt 2211 ]]; then
         ANDROID_API=32
         update_gapps_zip_name
     fi
-    if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2303 ]]; then
+    if [[ "$WSA_MAIN_VER" -ge 2303 ]]; then
         update_ksu_zip_name
     fi
     if [ "$ROOT_SOL" = "magisk" ] || [ "$GAPPS_BRAND" != "none" ]; then
@@ -515,12 +514,12 @@ if [ -z ${OFFLINE+x} ]; then
         exit 1
     fi
 else # Offline mode
-    DOWN_WSA_MAIN_VERSION=$(python3 getWSAMainVersion.py "$ARCH" "$WSA_ZIP_PATH")
-    if [[ "$DOWN_WSA_MAIN_VERSION" -lt 2211 ]]; then
+    WSA_MAIN_VER=$(python3 getWSAMainVersion.py "$ARCH" "$WSA_ZIP_PATH")
+    if [[ "$WSA_MAIN_VER" -lt 2211 ]]; then
         ANDROID_API=32
         update_gapps_zip_name
     fi
-    if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2303 ]]; then
+    if [[ "$WSA_MAIN_VER" -ge 2303 ]]; then
         update_ksu_zip_name
     fi
     declare -A FILES_CHECK_LIST=([WSA_ZIP_PATH]="$WSA_ZIP_PATH" [xaml_PATH]="$xaml_PATH" [vclibs_PATH]="$vclibs_PATH" [UWPVCLibs_PATH]="$UWPVCLibs_PATH")
@@ -634,7 +633,10 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
     echo -e "Extract done\n"
 fi
 
-if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
+cat "$WSA_WORK_ENV"
+echo -e "\n"
+
+if [[ "$WSA_MAIN_VER" -ge 2302 ]]; then
     echo "Convert vhdx to RAW image"
     vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/system_ext.vhdx" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
     vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/product.vhdx" "$WORK_DIR/wsa/$ARCH/product.img" || abort
@@ -642,7 +644,7 @@ if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
     vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/vendor.vhdx" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
     echo -e "Convert vhdx to RAW image done\n"
 fi
-if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2304 ]]; then
+if [[ "$WSA_MAIN_VER" -ge 2304 ]]; then
     echo "Mount images"
     sudo mkdir -p -m 755 "$ROOT_MNT_RO" || abort
     sudo chown "0:0" "$ROOT_MNT_RO" || abort
@@ -658,15 +660,15 @@ if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2304 ]]; then
     mk_overlayfs "$PRODUCT_MNT_RO" product "$PRODUCT_MNT" || abort
     mk_overlayfs "$SYSTEM_EXT_MNT_RO" system_ext "$SYSTEM_EXT_MNT" || abort
     echo -e "Create overlayfs for EROFS done\n"
-elif [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
+elif [[ "$WSA_MAIN_VER" -ge 2302 ]]; then
     echo "Remove read-only flag for read-only EXT4 image"
-    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/system_ext.img" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
-    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/product.img" "$WORK_DIR/wsa/$ARCH/product.img" || abort
-    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/system.img" "$WORK_DIR/wsa/$ARCH/system.img" || abort
-    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/vendor.img" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
-    echo -e "Remove read-only flag for read-only EXT4 image\n"
+    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
+    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/product.img" || abort
+    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/system.img" || abort
+    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
+    echo -e "Remove read-only flag for read-only EXT4 image done\n"
 fi
-if [[ "$DOWN_WSA_MAIN_VERSION" -lt 2304 ]]; then
+if [[ "$WSA_MAIN_VER" -lt 2304 ]]; then
     echo "Calculate the required space"
     EXTRA_SIZE=10240
 
@@ -738,28 +740,24 @@ echo -e "done\n"
 
 if [ "$ROOT_SOL" = 'magisk' ]; then
     echo "Integrate Magisk"
-    sudo mkdir "$ROOT_MNT/sbin"
-    sudo setfattr -n security.selinux -v "u:object_r:rootfs:s0" "$ROOT_MNT/sbin" || abort
-    sudo chown root:root "$ROOT_MNT/sbin"
-    sudo chmod 0700 "$ROOT_MNT/sbin"
-    sudo cp "$WORK_DIR/magisk/magisk/"* "$ROOT_MNT/sbin/"
-    sudo cp "$MAGISK_PATH" "$ROOT_MNT/sbin/magisk.apk" || abort
-    sudo tee -a "$ROOT_MNT/sbin/loadpolicy.sh" <<EOF >/dev/null || abort
+    sudo cp "$WORK_DIR/magisk/magisk/"* "$ROOT_MNT/debug_ramdisk/"
+    sudo cp "$MAGISK_PATH" "$ROOT_MNT/debug_ramdisk/magisk.apk" || abort
+    sudo tee -a "$ROOT_MNT/debug_ramdisk/loadpolicy.sh" <<EOF >/dev/null || abort
 #!/system/bin/sh
 mkdir -p /data/adb/magisk
-cp /sbin/* /data/adb/magisk/
+cp /debug_ramdisk/* /data/adb/magisk/
 sync
 chmod -R 755 /data/adb/magisk
 restorecon -R /data/adb/magisk
 for module in \$(ls /data/adb/modules); do
     if ! [ -f "/data/adb/modules/\$module/disable" ] && [ -f "/data/adb/modules/\$module/sepolicy.rule" ]; then
-        /sbin/magiskpolicy --live --apply "/data/adb/modules/\$module/sepolicy.rule"
+        /debug_ramdisk/magiskpolicy --live --apply "/data/adb/modules/\$module/sepolicy.rule"
     fi
 done
 EOF
-    sudo find "$ROOT_MNT/sbin" -type f -exec chmod 0755 {} \;
-    sudo find "$ROOT_MNT/sbin" -type f -exec chown root:root {} \;
-    sudo find "$ROOT_MNT/sbin" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
+    sudo find "$ROOT_MNT/debug_ramdisk" -type f -exec chmod 0755 {} \;
+    sudo find "$ROOT_MNT/debug_ramdisk" -type f -exec chown root:root {} \;
+    sudo find "$ROOT_MNT/debug_ramdisk" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
 
     MAGISK_TMP_PATH=$(Gen_Rand_Str 14)
     echo "/dev/$MAGISK_TMP_PATH(/.*)?    u:object_r:magisk_file:s0" | sudo tee -a "$VENDOR_MNT/etc/selinux/vendor_file_contexts"
@@ -772,23 +770,25 @@ EOF
 on post-fs-data
     mkdir /dev/$MAGISK_TMP_PATH
     mount tmpfs tmpfs /dev/$MAGISK_TMP_PATH mode=0755
-    copy /sbin/magisk64 /dev/$MAGISK_TMP_PATH/magisk64
+
+    copy /debug_ramdisk/magisk64 /dev/$MAGISK_TMP_PATH/magisk64
     chmod 0755 /dev/$MAGISK_TMP_PATH/magisk64
     symlink ./magisk64 /dev/$MAGISK_TMP_PATH/magisk
     symlink ./magisk64 /dev/$MAGISK_TMP_PATH/su
     symlink ./magisk64 /dev/$MAGISK_TMP_PATH/resetprop
-    copy /sbin/magisk32 /dev/$MAGISK_TMP_PATH/magisk32
+    copy /debug_ramdisk/magisk32 /dev/$MAGISK_TMP_PATH/magisk32
     chmod 0755 /dev/$MAGISK_TMP_PATH/magisk32
-    copy /sbin/magiskinit /dev/$MAGISK_TMP_PATH/magiskinit
+    copy /debug_ramdisk/magiskinit /dev/$MAGISK_TMP_PATH/magiskinit
     chmod 0755 /dev/$MAGISK_TMP_PATH/magiskinit
-    copy /sbin/magiskpolicy /dev/$MAGISK_TMP_PATH/magiskpolicy
+    copy /debug_ramdisk/magiskpolicy /dev/$MAGISK_TMP_PATH/magiskpolicy
     chmod 0755 /dev/$MAGISK_TMP_PATH/magiskpolicy
     mkdir /dev/$MAGISK_TMP_PATH/.magisk 755
     mkdir /dev/$MAGISK_TMP_PATH/.magisk/mirror 0
     mkdir /dev/$MAGISK_TMP_PATH/.magisk/block 0
     mkdir /dev/$MAGISK_TMP_PATH/.magisk/worker 0
-    copy /sbin/magisk.apk /dev/$MAGISK_TMP_PATH/stub.apk
+    copy /debug_ramdisk/magisk.apk /dev/$MAGISK_TMP_PATH/stub.apk
     chmod 0644 /dev/$MAGISK_TMP_PATH/stub.apk
+
     rm /dev/.magisk_unblock
     exec_start $LOAD_POLICY_SVC_NAME
     start $PFD_SVC_NAME
@@ -796,7 +796,7 @@ on post-fs-data
     rm /dev/.magisk_unblock
     exec u:r:magisk:s0 0 0 -- /system/bin/mknod -m 0600 /dev/$MAGISK_TMP_PATH/.magisk/block/preinit b 8 0
 
-service $LOAD_POLICY_SVC_NAME /system/bin/sh /sbin/loadpolicy.sh
+service $LOAD_POLICY_SVC_NAME /system/bin/sh /debug_ramdisk/loadpolicy.sh
     user root
     seclabel u:r:magisk:s0
     oneshot
@@ -814,7 +814,7 @@ service $LS_SVC_NAME /dev/$MAGISK_TMP_PATH/magisk --service
 
 on property:sys.boot_completed=1
     mkdir /data/adb/magisk 755
-    copy /sbin/magisk.apk /data/adb/magisk/magisk.apk
+    copy /debug_ramdisk/magisk.apk /data/adb/magisk/magisk.apk
     exec /dev/$MAGISK_TMP_PATH/magisk --boot-complete
 
 on property:init.svc.zygote=restarting
@@ -905,7 +905,7 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
     fi
 fi
 
-if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2304 ]]; then
+if [[ "$WSA_MAIN_VER" -ge 2304 ]]; then
     echo "Create EROFS images"
     mk_erofs_umount "$VENDOR_MNT" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
     mk_erofs_umount "$PRODUCT_MNT" "$WORK_DIR/wsa/$ARCH/product.img" || abort
@@ -934,7 +934,7 @@ else
     echo -e "Shrink images done\n"
 fi
 
-if [[ "$DOWN_WSA_MAIN_VERSION" -ge 2302 ]]; then
+if [[ "$WSA_MAIN_VER" -ge 2302 ]]; then
     echo "Convert images to vhdx"
     qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/system_ext.img" "$WORK_DIR/wsa/$ARCH/system_ext.vhdx" || abort
     qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/product.img" "$WORK_DIR/wsa/$ARCH/product.vhdx" || abort
