@@ -752,6 +752,17 @@ for module in \$(ls /data/adb/modules); do
     fi
 done
 EOF
+    sudo tee -a "$ROOT_MNT/debug_ramdisk/mkpreinit.sh" <<EOF >/dev/null || abort
+#!/system/bin/sh
+MAGISKTMP=/debug_ramdisk
+export MAGISKTMP
+MAKEDEV=1 \$MAGISKTMP/magisk --preinit-device 2>&1
+RULESCMD=""
+for r in \$MAGISKTMP/.magisk/preinit/*/sepolicy.rule; do
+  [ -f "\$r" ] || continue
+  RULESCMD="\$RULESCMD --apply \$r"
+done
+EOF
     sudo find "$ROOT_MNT/debug_ramdisk" -type f -exec chmod 0711 {} \;
     sudo find "$ROOT_MNT/debug_ramdisk" -type f -exec chown root:root {} \;
     sudo find "$ROOT_MNT/debug_ramdisk" -type f -exec setfattr -n security.selinux -v "u:object_r:magisk_file:s0" {} \; || abort
@@ -786,14 +797,16 @@ on post-fs-data
     chmod 0644 /debug_ramdisk/stub.apk
     copy /dev/tmp/debug_ramdisk/loadpolicy.sh /debug_ramdisk/loadpolicy.sh
     chmod 0711 /debug_ramdisk/loadpolicy.sh
+    copy /dev/tmp/debug_ramdisk/mkpreinit.sh /debug_ramdisk/mkpreinit.sh
+    chmod 0711 /debug_ramdisk/mkpreinit.sh
     umount /dev/tmp
     rmdir /dev/tmp
     rm /dev/.magisk_unblock
+    exec u:r:magisk:s0 0 0 -- /system/bin/sh /debug_ramdisk/mkpreinit.sh
     exec_start $LOAD_POLICY_SVC_NAME
     start $PFD_SVC_NAME
     wait /dev/.magisk_unblock 40
     rm /dev/.magisk_unblock
-    exec u:r:magisk:s0 0 0 -- /system/bin/mknod -m 0600 /debug_ramdisk/.magisk/block/preinit b 8 0
 
 service $LOAD_POLICY_SVC_NAME /system/bin/sh /debug_ramdisk/loadpolicy.sh
     user root
