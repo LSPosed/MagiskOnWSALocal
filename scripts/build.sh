@@ -765,7 +765,7 @@ EOF
 on post-fs-data
     mkdir /dev/tmp
     mount none / /dev/tmp bind
-    mount none /dev/tmp private
+    mount none none /dev/tmp private
     mount tmpfs magisk /debug_ramdisk mode=0755
     copy /dev/tmp/debug_ramdisk/magisk64 /debug_ramdisk/magisk64
     chmod 0755 /debug_ramdisk/magisk64
