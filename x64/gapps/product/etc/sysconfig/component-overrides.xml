@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<?xml version="1.0" encoding="utf-8"?>
 <!--    This file is part of MagiskOnWSALocal.
 
         MagiskOnWSALocal is free software: you can redistribute it and/or modify
@@ -16,14 +16,10 @@
 
         Copyright (C) 2023 LSPosed Contributors
 -->
-<resources targetOsVersion="10.0.0" majorVersion="1">
-	<index root="\" startIndexAt="\">
-		<default>
-			<qualifier name="Language" value="en-US" />
-		</default>
-		<indexer-config type="folder" foldernameAsQualifier="true" filenameAsQualifier="true"
-			qualifierDelimiter="." />
-		<indexer-config type="PRI" />
-		<indexer-config type="priinfo" />
-	</index>
-</resources>
+<config>
+    <component-override package="com.android.vending">
+        <component class="com.google.android.finsky.verifier.impl.PackageVerificationReceiver" enabled="false" />
+        <component class="com.google.android.finsky.verifier.impl.api.safetynet.PackageVerificationApiService" enabled="false" />
+        <component class="com.google.android.finsky.verifier.impl.PackageVerificationService" enabled="false" />
+    </component-override>
+</config>

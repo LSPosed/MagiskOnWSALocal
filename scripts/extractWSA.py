@@ -20,11 +20,30 @@
 
 import os
 import sys
+from typing import Any, OrderedDict
 
 import zipfile
 from pathlib import Path
 import re
 import shutil
+
+
+class Prop(OrderedDict):
+    def __init__(self, props: str = ...) -> None:
+        super().__init__()
+        for i, line in enumerate(props.splitlines(False)):
+            if '=' in line:
+                k, v = line.split('=', 1)
+                self[k] = v
+            else:
+                self[f".{i}"] = line
+
+    def __setattr__(self, __name: str, __value: Any) -> None:
+        self[__name] = __value
+
+    def __repr__(self):
+        return '\n'.join(f'{item}={self[item]}' for item in self)
+
 
 arch = sys.argv[1]
 
@@ -52,7 +71,7 @@ if not Path(archdir).is_dir():
     archdir.mkdir()
 uid = os.getuid()
 workdir_rw = os.access(workdir, os.W_OK)
-print(f"Uid {uid} can write to {archdir} {workdir_rw}", flush=True)
+
 with zipfile.ZipFile(wsa_zip_path) as zip:
     for f in zip.filelist:
         if arch in f.filename.lower():
@@ -66,27 +85,26 @@ with zipfile.ZipFile(wsa_zip_path) as zip:
                 main_ver = ver[0]
                 rel = ver_no[3].split(".")
                 rel_long = str(rel[0])
-                with open(env_file, 'a') as environ_file:
-                    environ_file.write(f'WSA_VER={long_ver}\n')
-                    environ_file.write(f'WSA_MAIN_VER={main_ver}\n')
-                    environ_file.write(f'WSA_REL={rel_long}\n')
+                with open(env_file, 'r') as environ_file:
+                    env = Prop(environ_file.read())
+                    env.WSA_VER = long_ver
+                    env.WSA_MAIN_VER = main_ver
+                    env.WSA_REL = rel_long
+                with open(env_file, 'w') as environ_file:
+                    environ_file.write(str(env))
         filename_lower = f.filename.lower()
         if 'language' in filename_lower or 'scale' in filename_lower:
-            print(f"unzipping {filename_lower}", flush=True)
             name = f.filename.split("_")[2].split(".")[0]
             zip.extract(f, workdir)
             with zipfile.ZipFile(workdir / f.filename) as l:
                 for g in l.filelist:
                     if g.filename == 'resources.pri':
                         g.filename = f'resources.{name}.pri'
-                        print(f"extracting {g.filename}", flush=True)
                         l.extract(g, pridir)
                     elif g.filename == 'AppxManifest.xml':
                         g.filename = f'resources.{name}.xml'
-                        print(f"extracting {g.filename}", flush=True)
                         l.extract(g, xmldir)
                     elif re.search(u'Images/.+\.png', g.filename):
-                        print(f"extracting {g.filename}", flush=True)
                         l.extract(g, archdir)
 with zipfile.ZipFile(zip_path) as zip:
     stat = Path(zip_path).stat()

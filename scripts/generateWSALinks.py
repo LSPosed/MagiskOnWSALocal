@@ -26,7 +26,7 @@ import sys
 
 from pathlib import Path
 from threading import Thread
-from typing import OrderedDict
+from typing import Any, OrderedDict
 from xml.dom import minidom
 
 from requests import Session
@@ -42,8 +42,11 @@ class Prop(OrderedDict):
             else:
                 self[f".{i}"] = line
 
-    def get(self, key: str) -> str:
-        return self[key]
+    def __setattr__(self, __name: str, __value: Any) -> None:
+        self[__name] = __value
+
+    def __repr__(self):
+        return '\n'.join(f'{item}={self[item]}' for item in self)
 
 
 logging.captureWarnings(True)
@@ -154,9 +157,12 @@ for filename, values in identities.items():
         wsa_long_ver = re.search(u'\d{4}.\d{5}.\d{1,}.\d{1,}', filename).group()
         print(f'WSA Version={wsa_long_ver}\n', flush=True)
         main_ver = wsa_long_ver.split(".")[0]
-        with open(os.environ['WSA_WORK_ENV'], 'a') as environ_file:
-            environ_file.write(f"DOWN_WSA_VERSION={wsa_long_ver}\n")
-            environ_file.write(f"DOWN_WSA_MAIN_VERSION={main_ver}\n")
+        with open(os.environ['WSA_WORK_ENV'], 'r') as environ_file:
+            env = Prop(environ_file.read())
+            env.WSA_VER = wsa_long_ver
+            env.WSA_MAIN_VER = main_ver
+        with open(os.environ['WSA_WORK_ENV'], 'w') as environ_file:
+            environ_file.write(str(env))
         out_file_name = f"wsa-{release_type}.zip"
         out_file = download_dir / out_file_name
     else:
