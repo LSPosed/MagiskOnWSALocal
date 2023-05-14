@@ -729,7 +729,7 @@ if [ "$REMOVE_AMAZON" ]; then
     echo "Remove Amazon Appstore"
     find "${PRODUCT_MNT:?}"/{etc/permissions,etc/sysconfig,framework,priv-app} 2>/dev/null | grep -e amazon -e venezia | sudo xargs rm -rf
     find "${SYSTEM_EXT_MNT:?}"/{etc/*permissions,framework,priv-app} 2>/dev/null | grep -e amazon -e venezia | sudo xargs rm -rf
-    sudo rm -rf "${ROOT_MNT}"/apex/com.microsoft.mado*
+    rm -rf "$WORK_DIR/wsa/$ARCH/apex"
     echo -e "done\n"
 fi
 
