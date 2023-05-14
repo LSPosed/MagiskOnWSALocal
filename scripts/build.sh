@@ -756,7 +756,6 @@ EOF
     sudo find "$ROOT_MNT/debug_ramdisk" -type f -exec chown root:root {} \;
     sudo find "$ROOT_MNT/debug_ramdisk" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
 
-    MAGISK_TMP_PATH=$(Gen_Rand_Str 14)
     echo '/data/adb/magisk(/.*)?   u:object_r:magisk_file:s0' | sudo tee -a "$VENDOR_MNT/etc/selinux/vendor_file_contexts"
     sudo LD_LIBRARY_PATH="../linker/$HOST_ARCH" "$WORK_DIR/magisk/magiskpolicy" --load "$VENDOR_MNT/etc/selinux/precompiled_sepolicy" --save "$VENDOR_MNT/etc/selinux/precompiled_sepolicy" --magisk || abort
     LOAD_POLICY_SVC_NAME=$(Gen_Rand_Str 12)
@@ -764,30 +763,31 @@ EOF
     LS_SVC_NAME=$(Gen_Rand_Str 12)
     sudo tee -a "$SYSTEM_MNT/etc/init/hw/init.rc" <<EOF >/dev/null
 on post-fs-data
-    mkdir /dev/$MAGISK_TMP_PATH
-    mount none /debug_ramdisk /dev/$MAGISK_TMP_PATH bind rec
+    mkdir /dev/tmp
+    mount none / /dev/tmp bind
+    mount none /dev/tmp private
     mount tmpfs magisk /debug_ramdisk mode=0755
-
-    copy /dev/$MAGISK_TMP_PATH/magisk64 /debug_ramdisk/magisk64
+    copy /dev/tmp/debug_ramdisk/magisk64 /debug_ramdisk/magisk64
     chmod 0755 /debug_ramdisk/magisk64
     symlink ./magisk64 /debug_ramdisk/magisk
     symlink ./magisk64 /debug_ramdisk/su
     symlink ./magisk64 /debug_ramdisk/resetprop
-    copy /dev/$MAGISK_TMP_PATH/magisk32 /debug_ramdisk/magisk32
+    copy /dev/tmp/debug_ramdisk/magisk32 /debug_ramdisk/magisk32
     chmod 0755 /debug_ramdisk/magisk32
-    copy /dev/$MAGISK_TMP_PATH/magiskinit /debug_ramdisk/magiskinit
+    copy /dev/tmp/debug_ramdisk/magiskinit /debug_ramdisk/magiskinit
     chmod 0755 /debug_ramdisk/magiskinit
-    copy /dev/$MAGISK_TMP_PATH/magiskpolicy /debug_ramdisk/magiskpolicy
+    copy /dev/tmp/debug_ramdisk/magiskpolicy /debug_ramdisk/magiskpolicy
     chmod 0755 /debug_ramdisk/magiskpolicy
     mkdir /debug_ramdisk/.magisk 755
     mkdir /debug_ramdisk/.magisk/mirror 0
     mkdir /debug_ramdisk/.magisk/block 0
     mkdir /debug_ramdisk/.magisk/worker 0
-    copy /dev/$MAGISK_TMP_PATH/stub.apk /debug_ramdisk/stub.apk
+    copy /dev/tmp/debug_ramdisk/stub.apk /debug_ramdisk/stub.apk
     chmod 0644 /debug_ramdisk/stub.apk
-    copy /dev/$MAGISK_TMP_PATH/loadpolicy.sh /debug_ramdisk/loadpolicy.sh
+    copy /dev/tmp/debug_ramdisk/loadpolicy.sh /debug_ramdisk/loadpolicy.sh
     chmod 0755 /debug_ramdisk/loadpolicy.sh
-
+    umount /dev/tmp
+    rmdir /dev/tmp
     rm /dev/.magisk_unblock
     exec_start $LOAD_POLICY_SVC_NAME
     start $PFD_SVC_NAME
