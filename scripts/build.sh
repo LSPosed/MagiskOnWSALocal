@@ -752,10 +752,10 @@ for module in \$(ls /data/adb/modules); do
     fi
 done
 EOF
-    sudo find "$ROOT_MNT/debug_ramdisk" -type f -exec chmod 0755 {} \;
+    sudo find "$ROOT_MNT/debug_ramdisk" -type f -exec chmod 0711 {} \;
     sudo find "$ROOT_MNT/debug_ramdisk" -type f -exec chown root:root {} \;
-    sudo find "$ROOT_MNT/debug_ramdisk" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
-
+    sudo find "$ROOT_MNT/debug_ramdisk" -type f -exec setfattr -n security.selinux -v "u:object_r:magisk_file:s0" {} \; || abort
+    echo "/debug_ramdisk(/.*)?    u:object_r:magisk_file:s0" | sudo tee -a "$VENDOR_MNT/etc/selinux/vendor_file_contexts"
     echo '/data/adb/magisk(/.*)?   u:object_r:magisk_file:s0' | sudo tee -a "$VENDOR_MNT/etc/selinux/vendor_file_contexts"
     sudo LD_LIBRARY_PATH="../linker/$HOST_ARCH" "$WORK_DIR/magisk/magiskpolicy" --load "$VENDOR_MNT/etc/selinux/precompiled_sepolicy" --save "$VENDOR_MNT/etc/selinux/precompiled_sepolicy" --magisk || abort
     LOAD_POLICY_SVC_NAME=$(Gen_Rand_Str 12)
@@ -766,18 +766,18 @@ on post-fs-data
     mkdir /dev/tmp
     mount none / /dev/tmp bind
     mount none none /dev/tmp private
-    mount tmpfs magisk /debug_ramdisk mode=0755
+    mount tmpfs magisk /debug_ramdisk mode=0711
     copy /dev/tmp/debug_ramdisk/magisk64 /debug_ramdisk/magisk64
-    chmod 0755 /debug_ramdisk/magisk64
+    chmod 0711 /debug_ramdisk/magisk64
     symlink ./magisk64 /debug_ramdisk/magisk
     symlink ./magisk64 /debug_ramdisk/su
     symlink ./magisk64 /debug_ramdisk/resetprop
     copy /dev/tmp/debug_ramdisk/magisk32 /debug_ramdisk/magisk32
-    chmod 0755 /debug_ramdisk/magisk32
+    chmod 0711 /debug_ramdisk/magisk32
     copy /dev/tmp/debug_ramdisk/magiskinit /debug_ramdisk/magiskinit
-    chmod 0755 /debug_ramdisk/magiskinit
+    chmod 0711 /debug_ramdisk/magiskinit
     copy /dev/tmp/debug_ramdisk/magiskpolicy /debug_ramdisk/magiskpolicy
-    chmod 0755 /debug_ramdisk/magiskpolicy
+    chmod 0711 /debug_ramdisk/magiskpolicy
     mkdir /debug_ramdisk/.magisk 755
     mkdir /debug_ramdisk/.magisk/mirror 0
     mkdir /debug_ramdisk/.magisk/block 0
@@ -785,7 +785,7 @@ on post-fs-data
     copy /dev/tmp/debug_ramdisk/stub.apk /debug_ramdisk/stub.apk
     chmod 0644 /debug_ramdisk/stub.apk
     copy /dev/tmp/debug_ramdisk/loadpolicy.sh /debug_ramdisk/loadpolicy.sh
-    chmod 0755 /debug_ramdisk/loadpolicy.sh
+    chmod 0711 /debug_ramdisk/loadpolicy.sh
     umount /dev/tmp
     rmdir /dev/tmp
     rm /dev/.magisk_unblock
