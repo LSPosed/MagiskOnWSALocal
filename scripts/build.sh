@@ -466,8 +466,10 @@ WSA_MAIN_VER=0
 update_ksu_zip_name() {
     if [ "$WSA_MAIN_VER" -lt "2303" ]; then
         KERNEL_VER="5.10.117.2"
-    else
+    elif [ "$WSA_MAIN_VER" -lt "2304" ]; then
         KERNEL_VER="5.15.78.1"
+    else
+        KERNEL_VER="5.15.94.1"
     fi
     KERNELSU_ZIP_NAME=kernelsu-$ARCH-$KERNEL_VER.zip
     KERNELSU_PATH=$DOWNLOAD_DIR/$KERNELSU_ZIP_NAME
@@ -727,6 +729,7 @@ if [ "$REMOVE_AMAZON" ]; then
     echo "Remove Amazon Appstore"
     find "${PRODUCT_MNT:?}"/{etc/permissions,etc/sysconfig,framework,priv-app} 2>/dev/null | grep -e amazon -e venezia | sudo xargs rm -rf
     find "${SYSTEM_EXT_MNT:?}"/{etc/*permissions,framework,priv-app} 2>/dev/null | grep -e amazon -e venezia | sudo xargs rm -rf
+    rm -f "$WORK_DIR/wsa/$ARCH/apex/mado_release.apex"
     echo -e "done\n"
 fi
 
