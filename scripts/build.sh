@@ -766,8 +766,6 @@ EOF
     echo '/data/adb/magisk(/.*)?   u:object_r:magisk_file:s0' | sudo tee -a "$VENDOR_MNT/etc/selinux/vendor_file_contexts"
     sudo LD_LIBRARY_PATH="../linker/$HOST_ARCH" "$WORK_DIR/magisk/magiskpolicy" --load "$VENDOR_MNT/etc/selinux/precompiled_sepolicy" --save "$VENDOR_MNT/etc/selinux/precompiled_sepolicy" --magisk || abort
     COPY_BIN_SVC_NAME=$(Gen_Rand_Str 12)
-    PFD_SVC_NAME=$(Gen_Rand_Str 12)
-    LS_SVC_NAME=$(Gen_Rand_Str 12)
     sudo tee -a "$SYSTEM_MNT/etc/init/hw/init.rc" <<EOF >/dev/null
 on post-fs-data
     mkdir /dev/tmp
@@ -800,7 +798,7 @@ on post-fs-data
     rm /dev/.magisk_unblock
     exec u:r:magisk:s0 0 0 -- /system/bin/sh /debug_ramdisk/mkpreinit.sh
     exec_start $COPY_BIN_SVC_NAME
-    start $PFD_SVC_NAME
+    exec u:r:magisk:s0 0 0 -- /debug_ramdisk/magisk --post-fs-data
     wait /dev/.magisk_unblock 40
     rm /dev/.magisk_unblock
 
@@ -809,28 +807,22 @@ service $COPY_BIN_SVC_NAME /system/bin/sh /debug_ramdisk/preparebin.sh
     seclabel u:r:magisk:s0
     oneshot
 
-service $PFD_SVC_NAME /debug_ramdisk/magisk --post-fs-data
-    user root
-    seclabel u:r:magisk:s0
-    oneshot
+on property:vold.decrypt=trigger_restart_framework
+    exec u:r:magisk:s0 0 0 -- /debug_ramdisk/magisk --service
 
-service $LS_SVC_NAME /debug_ramdisk/magisk --service
-    class late_start
-    user root
-    seclabel u:r:magisk:s0
-    oneshot
+on nonencrypted
+    exec u:r:magisk:s0 0 0 -- /debug_ramdisk/magisk --service
 
 on property:sys.boot_completed=1
     mkdir /data/adb/magisk 755
     copy /debug_ramdisk/stub.apk /data/adb/magisk/magisk.apk
-    exec /debug_ramdisk/magisk --boot-complete
+    exec u:r:magisk:s0 0 0 --  /debug_ramdisk/magisk --boot-complete
 
 on property:init.svc.zygote=restarting
-    exec /debug_ramdisk/magisk --zygote-restart
+    exec u:r:magisk:s0 0 0 -- /debug_ramdisk/magisk --zygote-restart
 
 on property:init.svc.zygote=stopped
-    exec /debug_ramdisk/magisk --zygote-restart
-
+    exec u:r:magisk:s0 0 0 -- /debug_ramdisk/magisk --zygote-restart
 EOF
     echo -e "Integrate Magisk done\n"
 elif [ "$ROOT_SOL" = "kernelsu" ]; then
