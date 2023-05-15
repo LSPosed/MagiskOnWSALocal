@@ -101,6 +101,7 @@ clean_download() {
     fi
 }
 abort() {
+    [ "$1" ] && echo -e "ERROR: $1"
     echo "Build: an error has occurred, exit"
     if [ -d "$WORK_DIR" ]; then
         echo -e "\nCleanup Work Directory"
@@ -419,8 +420,7 @@ fi
 require_su() {
     if test "$(id -u)" != "0"; then
         if [ "$(sudo id -u)" != "0" ]; then
-            echo "ROOT/SUDO is required to run this script"
-            abort
+            abort "ROOT/SUDO is required to run this script"
         fi
     fi
 }
@@ -447,8 +447,7 @@ if [ "$CUSTOM_MAGISK" ]; then
         echo "Fallback to $MAGISK_ZIP"
         MAGISK_PATH=$DOWNLOAD_DIR/$MAGISK_ZIP
         if [ ! -f "$MAGISK_PATH" ]; then
-            echo -e "Custom Magisk $MAGISK_ZIP not found\nPlease put custom Magisk in $DOWNLOAD_DIR"
-            abort
+            abort "Custom Magisk $MAGISK_ZIP not found\nPlease put custom Magisk in $DOWNLOAD_DIR"
         fi
     fi
 fi
@@ -464,19 +463,17 @@ update_gapps_zip_name() {
 }
 WSA_MAIN_VER=0
 update_ksu_zip_name() {
-    if [ "$WSA_MAIN_VER" -lt "2303" ]; then
-        KERNEL_VER="5.10.117.2"
-    elif [ "$WSA_MAIN_VER" -lt "2304" ]; then
+    KERNEL_VER="5.10.117.2"
+    if [ "$WSA_MAIN_VER" -ge "2303" ]; then
         KERNEL_VER="5.15.78.1"
-    else
+    fi
+    if [ "$WSA_MAIN_VER" -ge "2304" ]; then
         KERNEL_VER="5.15.94.1"
     fi
     KERNELSU_ZIP_NAME=kernelsu-$ARCH-$KERNEL_VER.zip
     KERNELSU_PATH=$DOWNLOAD_DIR/$KERNELSU_ZIP_NAME
     KERNELSU_INFO="$KERNELSU_PATH.info"
 }
-update_gapps_zip_name
-update_ksu_zip_name
 if [ -z ${OFFLINE+x} ]; then
     require_su
     if [ "$DOWN_WSA" != "no" ]; then
@@ -489,10 +486,6 @@ if [ -z ${OFFLINE+x} ]; then
     fi
     if [[ "$WSA_MAIN_VER" -lt 2211 ]]; then
         ANDROID_API=32
-        update_gapps_zip_name
-    fi
-    if [[ "$WSA_MAIN_VER" -ge 2303 ]]; then
-        update_ksu_zip_name
     fi
     if [ "$ROOT_SOL" = "magisk" ] || [ "$GAPPS_BRAND" != "none" ]; then
         if [ -z ${CUSTOM_MAGISK+x} ]; then
@@ -500,6 +493,7 @@ if [ -z ${OFFLINE+x} ]; then
         fi
     fi
     if [ "$ROOT_SOL" = "kernelsu" ]; then
+        update_ksu_zip_name
         python3 generateKernelSULink.py "$ARCH" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" "$KERNEL_VER" "$KERNELSU_ZIP_NAME" || abort
         # shellcheck disable=SC1090
         source "$WSA_WORK_ENV" || abort
@@ -519,19 +513,17 @@ else # Offline mode
     WSA_MAIN_VER=$(python3 getWSAMainVersion.py "$ARCH" "$WSA_ZIP_PATH")
     if [[ "$WSA_MAIN_VER" -lt 2211 ]]; then
         ANDROID_API=32
-        update_gapps_zip_name
-    fi
-    if [[ "$WSA_MAIN_VER" -ge 2303 ]]; then
-        update_ksu_zip_name
     fi
     declare -A FILES_CHECK_LIST=([WSA_ZIP_PATH]="$WSA_ZIP_PATH" [xaml_PATH]="$xaml_PATH" [vclibs_PATH]="$vclibs_PATH" [UWPVCLibs_PATH]="$UWPVCLibs_PATH")
     if [ "$GAPPS_BRAND" != "none" ] || [ "$ROOT_SOL" = "magisk" ]; then
         FILES_CHECK_LIST+=(["MAGISK_PATH"]="$MAGISK_PATH")
     fi
     if [ "$ROOT_SOL" = "kernelsu" ]; then
+        update_ksu_zip_name
         FILES_CHECK_LIST+=(["KERNELSU_PATH"]="$KERNELSU_PATH")
     fi
     if [ "$GAPPS_BRAND" != 'none' ]; then
+        update_gapps_zip_name
         FILES_CHECK_LIST+=(["GAPPS_PATH"]="$GAPPS_PATH")
     fi
     for i in "${FILES_CHECK_LIST[@]}"; do
@@ -550,9 +542,8 @@ fi
 echo "Extract WSA"
 if [ -f "$WSA_ZIP_PATH" ]; then
     if ! python3 extractWSA.py "$ARCH" "$WSA_ZIP_PATH" "$WORK_DIR" "$WSA_WORK_ENV"; then
-        echo "Unzip WSA failed, is the download incomplete?"
         CLEAN_DOWNLOAD_WSA=1
-        abort
+        abort "Unzip WSA failed, is the download incomplete?"
     fi
     echo -e "Extract done\n"
     # shellcheck disable=SC1090
@@ -568,15 +559,13 @@ if [ "$GAPPS_BRAND" != "none" ] || [ "$ROOT_SOL" = "magisk" ]; then
         MAGISK_VERSION_NAME=""
         MAGISK_VERSION_CODE=0
         if ! python3 extractMagisk.py "$ARCH" "$MAGISK_PATH" "$WORK_DIR"; then
-            echo "Unzip Magisk failed, is the download incomplete?"
             CLEAN_DOWNLOAD_MAGISK=1
-            abort
+            abort "Unzip Magisk failed, is the download incomplete?"
         fi
         # shellcheck disable=SC1090
         source "$WSA_WORK_ENV" || abort
         if [ "$MAGISK_VERSION_CODE" -lt 26000 ] && [ "$MAGISK_VER" != "stable" ] && [ -z ${CUSTOM_MAGISK+x} ]; then
-            echo "Please install Magisk 26.0+"
-            abort
+            abort "Please install Magisk 26.0+"
         fi
         sudo chmod +x "../linker/$HOST_ARCH/linker64" || abort
         sudo patchelf --set-interpreter "../linker/$HOST_ARCH/linker64" "$WORK_DIR/magisk/magiskpolicy" || abort
@@ -592,13 +581,13 @@ if [ "$GAPPS_BRAND" != "none" ] || [ "$ROOT_SOL" = "magisk" ]; then
 fi
 
 if [ "$ROOT_SOL" = "kernelsu" ]; then
+    update_ksu_zip_name
     echo "Extract KernelSU"
     # shellcheck disable=SC1090
     source "${KERNELSU_INFO:?}" || abort
     if ! unzip "$KERNELSU_PATH" -d "$WORK_DIR/kernelsu"; then
-        echo "Unzip KernelSU failed, package is corrupted?"
         CLEAN_DOWNLOAD_KERNELSU=1
-        abort
+        abort "Unzip KernelSU failed, package is corrupted?"
     fi
     if [ "$ARCH" = "x64" ]; then
         mv "$WORK_DIR/kernelsu/bzImage" "$WORK_DIR/kernelsu/kernel"
@@ -609,28 +598,26 @@ if [ "$ROOT_SOL" = "kernelsu" ]; then
 fi
 
 if [ "$GAPPS_BRAND" != 'none' ]; then
+    update_gapps_zip_name
     echo "Extract $GAPPS_BRAND"
     mkdir -p "$WORK_DIR/gapps" || abort
     if [ -f "$GAPPS_PATH" ]; then
         if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
             if ! unzip -p "$GAPPS_PATH" {Core,GApps}/'*.lz' | tar --lzip -C "$WORK_DIR/gapps" -xf - -i --strip-components=2 --exclude='setupwizardtablet-x86_64' --exclude='packageinstallergoogle-all' --exclude='speech-common' --exclude='markup-lib-arm' --exclude='markup-lib-arm64' --exclude='markup-all' --exclude='setupwizarddefault-x86_64' --exclude='pixellauncher-all' --exclude='pixellauncher-common'; then
-                echo "Unzip OpenGApps failed, is the download incomplete?"
                 CLEAN_DOWNLOAD_GAPPS=1
-                abort
+                abort "Unzip OpenGApps failed, is the download incomplete?"
             fi
         else
             if ! unzip "$GAPPS_PATH" "system/*" -x "system/addon.d/*" "system/system_ext/priv-app/SetupWizard/*" -d "$WORK_DIR/gapps"; then
-                echo "Unzip MindTheGapps failed, package is corrupted?"
                 CLEAN_DOWNLOAD_GAPPS=1
-                abort
+                abort "Unzip MindTheGapps failed, package is corrupted?"
             fi
             mv "$WORK_DIR/gapps/system/"* "$WORK_DIR/gapps" || abort
             rm -rf "${WORK_DIR:?}/gapps/system" || abort
         fi
         cp -r "../$ARCH/gapps/"* "$WORK_DIR/gapps" || abort
     else
-        echo "The $GAPPS_BRAND zip package does not exist."
-        abort
+        abort "The $GAPPS_BRAND zip package does not exist."
     fi
     echo -e "Extract done\n"
 fi
