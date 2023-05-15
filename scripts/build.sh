@@ -466,7 +466,7 @@ WSA_MAIN_VER=0
 update_ksu_zip_name() {
     if [ "$WSA_MAIN_VER" -lt "2303" ]; then
         KERNEL_VER="5.10.117.2"
-    elif [ "$DOWN_WSA_MAIN_VERSION" -lt "2304" ]; then
+    elif [ "$WSA_MAIN_VER" -lt "2304" ]; then
         KERNEL_VER="5.15.78.1"
     else
         KERNEL_VER="5.15.94.1"
