@@ -31,23 +31,25 @@ function Get-InstalledDependencyVersion {
         [string]$Name,
         [string]$ProcessorArchitecture
     )
-    process {
-        return Get-AppxPackage -Name $Name | ForEach-Object { if ($_.Architecture -eq $ProcessorArchitecture) { $_ } } | Sort-Object -Property Version | Select-Object -ExpandProperty Version -Last 1;
+    PROCESS {
+        If ($null -Ne $ProcessorArchitecture) {
+            return Get-AppxPackage -Name $Name | ForEach-Object { if ($_.Architecture -Eq $ProcessorArchitecture) { $_ } } | Sort-Object -Property Version | Select-Object -ExpandProperty Version -Last 1;
+        }
     }
 }
 
-Function Test-CommandExists {
-    Param ($command)
-    $oldPreference = $ErrorActionPreference
+Function Test-CommandExist {
+    Param ($Command)
+    $OldPreference = $ErrorActionPreference
     $ErrorActionPreference = 'stop'
-    try { if (Get-Command $command) { RETURN $true } }
+    try { if (Get-Command $Command) { RETURN $true } }
     Catch { RETURN $false }
-    Finally { $ErrorActionPreference = $oldPreference }
-} #end function test-CommandExists
+    Finally { $ErrorActionPreference = $OldPreference }
+} #end function Test-CommandExist
 
 function Finish {
-    Write-Host "Optimizing VHDX size...."
-    If (Test-CommandExists Optimize-VHD) { Optimize-VHD ".\*.vhdx" -Mode Full }
+    Write-Output "Optimizing VHDX size...."
+    If (Test-CommandExist Optimize-VHD) { Optimize-VHD ".\*.vhdx" -Mode Full }
     Clear-Host
     Start-Process "wsa://com.topjohnwu.magisk"
     Start-Process "wsa://com.android.vending"
@@ -55,9 +57,9 @@ function Finish {
 
 If (-Not (Test-Administrator)) {
     Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass -Force
-    $proc = Start-Process -PassThru -WindowStyle Hidden -Verb RunAs ConHost.exe -Args "powershell -ExecutionPolicy Bypass -Command Set-Location '$PSScriptRoot'; &'$PSCommandPath' EVAL"
-    $proc.WaitForExit()
-    If ($proc.ExitCode -Ne 0) {
+    $Proc = Start-Process -PassThru -WindowStyle Hidden -Verb RunAs ConHost.exe -Args "powershell -ExecutionPolicy Bypass -Command Set-Location '$PSScriptRoot'; &'$PSCommandPath' EVAL"
+    $Proc.WaitForExit()
+    If ($Proc.ExitCode -Ne 0) {
         Clear-Host
         Write-Warning "Failed to launch start as Administrator`r`nPress any key to exit"
         $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown');
@@ -90,8 +92,8 @@ If ($(Get-WindowsOptionalFeature -Online -FeatureName 'VirtualMachinePlatform').
     Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName 'VirtualMachinePlatform'
     Clear-Host
     Write-Warning "Need restart to enable virtual machine platform`r`nPress y to restart or press any key to exit"
-    $key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
-    If ("y" -Eq $key.Character) {
+    $Key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+    If ("y" -Eq $Key.Character) {
         Restart-Computer -Confirm
     }
     Else {
@@ -101,17 +103,17 @@ If ($(Get-WindowsOptionalFeature -Online -FeatureName 'VirtualMachinePlatform').
 
 [xml]$Xml = Get-Content ".\AppxManifest.xml";
 $Name = $Xml.Package.Identity.Name;
-Write-Host "Installing $Name version: $($Xml.Package.Identity.Version)"
+Write-Output "Installing $Name version: $($Xml.Package.Identity.Version)"
 $ProcessorArchitecture = $Xml.Package.Identity.ProcessorArchitecture;
 $Dependencies = $Xml.Package.Dependencies.PackageDependency;
 $Dependencies | ForEach-Object {
     $InstalledVersion = Get-InstalledDependencyVersion -Name $_.Name -ProcessorArchitecture $ProcessorArchitecture;
     If ( $InstalledVersion -Lt $_.MinVersion ) {
-        Write-Host "Dependency package $($_.Name) $ProcessorArchitecture required minimum version: $($_.MinVersion). Installing...."
+        Write-Output "Dependency package $($_.Name) $ProcessorArchitecture required minimum version: $($_.MinVersion). Installing...."
         Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Path "$($_.Name)_$ProcessorArchitecture.appx"
     }
     Else {
-        Write-Host "Dependency package $($_.Name) $ProcessorArchitecture current version: $InstalledVersion. Nothing to do."
+        Write-Output "Dependency package $($_.Name) $ProcessorArchitecture current version: $InstalledVersion. Nothing to do."
     }
 }
 
@@ -131,8 +133,8 @@ If (($null -Ne $Installed) -And (-Not ($Installed.IsDevelopmentMode))) {
     }
 }
 Clear-Host
-Write-Host "Installing MagiskOnWSA...."
-If (Test-CommandExists WsaClient) { Start-Process WsaClient -Wait -Args "/shutdown" }
+Write-Output "Installing MagiskOnWSA...."
+If (Test-CommandExist WsaClient) { Start-Process WsaClient -Wait -Args "/shutdown" }
 Stop-Process -Name "WsaClient" -ErrorAction SilentlyContinue
 Add-AppxPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion -Register .\AppxManifest.xml
 If ($?) {
@@ -149,5 +151,5 @@ ElseIf ($null -Ne $Installed) {
         Finish
     }
 }
-Write-Host "All Done!`r`nPress any key to exit"
+Write-Output "All Done!`r`nPress any key to exit"
 $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
