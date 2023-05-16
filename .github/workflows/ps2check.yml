@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - '**.ps1'
+      - '.github/workflows/ps2check.yml'
   workflow_dispatch:
   pull_request:
 
