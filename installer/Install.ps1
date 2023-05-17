@@ -55,7 +55,7 @@ function Finish {
     Start-Process "wsa://com.android.vending"
 }
 
-if (Test-CommandExists pwsh.exe) {
+if (Test-CommandExist pwsh.exe) {
     $pwsh = "pwsh.exe"
 }
 else {
@@ -122,7 +122,7 @@ $Dependencies | ForEach-Object {
     If ( $InstalledVersion -Lt $_.MinVersion ) {
         If ($env:WT_SESSION) {
             $env:WT_SESSION = $null
-            Write-Host "Dependency should be installed but Windows Terminal is in use. Restarting to conhost.exe"
+            Write-Output "Dependency should be installed but Windows Terminal is in use. Restarting to conhost.exe"
             Start-Process conhost.exe -Args "powershell.exe -ExecutionPolicy Bypass -Command Set-Location '$PSScriptRoot'; &'$PSCommandPath'"
             exit 1
         }
