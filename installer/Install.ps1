@@ -48,6 +48,7 @@ Function Test-CommandExist {
 } #end function Test-CommandExist
 
 function Finish {
+    Clear-Host
     Write-Output "Optimizing VHDX size...."
     If (Test-CommandExist Optimize-VHD) { Optimize-VHD ".\*.vhdx" -Mode Full }
     Clear-Host
@@ -64,9 +65,11 @@ Else {
 
 If (-Not (Test-Administrator)) {
     Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass -Force
-    $Proc = Start-Process -PassThru -WindowStyle Hidden -Verb RunAs $pwsh -Args "-ExecutionPolicy Bypass -Command Set-Location '$PSScriptRoot'; &'$PSCommandPath' EVAL"
-    $Proc.WaitForExit()
-    If ($Proc.ExitCode -Ne 0) {
+    $Proc = Start-Process -PassThru -Verb RunAs $pwsh -Args "-ExecutionPolicy Bypass -Command Set-Location '$PSScriptRoot'; &'$PSCommandPath' EVAL"
+    If ($null -Ne $Proc) {
+        $Proc.WaitForExit()
+    }
+    If ($null -Eq $Proc -Or $Proc.ExitCode -Ne 0) {
         Write-Warning "Failed to launch start as Administrator`r`nPress any key to exit"
         $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown');
     }
