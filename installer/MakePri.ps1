@@ -43,7 +43,7 @@ If ((Test-Path -Path "pri") -Eq $true -And (Test-Path -Path "xml") -Eq $true) {
         $ProcNewFromDump.WaitForExit()
         Remove-Item 'priinfo' -Recurse
         If ($ProcNewFromDump.ExitCode -Ne 0) {
-            Write-Warning "Failed to create resources from priinfos"
+            Write-Error "Failed to create resources from priinfos"
             exit 1
         }
     }
