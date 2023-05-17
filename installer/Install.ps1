@@ -155,7 +155,7 @@ If (($null -Ne $Installed) -And (-Not ($Installed.IsDevelopmentMode))) {
 
 If (Test-CommandExist WsaClient) {
     Write-Output "Shutting down WSA...."
-    Start-Process WsaClient -Wait -Args "/shutdown" 
+    Start-Process WsaClient -Wait -Args "/shutdown"
 }
 Stop-Process -Name "WsaClient" -ErrorAction SilentlyContinue
 Write-Output "Installing MagiskOnWSA...."
