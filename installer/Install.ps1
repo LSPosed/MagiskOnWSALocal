@@ -55,19 +55,18 @@ function Finish {
     Start-Process "wsa://com.android.vending"
 }
 
-if (Test-CommandExist pwsh.exe) {
+If (Test-CommandExist pwsh.exe) {
     $pwsh = "pwsh.exe"
 }
-else {
+Else {
     $pwsh = "powershell.exe"
 }
 
 If (-Not (Test-Administrator)) {
     Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass -Force
-    $Proc = Start-Process -PassThru -WindowStyle Hidden -NoNewWindow -Verb RunAs $pwsh -Args "-ExecutionPolicy Bypass -Command Set-Location '$PSScriptRoot'; &'$PSCommandPath' EVAL"
+    $Proc = Start-Process -PassThru -WindowStyle Hidden -Verb RunAs $pwsh -Args "-ExecutionPolicy Bypass -Command Set-Location '$PSScriptRoot'; &'$PSCommandPath' EVAL"
     $Proc.WaitForExit()
     If ($Proc.ExitCode -Ne 0) {
-        Clear-Host
         Write-Warning "Failed to launch start as Administrator`r`nPress any key to exit"
         $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown');
     }
@@ -104,7 +103,6 @@ if ($PSHOME.contains("8wekyb3d8bbwe")) {
 
 If ($(Get-WindowsOptionalFeature -Online -FeatureName 'VirtualMachinePlatform').State -Ne "Enabled") {
     Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName 'VirtualMachinePlatform'
-    Clear-Host
     Write-Warning "Need restart to enable virtual machine platform`r`nPress y to restart or press any key to exit"
     $Key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
     If ("y" -Eq $Key.Character) {
@@ -141,7 +139,6 @@ $Installed = $null
 $Installed = Get-AppxPackage -Name $Name
 
 If (($null -Ne $Installed) -And (-Not ($Installed.IsDevelopmentMode))) {
-    Clear-Host
     Write-Warning "There is already one installed WSA. Please uninstall it first.`r`nPress y to uninstall existing WSA or press any key to exit"
     $key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
     If ("y" -Eq $key.Character) {
@@ -161,7 +158,6 @@ If ($?) {
     Finish
 }
 ElseIf ($null -Ne $Installed) {
-    Clear-Host
     Write-Error "Failed to update.`r`nPress any key to uninstall existing installation while preserving user data.`r`nTake in mind that this will remove the Android apps' icon from the start menu.`r`nIf you want to cancel, close this window now."
     $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
     Clear-Host
