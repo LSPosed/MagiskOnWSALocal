@@ -82,7 +82,7 @@ ElseIf (($args.Count -Eq 1) -And ($args[0] -Eq "EVAL")) {
 
 $FileList = Get-Content -Path .\filelist.txt
 If (((Test-Path -Path $FileList) -Eq $false).Count) {
-    Write-Error "Some files are missing in the folder. Please try to build again. Press any key to exist"
+    Write-Error "Some files are missing in the folder. Please try to build again. Press any key to exit"
     $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
     exit 1
 }
@@ -91,7 +91,8 @@ If (((Test-Path -Path "MakePri.ps1") -And (Test-Path -Path "makepri.exe")) -Eq $
     $ProcMakePri = Start-Process $pwsh -PassThru -NoNewWindow -Args "-ExecutionPolicy Bypass -File MakePri.ps1" -WorkingDirectory $PSScriptRoot
     $ProcMakePri.WaitForExit()
     If ($ProcMakePri.ExitCode -Ne 0) {
-        Write-Warning "Failed to merge resources, WSA Seetings will always be in English`r`n"
+        Write-Warning "Failed to merge resources, WSA Seetings will always be in English`r`nPress any key to continue"
+        $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
     }
 }
 
