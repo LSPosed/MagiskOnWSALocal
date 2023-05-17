@@ -20,7 +20,8 @@ $Host.UI.RawUI.WindowTitle = "Merging resources...."
 If ((Test-Path -Path "pri") -Eq $true -And (Test-Path -Path "xml") -Eq $true) {
     $AppxManifestFile = ".\AppxManifest.xml"
     Copy-Item .\resources.pri -Destination ".\pri\resources.pri" | Out-Null
-    $ProcNew = Start-Process -PassThru makepri.exe -WindowStyle Hidden -Args "new /pr .\pri /cf .\xml\priconfig.xml /of .\resources.pri /mn $AppxManifestFile /o"
+    $ProcNew = Start-Process -PassThru makepri.exe -NoNewWindow -Args "new /pr .\pri /cf .\xml\priconfig.xml /of .\resources.pri /mn $AppxManifestFile /o"
+    $null = $ProcNew.Handle
     $ProcNew.WaitForExit()
     If ($ProcNew.ExitCode -Ne 0) {
         Write-Warning "Failed to merge resources from pris`r`nTrying to dump pris to priinfo...."
@@ -39,11 +40,12 @@ If ((Test-Path -Path "pri") -Eq $true -And (Test-Path -Path "xml") -Eq $true) {
         Write-Progress -Activity "Dumping resources" -Status "Ready" -Completed
         Clear-Host
         Write-Output "Creating pri from dumps...."
-        $ProcNewFromDump = Start-Process -PassThru -WindowStyle Hidden makepri.exe -Args "new /pr .\priinfo /cf .\xml\priconfig.xml /of .\resources.pri /mn $AppxManifestFile /o"
+        $ProcNewFromDump = Start-Process -PassThru -NoNewWindow makepri.exe -Args "new /pr .\priinfo /cf .\xml\priconfig.xml /of .\resources.pri /mn $AppxManifestFile /o"
+        $null = $ProcNewFromDump.Handle
         $ProcNewFromDump.WaitForExit()
         Remove-Item 'priinfo' -Recurse
         If ($ProcNewFromDump.ExitCode -Ne 0) {
-            Write-Warning "Failed to create resources from priinfos"
+            Write-Error "Failed to create resources from priinfos"
             exit 1
         }
     }
