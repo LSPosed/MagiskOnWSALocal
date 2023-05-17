@@ -95,6 +95,9 @@ If (((Test-Path -Path "MakePri.ps1") -And (Test-Path -Path "makepri.exe")) -Eq $
 
 reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
 
+# When using PowerShell which is installed with MSIX
+# Get-WindowsOptionalFeature and Enable-WindowsOptionalFeature will fail
+# See https://github.com/PowerShell/PowerShell/issues/13866
 if ($PSHOME.contains("8wekyb3d8bbwe")) {
     Import-Module DISM -UseWindowsPowerShell
 }
