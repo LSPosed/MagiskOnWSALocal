@@ -21,11 +21,30 @@
 from datetime import datetime
 import sys
 import os
+from typing import Any, OrderedDict
 
 import requests
 import json
 import re
 from pathlib import Path
+
+
+class Prop(OrderedDict):
+    def __init__(self, props: str = ...) -> None:
+        super().__init__()
+        for i, line in enumerate(props.splitlines(False)):
+            if '=' in line:
+                k, v = line.split('=', 1)
+                self[k] = v
+            else:
+                self[f".{i}"] = line
+
+    def __setattr__(self, __name: str, __value: Any) -> None:
+        self[__name] = __value
+
+    def __repr__(self):
+        return '\n'.join(f'{item}={self[item]}' for item in self)
+
 
 arch = sys.argv[1]
 arg2 = sys.argv[2]
@@ -50,8 +69,11 @@ if res.status_code == 200:
         print(f"Error: No KernelSU release found for arch={abi_map[arch]}, kernel version={kernelVersion}", flush=True)
         exit(1)
     release_name = json_data["name"]
-    with open(os.environ['WSA_WORK_ENV'], 'a') as environ_file:
-        environ_file.write(f'KERNELSU_VER={release_name}\n')
+    with open(os.environ['WSA_WORK_ENV'], 'r') as environ_file:
+        env = Prop(environ_file.read())
+        env.KERNELSU_VER = release_name
+    with open(os.environ['WSA_WORK_ENV'], 'w') as environ_file:
+        environ_file.write(str(env))
 elif res.status_code == 403 and x_ratelimit_remaining == '0':
     message = json_data["message"]
     print(f"Github API Error: {message}", flush=True)

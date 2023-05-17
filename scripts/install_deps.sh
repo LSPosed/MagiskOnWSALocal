@@ -25,6 +25,7 @@ fi
 cd "$(dirname "$0")" || exit 1
 SUDO="$(which sudo 2>/dev/null)"
 abort() {
+    [ "$1" ] && echo "ERROR: $1"
     echo "Dependencies: an error has occurred, exit"
     exit 1
 }
@@ -49,6 +50,7 @@ check_dependencies() {
     command -v unzip >/dev/null 2>&1 || NEED_INSTALL+=("unzip")
     command -v qemu-img >/dev/null 2>&1 || NEED_INSTALL+=("qemu-utils")
     command -v sudo >/dev/null 2>&1 || NEED_INSTALL+=("sudo")
+    command -v mkfs.erofs >/dev/null 2>&1 || NEED_INSTALL+=("erofs-utils")
 }
 check_dependencies
 osrel=$(sed -n '/^ID_LIKE=/s/^.*=//p' /etc/os-release)
@@ -116,6 +118,7 @@ if [ -n "${NEED_INSTALL[*]}" ]; then
             NEED_INSTALL_FIX=${NEED_INSTALL_FIX//setools/setools-console} 2>&1
             NEED_INSTALL_FIX=${NEED_INSTALL_FIX//whiptail/dialog} 2>&1
             NEED_INSTALL_FIX=${NEED_INSTALL_FIX//qemu-utils/qemu-tools} 2>&1
+            NEED_INSTALL_FIX=${NEED_INSTALL_FIX//python3-venv/python3-venvctrl} 2>&1
         } >>/dev/null
 
         readarray -td ' ' NEED_INSTALL <<<"$NEED_INSTALL_FIX "
@@ -129,4 +132,21 @@ if [ -n "${NEED_INSTALL[*]}" ]; then
 
 fi
 
-python3 -m pip install -r requirements.txt -q
+python_version=$(python3 -c 'import sys;print("{0}{1}".format(*(sys.version_info[:2])))')
+if [ "$python_version" -ge 311 ]; then
+    python3 -c "import venv" >/dev/null 2>&1 || if ! ($SUDO "$PM" "${INSTALL_OPTION[@]}" "python3-venv"); then abort; fi
+    PYTHON_VENV_DIR="$(dirname "$PWD")/python3-env"
+    [ -f "$PYTHON_VENV_DIR/bin/activate" ] || {
+        echo "Creating python3 virtual env"
+        python3 -m venv "$PYTHON_VENV_DIR" || abort "Failed to create python3 virtual env"
+    }
+    # shellcheck disable=SC1091
+    source "$PYTHON_VENV_DIR"/bin/activate || abort "Failed to activate python3 virtual env"
+    python3 -c "import pkg_resources; pkg_resources.require(open('requirements.txt',mode='r'))" &>/dev/null || {
+        echo "Installing Python3 dependencies"
+        python3 -m pip install -r requirements.txt || abort "Failed to install python3 dependencies"
+    }
+    deactivate
+else
+    python3 -m pip install -r requirements.txt -q || abort "Failed to install python3 dependencies"
+fi
