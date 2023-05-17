@@ -95,6 +95,7 @@ If (((Test-Path -Path "MakePri.ps1") -And (Test-Path -Path "makepri.exe")) -Eq $
         Write-Warning "Failed to merge resources, WSA Seetings will always be in English`r`nPress any key to continue"
         $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
     }
+    $Host.UI.RawUI.WindowTitle = "Installing MagiskOnWSA...."
 }
 
 reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
