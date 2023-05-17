@@ -88,7 +88,8 @@ If (((Test-Path -Path $FileList) -Eq $false).Count) {
 }
 
 If (((Test-Path -Path "MakePri.ps1") -And (Test-Path -Path "makepri.exe")) -Eq $true) {
-    $ProcMakePri = Start-Process $pwsh -PassThru -Args "-ExecutionPolicy Bypass -File MakePri.ps1" -WorkingDirectory $PSScriptRoot
+    $ProcMakePri = Start-Process $pwsh -PassThru -NoNewWindow -Args "-ExecutionPolicy Bypass -File MakePri.ps1" -WorkingDirectory $PSScriptRoot
+    $null = $ProcMakePri.Handle
     $ProcMakePri.WaitForExit()
     If ($ProcMakePri.ExitCode -Ne 0) {
         Write-Warning "Failed to merge resources, WSA Seetings will always be in English`r`nPress any key to continue"
