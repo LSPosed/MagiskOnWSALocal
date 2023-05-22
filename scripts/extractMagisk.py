@@ -23,10 +23,11 @@ import zipfile
 from pathlib import Path
 import platform
 import os
-from typing import OrderedDict
+from typing import Any, OrderedDict
+
 
 class Prop(OrderedDict):
-    def __init__(self, props: str=...) -> None:
+    def __init__(self, props: str = ...) -> None:
         super().__init__()
         for i, line in enumerate(props.splitlines(False)):
             if '=' in line:
@@ -35,8 +36,12 @@ class Prop(OrderedDict):
             else:
                 self[f".{i}"] = line
 
-    def get(self, key: str) -> str:
-        return self[key]
+    def __setattr__(self, __name: str, __value: Any) -> None:
+        self[__name] = __value
+
+    def __repr__(self):
+        return '\n'.join(f'{item}={self[item]}' for item in self)
+
 
 is_x86_64 = platform.machine() in ("AMD64", "x86_64")
 host_abi = "x64" if is_x86_64 else "arm64"
@@ -48,19 +53,24 @@ if not Path(workdir).is_dir():
 
 abi_map = {"x64": ["x86_64", "x86"], "arm64": ["arm64-v8a", "armeabi-v7a"]}
 
+
 def extract_as(zip, name, as_name, dir):
     info = zip.getinfo(name)
     info.filename = as_name
     zip.extract(info, workdir / dir)
+
 
 with zipfile.ZipFile(magisk_zip) as zip:
     props = Prop(zip.comment.decode().replace('\000', '\n'))
     versionName = props.get("version")
     versionCode = props.get("versionCode")
     print(f"Magisk version: {versionName} ({versionCode})", flush=True)
-    with open(os.environ['WSA_WORK_ENV'], 'a') as environ_file:
-        environ_file.write(f'MAGISK_VERSION_NAME={versionName}\n')
-        environ_file.write(f'MAGISK_VERSION_CODE={versionCode}\n')
+    with open(os.environ['WSA_WORK_ENV'], 'r') as environ_file:
+        env = Prop(environ_file.read())
+        env.MAGISK_VERSION_NAME = versionName
+        env.MAGISK_VERSION_CODE = versionCode
+    with open(os.environ['WSA_WORK_ENV'], 'w') as environ_file:
+        environ_file.write(str(env))
     extract_as(
         zip, f"lib/{ abi_map[arch][0] }/libmagisk64.so", "magisk64", "magisk")
     extract_as(
