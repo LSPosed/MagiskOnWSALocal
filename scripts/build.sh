@@ -753,6 +753,7 @@ EOF
     echo "/debug_ramdisk(/.*)?    u:object_r:magisk_file:s0" | sudo tee -a "$VENDOR_MNT/etc/selinux/vendor_file_contexts"
     echo '/data/adb/magisk(/.*)?   u:object_r:magisk_file:s0' | sudo tee -a "$VENDOR_MNT/etc/selinux/vendor_file_contexts"
     sudo LD_LIBRARY_PATH="../linker/$HOST_ARCH" "$WORK_DIR/magisk/magiskpolicy" --load "$VENDOR_MNT/etc/selinux/precompiled_sepolicy" --save "$VENDOR_MNT/etc/selinux/precompiled_sepolicy" --magisk || abort
+    NEW_INITRC_DIR=$SYSTEM_MNT/etc/init/hw
     sudo tee -a "$SYSTEM_MNT/etc/init/hw/init.rc" <<EOF >/dev/null
 on post-fs-data
     mkdir /dev/debug_ramdisk_mirror
@@ -793,12 +794,17 @@ on nonencrypted
 on property:sys.boot_completed=1
     exec u:r:magisk:s0 0 0 --  /debug_ramdisk/magisk --boot-complete
 
-on property:init.svc.zygote=restarting
-    exec u:r:magisk:s0 0 0 -- /debug_ramdisk/magisk --zygote-restart
-
 on property:init.svc.zygote=stopped
     exec u:r:magisk:s0 0 0 -- /debug_ramdisk/magisk --zygote-restart
 EOF
+
+for i in "$NEW_INITRC_DIR"/*; do
+    if [[ "$i" =~ init.zygote.+\.rc ]]; then
+        echo "Inject zygote restart $i"
+        sudo awk -i inplace '{if($0 ~ /service zygote /){print $0;print "    exec u:r:magisk:s0 0 0 -- /debug_ramdisk/magisk --zygote-restart";a="";next}} 1' "$i"
+    fi
+done
+
     echo -e "Integrate Magisk done\n"
 elif [ "$ROOT_SOL" = "kernelsu" ]; then
     echo "Integrate KernelSU"
