@@ -18,8 +18,7 @@
 -->
 <config>
     <component-override package="com.android.vending">
+        <!-- Conflicts with WSA's built-in package verifier, disable to prevent boot loops. -->
         <component class="com.google.android.finsky.verifier.impl.PackageVerificationReceiver" enabled="false" />
-        <component class="com.google.android.finsky.verifier.impl.api.safetynet.PackageVerificationApiService" enabled="false" />
-        <component class="com.google.android.finsky.verifier.impl.PackageVerificationService" enabled="false" />
     </component-override>
 </config>

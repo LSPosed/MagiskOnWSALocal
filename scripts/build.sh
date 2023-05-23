@@ -101,6 +101,7 @@ clean_download() {
     fi
 }
 abort() {
+    [ "$1" ] && echo -e "ERROR: $1"
     echo "Build: an error has occurred, exit"
     if [ -d "$WORK_DIR" ]; then
         echo -e "\nCleanup Work Directory"
@@ -419,8 +420,7 @@ fi
 require_su() {
     if test "$(id -u)" != "0"; then
         if [ "$(sudo id -u)" != "0" ]; then
-            echo "ROOT/SUDO is required to run this script"
-            abort
+            abort "ROOT/SUDO is required to run this script"
         fi
     fi
 }
@@ -447,8 +447,7 @@ if [ "$CUSTOM_MAGISK" ]; then
         echo "Fallback to $MAGISK_ZIP"
         MAGISK_PATH=$DOWNLOAD_DIR/$MAGISK_ZIP
         if [ ! -f "$MAGISK_PATH" ]; then
-            echo -e "Custom Magisk $MAGISK_ZIP not found\nPlease put custom Magisk in $DOWNLOAD_DIR"
-            abort
+            abort "Custom Magisk $MAGISK_ZIP not found\nPlease put custom Magisk in $DOWNLOAD_DIR"
         fi
     fi
 fi
@@ -464,17 +463,17 @@ update_gapps_zip_name() {
 }
 WSA_MAIN_VER=0
 update_ksu_zip_name() {
-    if [ "$WSA_MAIN_VER" -lt "2303" ]; then
-        KERNEL_VER="5.10.117.2"
-    else
+    KERNEL_VER="5.10.117.2"
+    if [ "$WSA_MAIN_VER" -ge "2303" ]; then
         KERNEL_VER="5.15.78.1"
+    fi
+    if [ "$WSA_MAIN_VER" -ge "2304" ]; then
+        KERNEL_VER="5.15.94.1"
     fi
     KERNELSU_ZIP_NAME=kernelsu-$ARCH-$KERNEL_VER.zip
     KERNELSU_PATH=$DOWNLOAD_DIR/$KERNELSU_ZIP_NAME
     KERNELSU_INFO="$KERNELSU_PATH.info"
 }
-update_gapps_zip_name
-update_ksu_zip_name
 if [ -z ${OFFLINE+x} ]; then
     require_su
     if [ "$DOWN_WSA" != "no" ]; then
@@ -487,10 +486,6 @@ if [ -z ${OFFLINE+x} ]; then
     fi
     if [[ "$WSA_MAIN_VER" -lt 2211 ]]; then
         ANDROID_API=32
-        update_gapps_zip_name
-    fi
-    if [[ "$WSA_MAIN_VER" -ge 2303 ]]; then
-        update_ksu_zip_name
     fi
     if [ "$ROOT_SOL" = "magisk" ] || [ "$GAPPS_BRAND" != "none" ]; then
         if [ -z ${CUSTOM_MAGISK+x} ]; then
@@ -498,6 +493,7 @@ if [ -z ${OFFLINE+x} ]; then
         fi
     fi
     if [ "$ROOT_SOL" = "kernelsu" ]; then
+        update_ksu_zip_name
         python3 generateKernelSULink.py "$ARCH" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" "$KERNEL_VER" "$KERNELSU_ZIP_NAME" || abort
         # shellcheck disable=SC1090
         source "$WSA_WORK_ENV" || abort
@@ -505,6 +501,7 @@ if [ -z ${OFFLINE+x} ]; then
         echo "KERNELSU_VER=$KERNELSU_VER" >"$KERNELSU_INFO"
     fi
     if [ "$GAPPS_BRAND" != "none" ]; then
+        update_gapps_zip_name
         python3 generateGappsLink.py "$ARCH" "$GAPPS_BRAND" "$GAPPS_VARIANT" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" "$ANDROID_API" "$GAPPS_ZIP_NAME" || abort
     fi
 
@@ -517,19 +514,17 @@ else # Offline mode
     WSA_MAIN_VER=$(python3 getWSAMainVersion.py "$ARCH" "$WSA_ZIP_PATH")
     if [[ "$WSA_MAIN_VER" -lt 2211 ]]; then
         ANDROID_API=32
-        update_gapps_zip_name
-    fi
-    if [[ "$WSA_MAIN_VER" -ge 2303 ]]; then
-        update_ksu_zip_name
     fi
     declare -A FILES_CHECK_LIST=([WSA_ZIP_PATH]="$WSA_ZIP_PATH" [xaml_PATH]="$xaml_PATH" [vclibs_PATH]="$vclibs_PATH" [UWPVCLibs_PATH]="$UWPVCLibs_PATH")
     if [ "$GAPPS_BRAND" != "none" ] || [ "$ROOT_SOL" = "magisk" ]; then
         FILES_CHECK_LIST+=(["MAGISK_PATH"]="$MAGISK_PATH")
     fi
     if [ "$ROOT_SOL" = "kernelsu" ]; then
+        update_ksu_zip_name
         FILES_CHECK_LIST+=(["KERNELSU_PATH"]="$KERNELSU_PATH")
     fi
     if [ "$GAPPS_BRAND" != 'none' ]; then
+        update_gapps_zip_name
         FILES_CHECK_LIST+=(["GAPPS_PATH"]="$GAPPS_PATH")
     fi
     for i in "${FILES_CHECK_LIST[@]}"; do
@@ -548,9 +543,8 @@ fi
 echo "Extract WSA"
 if [ -f "$WSA_ZIP_PATH" ]; then
     if ! python3 extractWSA.py "$ARCH" "$WSA_ZIP_PATH" "$WORK_DIR" "$WSA_WORK_ENV"; then
-        echo "Unzip WSA failed, is the download incomplete?"
         CLEAN_DOWNLOAD_WSA=1
-        abort
+        abort "Unzip WSA failed, is the download incomplete?"
     fi
     echo -e "Extract done\n"
     # shellcheck disable=SC1090
@@ -566,15 +560,13 @@ if [ "$GAPPS_BRAND" != "none" ] || [ "$ROOT_SOL" = "magisk" ]; then
         MAGISK_VERSION_NAME=""
         MAGISK_VERSION_CODE=0
         if ! python3 extractMagisk.py "$ARCH" "$MAGISK_PATH" "$WORK_DIR"; then
-            echo "Unzip Magisk failed, is the download incomplete?"
             CLEAN_DOWNLOAD_MAGISK=1
-            abort
+            abort "Unzip Magisk failed, is the download incomplete?"
         fi
         # shellcheck disable=SC1090
         source "$WSA_WORK_ENV" || abort
         if [ "$MAGISK_VERSION_CODE" -lt 26000 ] && [ "$MAGISK_VER" != "stable" ] && [ -z ${CUSTOM_MAGISK+x} ]; then
-            echo "Please install Magisk 26.0+"
-            abort
+            abort "Please install Magisk 26.0+"
         fi
         sudo chmod +x "../linker/$HOST_ARCH/linker64" || abort
         sudo patchelf --set-interpreter "../linker/$HOST_ARCH/linker64" "$WORK_DIR/magisk/magiskpolicy" || abort
@@ -590,13 +582,13 @@ if [ "$GAPPS_BRAND" != "none" ] || [ "$ROOT_SOL" = "magisk" ]; then
 fi
 
 if [ "$ROOT_SOL" = "kernelsu" ]; then
+    update_ksu_zip_name
     echo "Extract KernelSU"
     # shellcheck disable=SC1090
     source "${KERNELSU_INFO:?}" || abort
     if ! unzip "$KERNELSU_PATH" -d "$WORK_DIR/kernelsu"; then
-        echo "Unzip KernelSU failed, package is corrupted?"
         CLEAN_DOWNLOAD_KERNELSU=1
-        abort
+        abort "Unzip KernelSU failed, package is corrupted?"
     fi
     if [ "$ARCH" = "x64" ]; then
         mv "$WORK_DIR/kernelsu/bzImage" "$WORK_DIR/kernelsu/kernel"
@@ -607,28 +599,26 @@ if [ "$ROOT_SOL" = "kernelsu" ]; then
 fi
 
 if [ "$GAPPS_BRAND" != 'none' ]; then
+    update_gapps_zip_name
     echo "Extract $GAPPS_BRAND"
     mkdir -p "$WORK_DIR/gapps" || abort
     if [ -f "$GAPPS_PATH" ]; then
         if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
             if ! unzip -p "$GAPPS_PATH" {Core,GApps}/'*.lz' | tar --lzip -C "$WORK_DIR/gapps" -xf - -i --strip-components=2 --exclude='setupwizardtablet-x86_64' --exclude='packageinstallergoogle-all' --exclude='speech-common' --exclude='markup-lib-arm' --exclude='markup-lib-arm64' --exclude='markup-all' --exclude='setupwizarddefault-x86_64' --exclude='pixellauncher-all' --exclude='pixellauncher-common'; then
-                echo "Unzip OpenGApps failed, is the download incomplete?"
                 CLEAN_DOWNLOAD_GAPPS=1
-                abort
+                abort "Unzip OpenGApps failed, is the download incomplete?"
             fi
         else
             if ! unzip "$GAPPS_PATH" "system/*" -x "system/addon.d/*" "system/system_ext/priv-app/SetupWizard/*" -d "$WORK_DIR/gapps"; then
-                echo "Unzip MindTheGapps failed, package is corrupted?"
                 CLEAN_DOWNLOAD_GAPPS=1
-                abort
+                abort "Unzip MindTheGapps failed, package is corrupted?"
             fi
             mv "$WORK_DIR/gapps/system/"* "$WORK_DIR/gapps" || abort
             rm -rf "${WORK_DIR:?}/gapps/system" || abort
         fi
         cp -r "../$ARCH/gapps/"* "$WORK_DIR/gapps" || abort
     else
-        echo "The $GAPPS_BRAND zip package does not exist."
-        abort
+        abort "The $GAPPS_BRAND zip package does not exist."
     fi
     echo -e "Extract done\n"
 fi
@@ -727,6 +717,7 @@ if [ "$REMOVE_AMAZON" ]; then
     echo "Remove Amazon Appstore"
     find "${PRODUCT_MNT:?}"/{etc/permissions,etc/sysconfig,framework,priv-app} 2>/dev/null | grep -e amazon -e venezia | sudo xargs rm -rf
     find "${SYSTEM_EXT_MNT:?}"/{etc/*permissions,framework,priv-app} 2>/dev/null | grep -e amazon -e venezia | sudo xargs rm -rf
+    rm -f "$WORK_DIR/wsa/$ARCH/apex/mado_release.apex"
     echo -e "done\n"
 fi
 
@@ -739,25 +730,22 @@ if [ "$ROOT_SOL" = 'magisk' ]; then
     echo "Integrate Magisk"
     sudo cp "$WORK_DIR/magisk/magisk/"* "$ROOT_MNT/debug_ramdisk/"
     sudo cp "$MAGISK_PATH" "$ROOT_MNT/debug_ramdisk/stub.apk" || abort
-    sudo tee -a "$ROOT_MNT/debug_ramdisk/preparebin.sh" <<EOF >/dev/null || abort
-#!/system/bin/sh
-mkdir -p /data/adb/magisk
-cp /debug_ramdisk/* /data/adb/magisk/
-sync
-chmod -R 755 /data/adb/magisk
-restorecon -R /data/adb/magisk
-EOF
-    sudo tee -a "$ROOT_MNT/debug_ramdisk/mkpreinit.sh" <<EOF >/dev/null || abort
+    sudo tee -a "$ROOT_MNT/debug_ramdisk/loadpolicy.sh" <<EOF >/dev/null || abort
 #!/system/bin/sh
 MAGISKTMP=/debug_ramdisk
 export MAGISKTMP
+mkdir -p /data/adb/magisk
+cp \$MAGISKTMP/* /data/adb/magisk/
+sync
+chmod -R 755 /data/adb/magisk
+restorecon -R /data/adb/magisk
 MAKEDEV=1 \$MAGISKTMP/magisk --preinit-device 2>&1
 RULESCMD=""
 for r in \$MAGISKTMP/.magisk/preinit/*/sepolicy.rule; do
   [ -f "\$r" ] || continue
   RULESCMD="\$RULESCMD --apply \$r"
 done
-/debug_ramdisk/magiskpolicy --live \$RULESCMD 2>&1
+\$MAGISKTMP/magiskpolicy --live \$RULESCMD 2>&1
 EOF
     sudo find "$ROOT_MNT/debug_ramdisk" -type f -exec chmod 0711 {} \;
     sudo find "$ROOT_MNT/debug_ramdisk" -type f -exec chown root:root {} \;
@@ -765,72 +753,51 @@ EOF
     echo "/debug_ramdisk(/.*)?    u:object_r:magisk_file:s0" | sudo tee -a "$VENDOR_MNT/etc/selinux/vendor_file_contexts"
     echo '/data/adb/magisk(/.*)?   u:object_r:magisk_file:s0' | sudo tee -a "$VENDOR_MNT/etc/selinux/vendor_file_contexts"
     sudo LD_LIBRARY_PATH="../linker/$HOST_ARCH" "$WORK_DIR/magisk/magiskpolicy" --load "$VENDOR_MNT/etc/selinux/precompiled_sepolicy" --save "$VENDOR_MNT/etc/selinux/precompiled_sepolicy" --magisk || abort
-    COPY_BIN_SVC_NAME=$(Gen_Rand_Str 12)
-    PFD_SVC_NAME=$(Gen_Rand_Str 12)
-    LS_SVC_NAME=$(Gen_Rand_Str 12)
     sudo tee -a "$SYSTEM_MNT/etc/init/hw/init.rc" <<EOF >/dev/null
 on post-fs-data
-    mkdir /dev/tmp
-    mount none / /dev/tmp bind
-    mount none none /dev/tmp private
+    mkdir /dev/debug_ramdisk_mirror
+    mount none /debug_ramdisk /dev/debug_ramdisk_mirror bind
+    mount none none /dev/debug_ramdisk_mirror private
     mount tmpfs magisk /debug_ramdisk mode=0755
-    copy /dev/tmp/debug_ramdisk/magisk64 /debug_ramdisk/magisk64
+    copy /dev/debug_ramdisk_mirror/magisk64 /debug_ramdisk/magisk64
     chmod 0711 /debug_ramdisk/magisk64
     symlink ./magisk64 /debug_ramdisk/magisk
     symlink ./magisk64 /debug_ramdisk/su
     symlink ./magisk64 /debug_ramdisk/resetprop
-    copy /dev/tmp/debug_ramdisk/magisk32 /debug_ramdisk/magisk32
+    start adbd
+    copy /dev/debug_ramdisk_mirror/magisk32 /debug_ramdisk/magisk32
     chmod 0711 /debug_ramdisk/magisk32
-    copy /dev/tmp/debug_ramdisk/magiskinit /debug_ramdisk/magiskinit
+    copy /dev/debug_ramdisk_mirror/magiskinit /debug_ramdisk/magiskinit
     chmod 0711 /debug_ramdisk/magiskinit
-    copy /dev/tmp/debug_ramdisk/magiskpolicy /debug_ramdisk/magiskpolicy
+    copy /dev/debug_ramdisk_mirror/magiskpolicy /debug_ramdisk/magiskpolicy
     chmod 0711 /debug_ramdisk/magiskpolicy
-    mkdir /debug_ramdisk/.magisk 755
+    mkdir /debug_ramdisk/.magisk
     mkdir /debug_ramdisk/.magisk/mirror 0
     mkdir /debug_ramdisk/.magisk/block 0
     mkdir /debug_ramdisk/.magisk/worker 0
-    copy /dev/tmp/debug_ramdisk/stub.apk /debug_ramdisk/stub.apk
+    copy /dev/debug_ramdisk_mirror/stub.apk /debug_ramdisk/stub.apk
     chmod 0644 /debug_ramdisk/stub.apk
-    copy /dev/tmp/debug_ramdisk/preparebin.sh /debug_ramdisk/preparebin.sh
-    chmod 0711 /debug_ramdisk/preparebin.sh
-    copy /dev/tmp/debug_ramdisk/mkpreinit.sh /debug_ramdisk/mkpreinit.sh
-    chmod 0711 /debug_ramdisk/mkpreinit.sh
-    umount /dev/tmp
-    rmdir /dev/tmp
-    rm /dev/.magisk_unblock
-    exec u:r:magisk:s0 0 0 -- /system/bin/sh /debug_ramdisk/mkpreinit.sh
-    exec_start $COPY_BIN_SVC_NAME
-    start $PFD_SVC_NAME
-    wait /dev/.magisk_unblock 40
-    rm /dev/.magisk_unblock
+    copy /dev/debug_ramdisk_mirror/loadpolicy.sh /debug_ramdisk/loadpolicy.sh
+    chmod 0711 /debug_ramdisk/loadpolicy.sh
+    umount /dev/debug_ramdisk_mirror
+    rmdir /dev/debug_ramdisk_mirror
+    exec u:r:magisk:s0 0 0 -- /system/bin/sh /debug_ramdisk/loadpolicy.sh
+    exec u:r:magisk:s0 0 0 -- /debug_ramdisk/magisk --post-fs-data
 
-service $COPY_BIN_SVC_NAME /system/bin/sh /debug_ramdisk/preparebin.sh
-    user root
-    seclabel u:r:magisk:s0
-    oneshot
+on property:vold.decrypt=trigger_restart_framework
+    exec u:r:magisk:s0 0 0 -- /debug_ramdisk/magisk --service
 
-service $PFD_SVC_NAME /debug_ramdisk/magisk --post-fs-data
-    user root
-    seclabel u:r:magisk:s0
-    oneshot
-
-service $LS_SVC_NAME /debug_ramdisk/magisk --service
-    class late_start
-    user root
-    seclabel u:r:magisk:s0
-    oneshot
+on nonencrypted
+    exec u:r:magisk:s0 0 0 -- /debug_ramdisk/magisk --service
 
 on property:sys.boot_completed=1
-    mkdir /data/adb/magisk 755
-    copy /debug_ramdisk/stub.apk /data/adb/magisk/magisk.apk
-    exec /debug_ramdisk/magisk --boot-complete
+    exec u:r:magisk:s0 0 0 --  /debug_ramdisk/magisk --boot-complete
 
 on property:init.svc.zygote=restarting
-    exec /debug_ramdisk/magisk --zygote-restart
+    exec u:r:magisk:s0 0 0 -- /debug_ramdisk/magisk --zygote-restart
 
 on property:init.svc.zygote=stopped
-    exec /debug_ramdisk/magisk --zygote-restart
-
+    exec u:r:magisk:s0 0 0 -- /debug_ramdisk/magisk --zygote-restart
 EOF
     echo -e "Integrate Magisk done\n"
 elif [ "$ROOT_SOL" = "kernelsu" ]; then
@@ -899,7 +866,7 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
         find "$WORK_DIR/gapps/system_ext/priv-app/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$SYSTEM_EXT_MNT/priv-app/placeholder" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
     fi
 
-    sudo LD_LIBRARY_PATH="../linker/$HOST_ARCH" "$WORK_DIR/magisk/magiskpolicy" --load "$VENDOR_MNT/etc/selinux/precompiled_sepolicy" --save "$VENDOR_MNT/etc/selinux/precompiled_sepolicy" "allow gmscore_app gmscore_app vsock_socket { create connect write read }" "allow gmscore_app device_config_runtime_native_boot_prop file read" "allow gmscore_app system_server_tmpfs dir search" "allow gmscore_app system_server_tmpfs file open" "allow gmscore_app system_server_tmpfs filesystem getattr" "allow gmscore_app gpu_device dir search" || abort
+    sudo LD_LIBRARY_PATH="../linker/$HOST_ARCH" "$WORK_DIR/magisk/magiskpolicy" --load "$VENDOR_MNT/etc/selinux/precompiled_sepolicy" --save "$VENDOR_MNT/etc/selinux/precompiled_sepolicy" "allow gmscore_app gmscore_app vsock_socket { create connect write read }" "allow gmscore_app device_config_runtime_native_boot_prop file read" "allow gmscore_app system_server_tmpfs dir search" "allow gmscore_app system_server_tmpfs file open" "allow gmscore_app system_server_tmpfs filesystem getattr" "allow gmscore_app gpu_device dir search" "allow gmscore_app media_rw_data_file filesystem getattr" || abort
     echo -e "Integrate $GAPPS_BRAND done\n"
 fi
 
