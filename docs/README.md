@@ -40,7 +40,7 @@
 - Integrate Magisk and GApps in a few clicks within minutes
 - Keep each build up to date
 - Support both ARM64 and x64
-- Support all OpenGApps variants except for aroma (aroma does not support x86_64, please use super instead)
+- Support all MindTheGapps
 - Remove Amazon Appstore
 - Fix VPN dialog not showing (use our [VpnDialogs app](https://github.com/LSPosed/VpnDialogs))
 - Add device administration feature
@@ -63,9 +63,6 @@
 5. Select the WSA version and its architecture (mostly x64).
 6. Select the version of Magisk.
 7. Choose which brand of GApps you want to install:
-   - OpenGApps
-
-     Select the [OpenGApps variant](https://github.com/opengapps/opengapps/wiki#variants) you like.
    - MindTheGapps
 
      There is no other variant we can choose.
