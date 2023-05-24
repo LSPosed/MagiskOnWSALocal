@@ -23,6 +23,7 @@ if [ ! "$BASH_VERSION" ]; then
     exit 1
 fi
 cd "$(dirname "$0")" || exit 1
+SCRIPT_DIR="$(pwd)"
 SUDO="$(which sudo 2>/dev/null)"
 abort() {
     [ "$1" ] && echo "ERROR: $1"
@@ -37,6 +38,29 @@ require_su() {
         fi
     fi
 }
+ARGUMENT_LIST=(
+    "force-upgrade-erofs-utils"
+)
+opts=$(
+    getopt \
+        --longoptions "$(printf "%s," "${ARGUMENT_LIST[@]}")" \
+        --name "$(basename "$0")" \
+        --options "" \
+        -- "$@"
+) || exit_with_message "Failed to parse options, please check your input"
+eval set --"$opts"
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+    --force-upgrade-erofs-utils)
+        FORCE_UPGRADE_EROFS_UTILS=1
+        shift
+        ;;
+    --)
+        shift
+        break
+        ;;
+    esac
+done
 echo "Checking and ensuring dependencies"
 check_dependencies() {
     command -v whiptail >/dev/null 2>&1 || command -v dialog >/dev/null 2>&1 || NEED_INSTALL+=("whiptail")
@@ -50,7 +74,14 @@ check_dependencies() {
     command -v unzip >/dev/null 2>&1 || NEED_INSTALL+=("unzip")
     command -v qemu-img >/dev/null 2>&1 || NEED_INSTALL+=("qemu-utils")
     command -v sudo >/dev/null 2>&1 || NEED_INSTALL+=("sudo")
-    command -v mkfs.erofs >/dev/null 2>&1 || NEED_INSTALL+=("erofs-utils")
+    command -v automake >/dev/null 2>&1 || NEED_INSTALL+=("automake")
+    command -v libtoolize >/dev/null 2>&1 || NEED_INSTALL+=("libtool")
+    command -v m4 >/dev/null 2>&1 || NEED_INSTALL+=("m4")
+    command -v pkg-config >/dev/null 2>&1 || NEED_INSTALL+=("pkg-config")
+    [ -d /usr/include/uuid ] || NEED_INSTALL+=("uuid-dev")
+    [ -d /usr/include/fuse3 ] || NEED_INSTALL+=("libfuse3-dev")
+    [ -f /usr/include/lz4.h ] || NEED_INSTALL+=("liblz4-dev")
+    command -v erofsfuse >/dev/null 2>&1 && [ ! "$FORCE_UPGRADE_EROFS_UTILS" ] || MAKE_INSTALL+=("erofs-utils")
 }
 check_dependencies
 osrel=$(sed -n '/^ID_LIKE=/s/^.*=//p' /etc/os-release)
@@ -132,6 +163,24 @@ if [ -n "${NEED_INSTALL[*]}" ]; then
 
 fi
 
+if [ -n "${MAKE_INSTALL[*]}" ]; then
+    WORK_DIR=$(mktemp -d -t wsa-pkg-XXXXXXXXXX_) || exit 1
+    trap 'sudo rm -rf -- "${WORK_DIR:?}"' EXIT
+    for package in "${MAKE_INSTALL[@]}"; do
+        case "$package" in
+        "erofs-utils")
+            wget -O "$WORK_DIR/erofs-utils-libfuse3.zip" "https://github.com/LSPosed/erofs-utils/archive/refs/heads/libfuse3.zip" || abort "Failed to download $package"
+            unzip "$WORK_DIR/erofs-utils-libfuse3.zip" -d "$WORK_DIR"
+            cd "$WORK_DIR/erofs-utils-libfuse3" || abort "Failed to enter $WORK_DIR/erofs-utils-libfuse3"
+            autoupdate
+            ./autogen.sh || abort "Failed to autogen configure"
+            ./configure --enable-lzma --enable-fuse --with-selinux=yes || abort "Failed to configure make"
+            sudo make install || abort "Failed to install $package"
+            cd "$SCRIPT_DIR" || abort "Failed to enter $SCRIPT_DIR"
+            ;;
+        esac
+    done
+fi
 python_version=$(python3 -c 'import sys;print("{0}{1}".format(*(sys.version_info[:2])))')
 if [ "$python_version" -ge 311 ]; then
     python3 -c "import venv" >/dev/null 2>&1 || if ! ($SUDO "$PM" "${INSTALL_OPTION[@]}" "python3-venv"); then abort; fi

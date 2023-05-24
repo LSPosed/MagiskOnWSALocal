@@ -52,14 +52,15 @@ declare -A MERGED_PARTITION=(["zsystem"]="$ROOT_MNT" ["vendor"]="$VENDOR_MNT" ["
 DOWNLOAD_DIR=../download
 DOWNLOAD_CONF_NAME=download.list
 PYTHON_VENV_DIR="$(dirname "$PWD")/python3-env"
+command -v erofsfuse >/dev/null 2>&1 && EROFS_USE_FUSE=1
 umount_clean() {
     if [ -d "$ROOT_MNT" ] || [ -d "$ROOT_MNT_RO" ]; then
         echo "Cleanup Mount Directory"
         for PART in "${LOWER_PARTITION[@]}"; do
-            [ -d "$PART" ] && sudo umount -v "$PART"
+            sudo umount -v "$PART"
         done
         for PART in "${MERGED_PARTITION[@]}"; do
-            [ -d "$PART" ] && sudo umount -v "$PART"
+            sudo umount -v "$PART"
         done
         sudo rm -rf "${WORK_DIR:?}"
     else
@@ -631,15 +632,22 @@ if [[ "$WSA_MAIN_VER" -ge 2302 ]]; then
     vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/vendor.vhdx" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
     echo -e "Convert vhdx to RAW image done\n"
 fi
+mount_erofs() {
+    if [ "$EROFS_USE_FUSE" ]; then
+        sudo erofsfuse "$1" "$2" || return 1
+    else
+        sudo mount -v -t erofs -o ro,loop "$1" "$2" || return 1
+    fi
+}
 if [[ "$WSA_MAIN_VER" -ge 2304 ]]; then
     echo "Mount images"
     sudo mkdir -p -m 755 "$ROOT_MNT_RO" || abort
     sudo chown "0:0" "$ROOT_MNT_RO" || abort
     sudo setfattr -n security.selinux -v "u:object_r:rootfs:s0" "$ROOT_MNT_RO" || abort
-    sudo mount -v -t erofs -o ro,loop "$WORK_DIR/wsa/$ARCH/system.img" "$ROOT_MNT_RO" || abort
-    sudo mount -v -t erofs -o ro,loop "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_MNT_RO" || abort
-    sudo mount -v -t erofs -o ro,loop "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_MNT_RO" || abort
-    sudo mount -v -t erofs -o ro,loop "$WORK_DIR/wsa/$ARCH/system_ext.img" "$SYSTEM_EXT_MNT_RO" || abort
+    mount_erofs "$WORK_DIR/wsa/$ARCH/system.img" "$ROOT_MNT_RO" || abort
+    mount_erofs "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_MNT_RO" || abort
+    mount_erofs "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_MNT_RO" || abort
+    mount_erofs "$WORK_DIR/wsa/$ARCH/system_ext.img" "$SYSTEM_EXT_MNT_RO" || abort
     echo -e "done\n"
     echo "Create overlayfs for EROFS"
     mk_overlayfs "$ROOT_MNT_RO" system "$ROOT_MNT" || abort 
