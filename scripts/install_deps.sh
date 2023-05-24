@@ -79,7 +79,7 @@ check_dependencies() {
     command -v m4 >/dev/null 2>&1 || NEED_INSTALL+=("m4")
     command -v pkg-config >/dev/null 2>&1 || NEED_INSTALL+=("pkg-config")
     [ -d /usr/include/uuid ] || NEED_INSTALL+=("uuid-dev")
-    [ -d /usr/include/fuse3 ] || NEED_INSTALL+=("libfuse3-dev")
+    [ -d /usr/include/fuse ] || NEED_INSTALL+=("libfuse-dev")
     [ -f /usr/include/lz4.h ] || NEED_INSTALL+=("liblz4-dev")
     command -v erofsfuse >/dev/null 2>&1 && [ ! "$FORCE_UPGRADE_EROFS_UTILS" ] || MAKE_INSTALL+=("erofs-utils")
 }
@@ -169,12 +169,12 @@ if [ -n "${MAKE_INSTALL[*]}" ]; then
     for package in "${MAKE_INSTALL[@]}"; do
         case "$package" in
         "erofs-utils")
-            wget -O "$WORK_DIR/erofs-utils-libfuse3.zip" "https://github.com/LSPosed/erofs-utils/archive/refs/heads/libfuse3.zip" || abort "Failed to download $package"
-            unzip "$WORK_DIR/erofs-utils-libfuse3.zip" -d "$WORK_DIR"
-            cd "$WORK_DIR/erofs-utils-libfuse3" || abort "Failed to enter $WORK_DIR/erofs-utils-libfuse3"
+            wget -P "$WORK_DIR" "https://git.kernel.org/pub/scm/linux/kernel/git/xiang/erofs-utils.git/snapshot/erofs-utils-1.6.tar.gz" || abort "Failed to download $package"
+            tar -xzf "$WORK_DIR/erofs-utils-1.6.tar.gz" -C "$WORK_DIR" || abort "Failed to extract $package"
+            cd "$WORK_DIR/erofs-utils-1.6" || abort "Failed to enter $WORK_DIR/erofs-utils-1.6"
             autoupdate
             ./autogen.sh || abort "Failed to autogen configure"
-            ./configure --enable-lzma --enable-fuse --with-selinux=yes || abort "Failed to configure make"
+            ./configure --enable-lzma --enable-fuse --with-selinux || abort "Failed to configure make"
             sudo make install || abort "Failed to install $package"
             cd "$SCRIPT_DIR" || abort "Failed to enter $SCRIPT_DIR"
             ;;
