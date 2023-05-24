@@ -111,28 +111,28 @@ else
     GAPPS_BRAND="none"
 fi
 
-#if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
-#    # TODO: Keep it pico since other variants of opengapps are unable to boot successfully
-#    if [ "$DEBUG" = "1" ]; then
-#        GAPPS_VARIANT=$(
-#            Radiolist '([title]="Variants of GApps"
-#                        [default]="pico")' \
-#                'super' "" 'off' \
-#                'stock' "" 'off' \
-#                'full' "" 'off' \
-#                'mini' "" 'off' \
-#                'micro' "" 'off' \
-#                'nano' "" 'off' \
-#                'pico' "" 'on' \
-#                'tvstock' "" 'off' \
-#                'tvmini' "" 'off'
-#        )
-#    else
-#        GAPPS_VARIANT=""
-#    fi
-#else
-#    GAPPS_VARIANT=""
-#fi
+# if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
+#     # TODO: Keep it pico since other variants of opengapps are unable to boot successfully
+#     if [ "$DEBUG" = "1" ]; then
+#         GAPPS_VARIANT=$(
+#             Radiolist '([title]="Variants of GApps"
+#                         [default]="pico")' \
+#                 'super' "" 'off' \
+#                 'stock' "" 'off' \
+#                 'full' "" 'off' \
+#                 'mini' "" 'off' \
+#                 'micro' "" 'off' \
+#                 'nano' "" 'off' \
+#                 'pico' "" 'on' \
+#                 'tvstock' "" 'off' \
+#                 'tvmini' "" 'off'
+#         )
+#     else
+#         GAPPS_VARIANT=""
+#     fi
+# else
+#     GAPPS_VARIANT=""
+# fi
 
 if (YesNoBox '([title]="Remove Amazon Appstore" [text]="Do you want to keep Amazon Appstore?")'); then
     REMOVE_AMAZON=""
@@ -168,9 +168,9 @@ if [ -n "$MAGISK_VER" ]; then
     COMMAND_LINE+=(--magisk-ver "$MAGISK_VER")
 fi
 
-#if [ -n "$GAPPS_VARIANT" ]; then
-#    COMMAND_LINE+=(--gapps-variant "$GAPPS_VARIANT")
-#fi
+# if [ -n "$GAPPS_VARIANT" ]; then
+#     COMMAND_LINE+=(--gapps-variant "$GAPPS_VARIANT")
+# fi
 
 if [ -n "$COMPRESS_FORMAT" ]; then
     COMMAND_LINE+=(--compress-format "$COMPRESS_FORMAT")
