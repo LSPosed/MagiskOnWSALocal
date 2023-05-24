@@ -37,6 +37,7 @@ require_su() {
         fi
     fi
 }
+
 echo "Checking and ensuring dependencies"
 check_dependencies() {
     command -v whiptail >/dev/null 2>&1 || command -v dialog >/dev/null 2>&1 || NEED_INSTALL+=("whiptail")
@@ -50,7 +51,6 @@ check_dependencies() {
     command -v unzip >/dev/null 2>&1 || NEED_INSTALL+=("unzip")
     command -v qemu-img >/dev/null 2>&1 || NEED_INSTALL+=("qemu-utils")
     command -v sudo >/dev/null 2>&1 || NEED_INSTALL+=("sudo")
-    command -v mkfs.erofs >/dev/null 2>&1 || NEED_INSTALL+=("erofs-utils")
 }
 check_dependencies
 osrel=$(sed -n '/^ID_LIKE=/s/^.*=//p' /etc/os-release)
