@@ -52,7 +52,7 @@ declare -A MERGED_PARTITION=(["zsystem"]="$ROOT_MNT" ["vendor"]="$VENDOR_MNT" ["
 DOWNLOAD_DIR=../download
 DOWNLOAD_CONF_NAME=download.list
 PYTHON_VENV_DIR="$(dirname "$PWD")/python3-env"
-command -v erofsfuse >/dev/null 2>&1 && EROFS_USE_FUSE=1
+EROFS_USE_FUSE=1
 umount_clean() {
     if [ -d "$ROOT_MNT" ] || [ -d "$ROOT_MNT_RO" ]; then
         echo "Cleanup Mount Directory"
@@ -189,7 +189,7 @@ mk_overlayfs() {
 }
 
 mk_erofs_umount() {
-    sudo mkfs.erofs -zlz4hc -T1230768000 --chunksize=4096 --exclude-regex="lost+found" "$2".erofs "$1" || abort "Failed to make erofs image from $1"
+    sudo "../bin/$HOST_ARCH/mkfs.erofs" -zlz4hc -T1230768000 --chunksize=4096 --exclude-regex="lost+found" "$2".erofs "$1" || abort "Failed to make erofs image from $1"
     sudo umount -v "$1"
     sudo rm -f "$2"
     sudo mv "$2".erofs "$2"
@@ -200,6 +200,14 @@ ro_ext4_img_to_rw() {
     e2fsck -fp -E unshare_blocks "$1" || return 1
     resize_img "$1" || return 1
     return 0
+}
+
+mount_erofs() {
+    if [ "$EROFS_USE_FUSE" ]; then
+        sudo "../bin/$HOST_ARCH/fuse.erofs" "$1" "$2" || return 1
+    else
+        sudo mount -v -t erofs -o ro,loop "$1" "$2" || return 1
+    fi
 }
 
 # workaround for Debian
@@ -632,13 +640,7 @@ if [[ "$WSA_MAIN_VER" -ge 2302 ]]; then
     vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/vendor.vhdx" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
     echo -e "Convert vhdx to RAW image done\n"
 fi
-mount_erofs() {
-    if [ "$EROFS_USE_FUSE" ]; then
-        sudo erofsfuse "$1" "$2" || return 1
-    else
-        sudo mount -v -t erofs -o ro,loop "$1" "$2" || return 1
-    fi
-}
+
 if [[ "$WSA_MAIN_VER" -ge 2304 ]]; then
     echo "Mount images"
     sudo mkdir -p -m 755 "$ROOT_MNT_RO" || abort

@@ -8,10 +8,10 @@
 
   The following dependencies are required:
 
-  | DistrOS             |                                                                                            |            |              |                    |
-  |:-------------------:|--------------------------------------------------------------------------------------------|------------|--------------|--------------------|
-  | Debian              | `lzip patchelf e2fsprogs python3 python3-pip aria2 p7zip-full attr unzip sudo erofs-utils` | `whiptail` | `qemu-utils` | `python3-venv`     |
-  | openSUSE Tumbleweed | Same as above                                                                              | `dialog`   | `qemu-tools` | `python3-venvctrl` |
+  | DistrOS             |                                                                                |            |              |                    |
+  |:-------------------:|--------------------------------------------------------------------------------|------------|--------------|--------------------|
+  | Debian              | `lzip patchelf e2fsprogs python3 python3-pip aria2 p7zip-full attr unzip sudo` | `whiptail` | `qemu-utils` | `python3-venv`     |
+  | openSUSE Tumbleweed | Same as above                                                                  | `dialog`   | `qemu-tools` | `python3-venvctrl` |
 
   The python3 library `requests` is used.
 
