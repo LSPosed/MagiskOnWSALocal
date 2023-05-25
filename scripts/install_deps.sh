@@ -56,7 +56,7 @@ check_dependencies
 osrel=$(sed -n '/^ID_LIKE=/s/^.*=//p' /etc/os-release)
 declare -A os_pm_install
 # os_pm_install["/etc/redhat-release"]=yum
-# os_pm_install["/etc/arch-release"]=pacman
+os_pm_install["/etc/arch-release"]=pacman
 # os_pm_install["/etc/gentoo-release"]=emerge
 os_pm_install["/etc/SuSE-release"]=zypper
 os_pm_install["/etc/debian_version"]=apt-get
@@ -107,6 +107,8 @@ require_su
 if [ -z "$PM" ]; then
     echo "Unable to determine package manager: Unsupported distros"
     abort
+elif [ "$PM" = "pacman" ]; then
+    if ! ($SUDO "$PM" "${UPDATE_OPTION[@]}" ca-certificates); then abort; fi
 else
     if ! ($SUDO "$PM" "${UPDATE_OPTION[@]}" && $SUDO "$PM" "${UPGRADE_OPTION[@]}" ca-certificates); then abort; fi
 fi
@@ -126,6 +128,17 @@ if [ -n "${NEED_INSTALL[*]}" ]; then
     elif [ "$PM" = "apk" ]; then
         NEED_INSTALL_FIX=${NEED_INSTALL[*]}
         readarray -td ' ' NEED_INSTALL <<<"${NEED_INSTALL_FIX//p7zip-full/p7zip} "
+        unset 'NEED_INSTALL[-1]'
+    elif [ "$PM" = "pacman" ]; then
+        NEED_INSTALL_FIX=${NEED_INSTALL[*]}
+        {
+            NEED_INSTALL_FIX=${NEED_INSTALL_FIX//whiptail/libnewt} 2>&1
+            NEED_INSTALL_FIX=${NEED_INSTALL_FIX//qemu-utils/qemu-img} 2>&1
+            NEED_INSTALL_FIX=${NEED_INSTALL_FIX//python3-pip/python-pip} 2>&1
+            NEED_INSTALL_FIX=${NEED_INSTALL_FIX//p7zip-full/p7zip} 2>&1
+        } >>/dev/null
+
+        readarray -td ' ' NEED_INSTALL <<<"$NEED_INSTALL_FIX "
         unset 'NEED_INSTALL[-1]'
     fi
     if ! ($SUDO "$PM" "${INSTALL_OPTION[@]}" "${NEED_INSTALL[@]}"); then abort; fi
