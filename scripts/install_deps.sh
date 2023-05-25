@@ -108,7 +108,21 @@ if [ -z "$PM" ]; then
     echo "Unable to determine package manager: Unsupported distros"
     abort
 elif [ "$PM" = "pacman" ]; then
-    if ! ($SUDO "$PM" "${UPDATE_OPTION[@]}" ca-certificates); then abort; fi
+    i=30
+    while ((i-- > 1)) &&
+        ! read -r -sn 1 -t 1 -p $'\r:: Proceed with full system upgrade? Cancel after '$i$'s.. [Y/n]\e[3D' answer; do
+        :
+    done
+    [[ $answer == [yY] ]] && answer=Yes || answer=No
+    echo -e "\n$answer"
+    case "$answer" in
+    Yes)
+        if ! ($SUDO "$PM" "${UPDATE_OPTION[@]}" ca-certificates); then abort; fi
+        ;;
+    *)
+        abort "Operation cancelled by user"
+        ;;
+    esac
 else
     if ! ($SUDO "$PM" "${UPDATE_OPTION[@]}" && $SUDO "$PM" "${UPGRADE_OPTION[@]}" ca-certificates); then abort; fi
 fi
