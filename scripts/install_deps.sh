@@ -110,11 +110,11 @@ if [ -z "$PM" ]; then
 elif [ "$PM" = "pacman" ]; then
     i=30
     while ((i-- > 1)) &&
-        ! read -r -sn 1 -t 1 -p $'\r:: Proceed with full system upgrade? Cancel after '$i$'s.. [y/N]\e[3D' answer; do
+        ! read -r -sn 1 -t 1 -p $'\r:: Proceed with full system upgrade? Cancel after '$i$'s.. [y/N]\e[0K ' answer; do
         :
     done
     [[ $answer == [yY] ]] && answer=Yes || answer=No
-    echo -e "\n$answer"
+    echo "$answer"
     case "$answer" in
     Yes)
         if ! ($SUDO "$PM" "${UPDATE_OPTION[@]}" ca-certificates); then abort; fi
