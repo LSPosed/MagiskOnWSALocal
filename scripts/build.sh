@@ -185,7 +185,7 @@ mk_overlayfs() {
     sudo setfattr -n security.selinux -v "$context" "$upperdir"
     sudo setfattr -n security.selinux -v "$context" "$workdir"
     sudo setfattr -n security.selinux -v "$context" "$merged"
-    sudo mount -vt overlay overlay -ouserxattr,lowerdir="$lowerdir",upperdir="$upperdir",workdir="$workdir" "$merged"
+    sudo mount -vt overlay overlay -olowerdir="$lowerdir",upperdir="$upperdir",workdir="$workdir" "$merged"
 }
 
 mk_erofs_umount() {
