@@ -5,10 +5,11 @@ on:
     paths:
       - '**.ps1'
       - '.github/workflows/ps2check.yml'
-  workflow_dispatch:
   pull_request:
-
-permissions: {}
+    paths:
+      - '**.ps1'
+      - '.github/workflows/ps2check.yml'
+  workflow_dispatch:
 
 jobs:
   shellcheck:
