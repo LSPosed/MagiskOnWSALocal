@@ -40,6 +40,13 @@ VENDOR_MNT_RO="$ROOT_MNT_RO/vendor"
 PRODUCT_MNT_RO="$ROOT_MNT_RO/product"
 SYSTEM_EXT_MNT_RO="$ROOT_MNT_RO/system_ext"
 
+# upperdir
+ROOT_MNT_RW="$WORK_DIR/upper"
+VENDOR_MNT_RW="$ROOT_MNT_RW/vendor"
+PRODUCT_MNT_RW="$ROOT_MNT_RW/product"
+SYSTEM_EXT_MNT_RW="$ROOT_MNT_RW/system_ext"
+SYSTEM_MNT_RW="$ROOT_MNT_RW/system"
+
 # merged
 ROOT_MNT="$WORK_DIR/system_root_merged"
 SYSTEM_MNT="$ROOT_MNT/system"
@@ -48,6 +55,7 @@ PRODUCT_MNT="$ROOT_MNT/product"
 SYSTEM_EXT_MNT="$ROOT_MNT/system_ext"
 
 declare -A LOWER_PARTITION=(["zsystem"]="$ROOT_MNT_RO" ["vendor"]="$VENDOR_MNT_RO" ["product"]="$PRODUCT_MNT_RO" ["system_ext"]="$SYSTEM_EXT_MNT_RO")
+declare -A UPPER_PARTITION=(["zsystem"]="$SYSTEM_MNT_RW" ["vendor"]="$VENDOR_MNT_RW" ["product"]="$PRODUCT_MNT_RW" ["system_ext"]="$SYSTEM_EXT_MNT_RW")
 declare -A MERGED_PARTITION=(["zsystem"]="$ROOT_MNT" ["vendor"]="$VENDOR_MNT" ["product"]="$PRODUCT_MNT" ["system_ext"]="$SYSTEM_EXT_MNT")
 DOWNLOAD_DIR=../download
 DOWNLOAD_CONF_NAME=download.list
@@ -58,6 +66,9 @@ umount_clean() {
         echo "Cleanup Mount Directory"
         for PART in "${LOWER_PARTITION[@]}"; do
             sudo umount -v "$PART"
+        done
+        for PART in "${UPPER_PARTITION[@]}"; do
+            sudo rm -rf "${PART:?}"
         done
         for PART in "${MERGED_PARTITION[@]}"; do
             sudo umount -v "$PART"
@@ -147,19 +158,20 @@ vhdx_to_raw_img() {
     rm -f "$1" || return 1
 }
 
-mk_overlayfs() {
-    local lowerdir="$1"
-    local upperdir workdir merged context own
-    merged="$3"
-    upperdir="$WORK_DIR/upper/$2"
-    workdir="$WORK_DIR/worker/$2"
-    echo "mk_overlayfs: label $2
+mk_overlayfs() { # label lowerdir upperdir merged
+    local context own
+    local workdir="$WORK_DIR/worker/$1"
+    local lowerdir="$2"
+    local upperdir="$3"
+    local merged="$4"
+
+    echo "mk_overlayfs: label $1
         lowerdir=$lowerdir
         upperdir=$upperdir
         workdir=$workdir
         merged=$merged"
     sudo mkdir -p -m 755 "$workdir" "$upperdir" "$merged"
-    case "$2" in
+    case "$1" in
         vendor)
             context="u:object_r:vendor_file:s0"
             own="0:2000"
@@ -180,11 +192,14 @@ mk_overlayfs() {
     sudo mount -vt overlay overlay -olowerdir="$lowerdir",upperdir="$upperdir",workdir="$workdir" "$merged"
 }
 
-mk_erofs_umount() {
+mk_erofs_umount() { # dir imgpath upperdir
     sudo "../bin/$HOST_ARCH/mkfs.erofs" -zlz4hc -T1230768000 --chunksize=4096 --exclude-regex="lost+found" "$2".erofs "$1" || abort "Failed to make erofs image from $1"
     sudo umount -v "$1"
     sudo rm -f "$2"
     sudo mv "$2".erofs "$2"
+    if [ "$3" ]; then
+        sudo rm -rf "$3"
+    fi
 }
 
 ro_ext4_img_to_rw() {
@@ -644,10 +659,10 @@ if [[ "$WSA_MAIN_VER" -ge 2304 ]]; then
     mount_erofs "$WORK_DIR/wsa/$ARCH/system_ext.img" "$SYSTEM_EXT_MNT_RO" || abort
     echo -e "done\n"
     echo "Create overlayfs for EROFS"
-    mk_overlayfs "$ROOT_MNT_RO" system "$ROOT_MNT" || abort 
-    mk_overlayfs "$VENDOR_MNT_RO" vendor "$VENDOR_MNT" || abort
-    mk_overlayfs "$PRODUCT_MNT_RO" product "$PRODUCT_MNT" || abort
-    mk_overlayfs "$SYSTEM_EXT_MNT_RO" system_ext "$SYSTEM_EXT_MNT" || abort
+    mk_overlayfs system "$ROOT_MNT_RO" "$SYSTEM_MNT_RW" "$ROOT_MNT" || abort 
+    mk_overlayfs vendor "$VENDOR_MNT_RO" "$VENDOR_MNT_RW" "$VENDOR_MNT" || abort
+    mk_overlayfs product "$PRODUCT_MNT_RO" "$PRODUCT_MNT_RW" "$PRODUCT_MNT" || abort
+    mk_overlayfs system_ext "$SYSTEM_EXT_MNT_RO" "$SYSTEM_EXT_MNT_RW" "$SYSTEM_EXT_MNT" || abort
     echo -e "Create overlayfs for EROFS done\n"
 elif [[ "$WSA_MAIN_VER" -ge 2302 ]]; then
     echo "Remove read-only flag for read-only EXT4 image"
@@ -890,9 +905,9 @@ fi
 
 if [[ "$WSA_MAIN_VER" -ge 2304 ]]; then
     echo "Create EROFS images"
-    mk_erofs_umount "$VENDOR_MNT" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
-    mk_erofs_umount "$PRODUCT_MNT" "$WORK_DIR/wsa/$ARCH/product.img" || abort
-    mk_erofs_umount "$SYSTEM_EXT_MNT" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
+    mk_erofs_umount "$VENDOR_MNT" "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_MNT_RW" || abort
+    mk_erofs_umount "$PRODUCT_MNT" "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_MNT_RW" || abort
+    mk_erofs_umount "$SYSTEM_EXT_MNT" "$WORK_DIR/wsa/$ARCH/system_ext.img" "$SYSTEM_EXT_MNT_RW" || abort
     mk_erofs_umount "$ROOT_MNT" "$WORK_DIR/wsa/$ARCH/system.img" || abort
     echo -e "Create EROFS images done\n"
     echo "Umount images"
