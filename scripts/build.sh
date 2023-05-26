@@ -72,7 +72,7 @@ umount_clean() {
         unset TMPDIR
     fi
     rm -f "${DOWNLOAD_DIR:?}/$DOWNLOAD_CONF_NAME"
-    if [ "$(python3 -c 'import sys ; print( 0 if sys.prefix == sys.base_prefix else 1 )')" = "1" ]; then
+    if [ "$(python3 -c 'import sys ; print( 1 if sys.prefix != sys.base_prefix else 0 )')" = "1" ]; then
         echo "deactivate python3 venv"
         deactivate
     fi
@@ -151,16 +151,8 @@ mk_overlayfs() {
     local lowerdir="$1"
     local upperdir workdir merged context own
     merged="$3"
-    case "$2" in
-        system)
-            upperdir="$WORK_DIR/upper/$2"
-            workdir="$WORK_DIR/worker/$2"
-            ;;
-        *)
-            upperdir="$WORK_DIR/upper/system/$2"
-            workdir="$WORK_DIR/worker/system/$2"
-            ;;
-    esac
+    upperdir="$WORK_DIR/upper/$2"
+    workdir="$WORK_DIR/worker/$2"
     echo "mk_overlayfs: label $2
         lowerdir=$lowerdir
         upperdir=$upperdir
