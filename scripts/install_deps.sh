@@ -23,7 +23,6 @@ if [ ! "$BASH_VERSION" ]; then
     exit 1
 fi
 cd "$(dirname "$0")" || exit 1
-SUDO="$(which sudo 2>/dev/null)"
 abort() {
     [ "$1" ] && echo "ERROR: $1"
     echo "Dependencies: an error has occurred, exit"
@@ -31,8 +30,8 @@ abort() {
 }
 require_su() {
     if test "$(id -u)" != "0"; then
-        if [ -z "$SUDO" ] && [ "$($SUDO id -u)" != "0" ]; then
-            echo "ROOT/SUDO is required to run this script"
+        if [ "$(sudo id -u)" != "0" ]; then
+            echo "sudo is required to run this script"
             abort
         fi
     fi
@@ -50,7 +49,6 @@ check_dependencies() {
     command -v setfattr >/dev/null 2>&1 || NEED_INSTALL+=("attr")
     command -v unzip >/dev/null 2>&1 || NEED_INSTALL+=("unzip")
     command -v qemu-img >/dev/null 2>&1 || NEED_INSTALL+=("qemu-utils")
-    command -v sudo >/dev/null 2>&1 || NEED_INSTALL+=("sudo")
 }
 check_dependencies
 osrel=$(sed -n '/^ID_LIKE=/s/^.*=//p' /etc/os-release)
@@ -117,14 +115,14 @@ elif [ "$PM" = "pacman" ]; then
     echo "$answer"
     case "$answer" in
     Yes)
-        if ! ($SUDO "$PM" "${UPDATE_OPTION[@]}" ca-certificates); then abort; fi
+        if ! (sudo "$PM" "${UPDATE_OPTION[@]}" ca-certificates); then abort; fi
         ;;
     *)
         abort "Operation cancelled by user"
         ;;
     esac
 else
-    if ! ($SUDO "$PM" "${UPDATE_OPTION[@]}" && $SUDO "$PM" "${UPGRADE_OPTION[@]}" ca-certificates); then abort; fi
+    if ! (sudo "$PM" "${UPDATE_OPTION[@]}" && sudo "$PM" "${UPGRADE_OPTION[@]}" ca-certificates); then abort; fi
 fi
 
 if [ -n "${NEED_INSTALL[*]}" ]; then
@@ -134,7 +132,6 @@ if [ -n "${NEED_INSTALL[*]}" ]; then
             NEED_INSTALL_FIX=${NEED_INSTALL_FIX//setools/setools-console} 2>&1
             NEED_INSTALL_FIX=${NEED_INSTALL_FIX//whiptail/dialog} 2>&1
             NEED_INSTALL_FIX=${NEED_INSTALL_FIX//qemu-utils/qemu-tools} 2>&1
-            NEED_INSTALL_FIX=${NEED_INSTALL_FIX//python3-venv/python3-venvctrl} 2>&1
         } >>/dev/null
 
         readarray -td ' ' NEED_INSTALL <<<"$NEED_INSTALL_FIX "
@@ -155,18 +152,34 @@ if [ -n "${NEED_INSTALL[*]}" ]; then
         readarray -td ' ' NEED_INSTALL <<<"$NEED_INSTALL_FIX "
         unset 'NEED_INSTALL[-1]'
     fi
-    if ! ($SUDO "$PM" "${INSTALL_OPTION[@]}" "${NEED_INSTALL[@]}"); then abort; fi
+    if ! (sudo "$PM" "${INSTALL_OPTION[@]}" "${NEED_INSTALL[@]}"); then abort; fi
 
 fi
 
 python_version=$(python3 -c 'import sys;print("{0}{1}".format(*(sys.version_info[:2])))')
-if [ "$python_version" -ge 311 ]; then
-    python3 -c "import venv" >/dev/null 2>&1 || if ! ($SUDO "$PM" "${INSTALL_OPTION[@]}" "python3-venv"); then abort; fi
-    PYTHON_VENV_DIR="$(dirname "$PWD")/python3-env"
-    [ -f "$PYTHON_VENV_DIR/bin/activate" ] || {
-        echo "Creating python3 virtual env"
-        python3 -m venv "$PYTHON_VENV_DIR" || abort "Failed to create python3 virtual env"
+PYTHON_VENV_DIR="$(dirname "$PWD")/python3-env"
+if [ "$python_version" -ge 311 ] || [ -f "$PYTHON_VENV_DIR/bin/activate" ]; then
+    python3 -c "import venv" >/dev/null 2>&1 || {
+        case "$PM" in
+        zypper)
+            if ! (sudo "$PM" "${INSTALL_OPTION[@]}" "python3-venvctrl"); then
+                abort
+            fi
+            ;;
+        *)
+            if ! (sudo "$PM" "${INSTALL_OPTION[@]}" "python3-venv"); then
+                abort
+            fi
+            ;;
+        esac
     }
+    echo "Creating python3 virtual env"
+    python3 -m venv --system-site-packages "$PYTHON_VENV_DIR" || {
+        echo "Failed to upgrade python3 virtual env, clear and recreate"
+        python3 -m venv --clear --system-site-packages "$PYTHON_VENV_DIR" || abort "Failed to create python3 virtual env"
+    }
+fi
+if [ -f "$PYTHON_VENV_DIR/bin/activate" ]; then
     # shellcheck disable=SC1091
     source "$PYTHON_VENV_DIR"/bin/activate || abort "Failed to activate python3 virtual env"
     python3 -c "import pkg_resources; pkg_resources.require(open('requirements.txt',mode='r'))" &>/dev/null || {

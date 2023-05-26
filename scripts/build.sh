@@ -72,7 +72,7 @@ umount_clean() {
         unset TMPDIR
     fi
     rm -f "${DOWNLOAD_DIR:?}/$DOWNLOAD_CONF_NAME"
-    if [ "$(which python)" == "$PYTHON_VENV_DIR/bin/python" ]; then
+    if [ "$(python3 -c 'import sys ; print( 0 if sys.prefix == sys.base_prefix else 1 )')" = "1" ]; then
         echo "deactivate python3 venv"
         deactivate
     fi
@@ -429,7 +429,7 @@ fi
 require_su() {
     if test "$(id -u)" != "0"; then
         if [ "$(sudo id -u)" != "0" ]; then
-            abort "ROOT/SUDO is required to run this script"
+            abort "sudo is required to run this script"
         fi
     fi
 }
