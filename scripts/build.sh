@@ -735,6 +735,7 @@ if [ "$REMOVE_AMAZON" ]; then
     find "${PRODUCT_MNT:?}"/{etc/permissions,etc/sysconfig,framework,priv-app} 2>/dev/null | grep -e amazon -e venezia | sudo xargs rm -rf
     find "${SYSTEM_EXT_MNT:?}"/{etc/*permissions,framework,priv-app} 2>/dev/null | grep -e amazon -e venezia | sudo xargs rm -rf
     rm -f "$WORK_DIR/wsa/$ARCH/apex/mado_release.apex"
+    find "${PRODUCT_MNT:?}"/{apex,etc/*permissions} 2>/dev/null | grep -e mado | sudo xargs rm -rf
     echo -e "done\n"
 fi
 
