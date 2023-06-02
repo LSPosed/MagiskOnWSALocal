@@ -47,7 +47,7 @@ Function Test-CommandExist {
     Finally { $ErrorActionPreference = $OldPreference }
 } #end function Test-CommandExist
 
-function Finish {
+Function Finish {
     Clear-Host
     If (Test-CommandExist Optimize-VHD) {
         Write-Output "Optimizing VHDX size...."
