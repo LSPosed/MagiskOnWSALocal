@@ -20,5 +20,16 @@
     <component-override package="com.android.vending">
         <!-- Conflicts with WSA's built-in package verifier, disable to prevent boot loops. -->
         <component class="com.google.android.finsky.verifier.impl.PackageVerificationReceiver" enabled="false" />
+        <!-- Disable stock OTA components if installed -->
+        <component class="com.google.android.finsky.systemupdate.SystemUpdateSettingsContentProvider" enabled="false" />
+        <component class="com.google.android.finsky.systemupdateactivity.SettingsSecurityEntryPoint" enabled="false" />
+        <component class="com.google.android.finsky.systemupdateactivity.SystemUpdateActivity" enabled="false" />
+    </component-override>
+    <component-override package="com.google.android.gms">
+        <component class="com.google.android.gms.update.phone.PopupDialog" enabled="false" />
+        <component class="com.google.android.gms.update.OtaSuggestionSummaryProvider" enabled="false" />
+        <component class="com.google.android.gms.update.SystemUpdateActivity" enabled="false" />
+        <component class="com.google.android.gms.update.SystemUpdateGcmTaskService" enabled="false" />
+        <component class="com.google.android.gms.update.SystemUpdateService" enabled="false" />
     </component-override>
 </config>
