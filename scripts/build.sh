@@ -28,7 +28,19 @@ if [ "$HOST_ARCH" != "x86_64" ] && [ "$HOST_ARCH" != "aarch64" ]; then
     exit 1
 fi
 cd "$(dirname "$0")" || exit 1
-# export TMPDIR=$(dirname "$PWD")/WORK_DIR_
+if [[ $(df -m /tmp | awk 'NR==2{print $4}') -lt 8192 ]]; then
+    i=30
+    while ((i-- > 1)) &&
+        ! read -r -sn 1 -t 1 -p $'\r:: /tmp free space < 8GiB, Use "./MagiskOnWSALocal/WORK_DIR_" ? Cancel after '$i$'s.. [Y/n]\e[0K ' answer; do
+        :
+    done
+    [[ $answer == [Nn] ]] && answer=No || answer=Yes
+    echo "$answer"
+    if [[ $answer == Yes ]]; then
+        export TMPDIR=$(dirname "$PWD")/WORK_DIR_
+        echo "Set \"$(dirname "$PWD")/WORK_DIR_\" as temporary path."
+    fi
+fi
 if [ "$TMPDIR" ] && [ ! -d "$TMPDIR" ]; then
     mkdir -p "$TMPDIR"
 fi
@@ -336,6 +348,7 @@ Additional Options:
                         $GAPPS_PROPS_MSG1
                         $GAPPS_PROPS_MSG2
                         $GAPPS_PROPS_MSG3
+    --output            Specify output path
 
 Example:
     ./build.sh --release-type RP --magisk-ver beta --gapps-variant pico --remove-amazon
@@ -361,6 +374,7 @@ ARGUMENT_LIST=(
     "debug"
     "help"
     "skip-download-wsa"
+    "output:"
 )
 
 default
@@ -390,6 +404,7 @@ while [[ $# -gt 0 ]]; do
         --magisk-ver        ) MAGISK_VER="$2"; shift 2 ;;
         --debug             ) DEBUG="on"; shift ;;
         --skip-download-wsa ) DOWN_WSA="no"; shift ;;
+        --output            ) OUTPUT_DIR="$2"; shift 2 ;;
         --help              ) usage; exit 0 ;;
         --                  ) shift; break;;
    esac
