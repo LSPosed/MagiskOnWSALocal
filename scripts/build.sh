@@ -513,6 +513,8 @@ if [ -z ${OFFLINE+x} ]; then
         # shellcheck disable=SC1090
         source "$WSA_WORK_ENV" || abort
     else
+        echo "Generate Download Links"
+        python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" "$DOWN_WSA" || abort
         WSA_MAIN_VER=$(python3 getWSAMainVersion.py "$ARCH" "$WSA_ZIP_PATH")
     fi
     if [[ "$WSA_MAIN_VER" -lt 2211 ]]; then
