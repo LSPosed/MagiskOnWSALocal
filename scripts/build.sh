@@ -37,7 +37,8 @@ if [[ $(df -m /tmp | awk 'NR==2{print $4}') -lt 8192 ]]; then
     [[ $answer == [Nn] ]] && answer=No || answer=Yes
     echo "$answer"
     if [[ $answer == Yes ]]; then
-        export TMPDIR=$(dirname "$PWD")/WORK_DIR_
+        export TMPDIR
+        TMPDIR=$(dirname "$PWD")/WORK_DIR_
         echo "Set \"$(dirname "$PWD")/WORK_DIR_\" as temporary path."
     fi
 fi
@@ -1007,7 +1008,7 @@ fi
 echo "$artifact_name"
 echo -e "\nFinishing building...."
 if [ -f "$OUTPUT_DIR" ]; then
-    sudo rm -rf ${OUTPUT_DIR:?}
+    sudo rm -rf "${OUTPUT_DIR:?}"
 fi
 if [ ! -d "$OUTPUT_DIR" ]; then
     mkdir -p "$OUTPUT_DIR"
