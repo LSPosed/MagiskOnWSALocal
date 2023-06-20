@@ -30,6 +30,7 @@ from typing import Any, OrderedDict
 from xml.dom import minidom
 
 from requests import Session
+from packaging import version
 
 
 class Prop(OrderedDict):
@@ -124,9 +125,10 @@ if not download_dir.is_dir():
     download_dir.mkdir()
 
 tmpdownlist = open(download_dir/tempScript, 'a')
+download_files = {}
 
 
-def send_req(i, v, out_file, out_file_name):
+def send_req(i, v, out_file_name):
     out = session.post(
         'https://fe3.delivery.mp.microsoft.com/ClientWebService/client.asmx/secured',
         data=FE3_file_content.format(user, i, v, release_type),
@@ -136,13 +138,11 @@ def send_req(i, v, out_file, out_file_name):
     for l in doc.getElementsByTagName("FileLocation"):
         url = l.getElementsByTagName("Url")[0].firstChild.nodeValue
         if len(url) != 99:
-            print(f"download link: {url}\npath: {out_file}\n", flush=True)
-            tmpdownlist.writelines(url + '\n')
-            tmpdownlist.writelines(f'  dir={download_dir}\n')
-            tmpdownlist.writelines(f'  out={out_file_name}\n')
+            download_files[out_file_name] = url
 
 
 threads = []
+wsa_build_ver = 0
 for filename, values in identities.items():
     if re.match(f"Microsoft\.UI\.Xaml\..*_{arch}_.*\.appx", filename):
         out_file_name = f"{values[1]}_{arch}.appx"
@@ -154,24 +154,39 @@ for filename, values in identities.items():
         out_file_name = f"{values[1]}_{arch}.appx"
         out_file = download_dir / out_file_name
     elif re.match(f"MicrosoftCorporationII\.WindowsSubsystemForAndroid_.*\.msixbundle", filename):
-        wsa_long_ver = re.search(u'\d{4}.\d{5}.\d{1,}.\d{1,}', filename).group()
-        print(f'WSA Version={wsa_long_ver}\n', flush=True)
-        main_ver = wsa_long_ver.split(".")[0]
+        tmp_wsa_build_ver = re.search(u'\d{4}.\d{5}.\d{1,}.\d{1,}', filename).group()
+        if(wsa_build_ver == 0):
+            wsa_build_ver = tmp_wsa_build_ver
+        else:
+            if version.parse(wsa_build_ver) < version.parse(tmp_wsa_build_ver):
+                wsa_build_ver = tmp_wsa_build_ver
+            else:
+                continue
+        version_splited = wsa_build_ver.split(".")
+        major_ver = version_splited[0]
+        minor_ver = version_splited[1]
+        build_ver = version_splited[2]
+        revision_ver = version_splited[3]
         with open(os.environ['WSA_WORK_ENV'], 'r') as environ_file:
             env = Prop(environ_file.read())
-            env.WSA_VER = wsa_long_ver
-            env.WSA_MAIN_VER = main_ver
+            env.WSA_VER = wsa_build_ver
+            env.WSA_MAJOR_VER = major_ver
         with open(os.environ['WSA_WORK_ENV'], 'w') as environ_file:
             environ_file.write(str(env))
         out_file_name = f"wsa-{release_type}.zip"
         out_file = download_dir / out_file_name
     else:
         continue
-    th = Thread(target=send_req, args=(values[0][0], values[0][1], out_file, out_file_name))
+    th = Thread(target=send_req, args=(values[0][0], values[0][1], out_file_name))
     threads.append(th)
     th.daemon = True
     th.start()
 for th in threads:
     th.join()
-
+print(f'WSA Build Version={wsa_build_ver}\n', flush=True)
+for key, value in download_files.items():
+    print(f"download link: {value}\npath: {download_dir / key}\n", flush=True)
+    tmpdownlist.writelines(value + '\n')
+    tmpdownlist.writelines(f'  dir={download_dir}\n')
+    tmpdownlist.writelines(f'  out={key}\n')
 tmpdownlist.close()
