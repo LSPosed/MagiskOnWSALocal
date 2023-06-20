@@ -36,5 +36,5 @@ with zipfile.ZipFile(wsa_zip_path) as zip:
 ver_no = zip_name.split("_")
 long_ver = ver_no[1]
 ver = long_ver.split(".")
-main_ver = ver[0]
-print(main_ver)
+major_ver = ver[0]
+print(major_ver)

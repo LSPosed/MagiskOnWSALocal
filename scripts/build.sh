@@ -498,7 +498,7 @@ if [ -z ${OFFLINE+x} ]; then
         # shellcheck disable=SC1090
         source "$WSA_WORK_ENV" || abort
     else
-        WSA_MAJOR_VER=$(python3 getWSAMainVersion.py "$ARCH" "$WSA_ZIP_PATH")
+        WSA_MAJOR_VER=$(python3 getWSAMajorVersion.py "$ARCH" "$WSA_ZIP_PATH")
     fi
     if [[ "$WSA_MAJOR_VER" -lt 2211 ]]; then
         ANDROID_API=32
@@ -527,7 +527,7 @@ if [ -z ${OFFLINE+x} ]; then
         exit 1
     fi
 else # Offline mode
-    WSA_MAJOR_VER=$(python3 getWSAMainVersion.py "$ARCH" "$WSA_ZIP_PATH")
+    WSA_MAJOR_VER=$(python3 getWSAMajorVersion.py "$ARCH" "$WSA_ZIP_PATH")
     if [[ "$WSA_MAJOR_VER" -lt 2211 ]]; then
         ANDROID_API=32
     fi
