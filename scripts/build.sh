@@ -29,12 +29,12 @@ if [ "$HOST_ARCH" != "x86_64" ] && [ "$HOST_ARCH" != "aarch64" ]; then
 fi
 cd "$(dirname "$0")" || exit 1
 if [ "$(df -m /tmp | awk 'NR==2{print $4}')" -lt 8192 ]; then
-    if [ "$(df -m ./ | awk 'NR==2{print $4}')" -gt 10240 ]; then
-        export TMPDIR
-        TMPDIR=$(dirname "$PWD")/WORK_DIR_
-        mkdir -p "$TMPDIR"
-        sudo mount -t tmpfs -o size=8G tmpfs "$TMPDIR"
-    else
+    export TMPDIR
+    TMPDIR=$(dirname "$PWD")/WORK_DIR_
+    mkdir -p "$TMPDIR"
+    if [ "$(( $(free -m | awk 'NR==2{print $7}') + $(free -m | awk 'NR==3{print $4}') ))" -gt 8192 ];then
+        sudo mount -t tmpfs tmpfs "$TMPDIR"
+    elif [ "$(df -m "$TMPDIR" | awk 'NR==2{print $4}')" -lt 10240 ]; then
         echo "No space left on device"
         exit 1
     fi
@@ -86,7 +86,9 @@ umount_clean() {
     fi
     if [ "$TMPDIR" ] && [ -d "$TMPDIR" ]; then
         echo "Cleanup Temp Directory"
-        sudo umount "${TMPDIR:?}"
+        if [ "$(df -T "${TMPDIR:?}" | awk 'NR==2{print $2}')" = "tmpfs" ]; then
+            sudo umount "${TMPDIR:?}"
+        fi
         unset TMPDIR
     fi
     rm -f "${DOWNLOAD_DIR:?}/$DOWNLOAD_CONF_NAME"
