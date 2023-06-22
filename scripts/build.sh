@@ -508,7 +508,7 @@ if [ -z ${OFFLINE+x} ]; then
     else
         echo "Generate Download Links"
         python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" "$DOWN_WSA" || abort
-        WSA_MAJOR_VER=$(python3 getWSAMainVersion.py "$ARCH" "$WSA_ZIP_PATH")
+        WSA_MAJOR_VER=$(python3 getWSAMajorVersion.py "$ARCH" "$WSA_ZIP_PATH")
     fi
     if [[ "$WSA_MAJOR_VER" -lt 2211 ]]; then
         ANDROID_API=32
