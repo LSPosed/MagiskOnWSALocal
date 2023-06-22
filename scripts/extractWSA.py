@@ -82,13 +82,13 @@ with zipfile.ZipFile(wsa_zip_path) as zip:
                 ver_no = zip_name.split("_")
                 long_ver = ver_no[1]
                 ver = long_ver.split(".")
-                main_ver = ver[0]
+                major_ver = ver[0]
                 rel = ver_no[3].split(".")
                 rel_long = str(rel[0])
                 with open(env_file, 'r') as environ_file:
                     env = Prop(environ_file.read())
                     env.WSA_VER = long_ver
-                    env.WSA_MAIN_VER = main_ver
+                    env.WSA_MAJOR_VER = major_ver
                     env.WSA_REL = rel_long
                 with open(env_file, 'w') as environ_file:
                     environ_file.write(str(env))

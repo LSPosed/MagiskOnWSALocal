@@ -28,22 +28,14 @@ if [ "$HOST_ARCH" != "x86_64" ] && [ "$HOST_ARCH" != "aarch64" ]; then
     exit 1
 fi
 cd "$(dirname "$0")" || exit 1
-if [[ $(df -m /tmp | awk 'NR==2{print $4}') -lt 8192 ]]; then
-    i=30
-    while ((i-- > 1)) &&
-        ! read -r -sn 1 -t 1 -p $'\r:: /tmp free space < 8GiB, Use "./MagiskOnWSALocal/WORK_DIR_" ? Cancel after '$i$'s.. [Y/n]\e[0K ' answer; do
-        :
-    done
-    [[ $answer == [Nn] ]] && answer=No || answer=Yes
-    echo "$answer"
-    if [[ $answer == Yes ]]; then
-        export TMPDIR
-        TMPDIR=$(dirname "$PWD")/WORK_DIR_
-        echo "Set \"$(dirname "$PWD")/WORK_DIR_\" as temporary path."
-    fi
-fi
-if [ "$TMPDIR" ] && [ ! -d "$TMPDIR" ]; then
+if [ "$(df -m /tmp | awk 'NR==2{print $4}')" -lt 8192 && "$(df -m ./ | awk 'NR==2{print $4}')" -gt 10240 ]; then
+    export TMPDIR
+    TMPDIR=$(dirname "$PWD")/WORK_DIR_
     mkdir -p "$TMPDIR"
+    sudo mount -t tmpfs -o size=8G tmpfs "$TMPDIR"
+else
+    echo "No space left on device"
+    exit 1
 fi
 WORK_DIR=$(mktemp -d -t wsa-build-XXXXXXXXXX_) || exit 1
 
@@ -92,7 +84,7 @@ umount_clean() {
     fi
     if [ "$TMPDIR" ] && [ -d "$TMPDIR" ]; then
         echo "Cleanup Temp Directory"
-        rm -rf "${TMPDIR:?}"
+        sudo umount "${TMPDIR:?}"
         unset TMPDIR
     fi
     rm -f "${DOWNLOAD_DIR:?}/$DOWNLOAD_CONF_NAME"
@@ -493,13 +485,13 @@ update_gapps_zip_name() {
     fi
     GAPPS_PATH=$DOWNLOAD_DIR/$GAPPS_ZIP_NAME
 }
-WSA_MAIN_VER=0
+WSA_MAJOR_VER=0
 update_ksu_zip_name() {
     KERNEL_VER="5.15.78.1"
-    if [ "$WSA_MAIN_VER" -lt "2303" ]; then
+    if [ "$WSA_MAJOR_VER" -lt "2303" ]; then
         abort "KernelSU is not supported on WSA version below 2303"
     fi
-    if [ "$WSA_MAIN_VER" -ge "2304" ]; then
+    if [ "$WSA_MAJOR_VER" -ge "2304" ]; then
         KERNEL_VER="5.15.94.4"
     fi
     KERNELSU_ZIP_NAME=kernelsu-$ARCH-$KERNEL_VER.zip
@@ -516,9 +508,9 @@ if [ -z ${OFFLINE+x} ]; then
     else
         echo "Generate Download Links"
         python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" "$DOWN_WSA" || abort
-        WSA_MAIN_VER=$(python3 getWSAMainVersion.py "$ARCH" "$WSA_ZIP_PATH")
+        WSA_MAJOR_VER=$(python3 getWSAMainVersion.py "$ARCH" "$WSA_ZIP_PATH")
     fi
-    if [[ "$WSA_MAIN_VER" -lt 2211 ]]; then
+    if [[ "$WSA_MAJOR_VER" -lt 2211 ]]; then
         ANDROID_API=32
     fi
     if [ "$ROOT_SOL" = "magisk" ] || [ "$GAPPS_BRAND" != "none" ]; then
@@ -545,8 +537,8 @@ if [ -z ${OFFLINE+x} ]; then
         exit 1
     fi
 else # Offline mode
-    WSA_MAIN_VER=$(python3 getWSAMainVersion.py "$ARCH" "$WSA_ZIP_PATH")
-    if [[ "$WSA_MAIN_VER" -lt 2211 ]]; then
+    WSA_MAJOR_VER=$(python3 getWSAMajorVersion.py "$ARCH" "$WSA_ZIP_PATH")
+    if [[ "$WSA_MAJOR_VER" -lt 2211 ]]; then
         ANDROID_API=32
     fi
     declare -A FILES_CHECK_LIST=([WSA_ZIP_PATH]="$WSA_ZIP_PATH" [xaml_PATH]="$xaml_PATH" [vclibs_PATH]="$vclibs_PATH" [UWPVCLibs_PATH]="$UWPVCLibs_PATH")
@@ -657,7 +649,7 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
     echo -e "Extract done\n"
 fi
 
-if [[ "$WSA_MAIN_VER" -ge 2302 ]]; then
+if [[ "$WSA_MAJOR_VER" -ge 2302 ]]; then
     echo "Convert vhdx to RAW image"
     vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/system_ext.vhdx" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
     vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/product.vhdx" "$WORK_DIR/wsa/$ARCH/product.img" || abort
@@ -666,7 +658,7 @@ if [[ "$WSA_MAIN_VER" -ge 2302 ]]; then
     echo -e "Convert vhdx to RAW image done\n"
 fi
 
-if [[ "$WSA_MAIN_VER" -ge 2304 ]]; then
+if [[ "$WSA_MAJOR_VER" -ge 2304 ]]; then
     echo "Mount images"
     sudo mkdir -p -m 755 "$ROOT_MNT_RO" || abort
     sudo chown "0:0" "$ROOT_MNT_RO" || abort
@@ -682,7 +674,7 @@ if [[ "$WSA_MAIN_VER" -ge 2304 ]]; then
     mk_overlayfs product "$PRODUCT_MNT_RO" "$PRODUCT_MNT_RW" "$PRODUCT_MNT" || abort
     mk_overlayfs system_ext "$SYSTEM_EXT_MNT_RO" "$SYSTEM_EXT_MNT_RW" "$SYSTEM_EXT_MNT" || abort
     echo -e "Create overlayfs for EROFS done\n"
-elif [[ "$WSA_MAIN_VER" -ge 2302 ]]; then
+elif [[ "$WSA_MAJOR_VER" -ge 2302 ]]; then
     echo "Remove read-only flag for read-only EXT4 image"
     ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
     ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/product.img" || abort
@@ -690,7 +682,7 @@ elif [[ "$WSA_MAIN_VER" -ge 2302 ]]; then
     ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
     echo -e "Remove read-only flag for read-only EXT4 image done\n"
 fi
-if [[ "$WSA_MAIN_VER" -lt 2304 ]]; then
+if [[ "$WSA_MAJOR_VER" -lt 2304 ]]; then
     echo "Calculate the required space"
     EXTRA_SIZE=10240
 
@@ -924,7 +916,7 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
     fi
 fi
 
-if [[ "$WSA_MAIN_VER" -ge 2304 ]]; then
+if [[ "$WSA_MAJOR_VER" -ge 2304 ]]; then
     echo "Create EROFS images"
     mk_erofs_umount "$VENDOR_MNT" "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_MNT_RW" || abort
     mk_erofs_umount "$PRODUCT_MNT" "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_MNT_RW" || abort
@@ -953,7 +945,7 @@ else
     echo -e "Shrink images done\n"
 fi
 
-if [[ "$WSA_MAIN_VER" -ge 2302 ]]; then
+if [[ "$WSA_MAJOR_VER" -ge 2302 ]]; then
     echo "Convert images to vhdx"
     qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/system_ext.img" "$WORK_DIR/wsa/$ARCH/system_ext.vhdx" || abort
     qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/product.img" "$WORK_DIR/wsa/$ARCH/product.vhdx" || abort
