@@ -28,14 +28,16 @@ if [ "$HOST_ARCH" != "x86_64" ] && [ "$HOST_ARCH" != "aarch64" ]; then
     exit 1
 fi
 cd "$(dirname "$0")" || exit 1
-if [ "$(df -m /tmp | awk 'NR==2{print $4}')" -lt 8192 ] && [ "$(df -m ./ | awk 'NR==2{print $4}')" -gt 10240 ]; then
-    export TMPDIR
-    TMPDIR=$(dirname "$PWD")/WORK_DIR_
-    mkdir -p "$TMPDIR"
-    sudo mount -t tmpfs -o size=8G tmpfs "$TMPDIR"
-else
-    echo "No space left on device"
-    exit 1
+if [ "$(df -m /tmp | awk 'NR==2{print $4}')" -lt 8192 ]; then
+    if [ "$(df -m ./ | awk 'NR==2{print $4}')" -gt 10240 ]; then
+        export TMPDIR
+        TMPDIR=$(dirname "$PWD")/WORK_DIR_
+        mkdir -p "$TMPDIR"
+        sudo mount -t tmpfs -o size=8G tmpfs "$TMPDIR"
+    else
+        echo "No space left on device"
+        exit 1
+    fi
 fi
 WORK_DIR=$(mktemp -d -t wsa-build-XXXXXXXXXX_) || exit 1
 
