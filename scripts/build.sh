@@ -648,7 +648,7 @@ if [[ "$WSA_MAJOR_VER" -ge 2302 ]]; then
     echo -e "Convert vhdx to RAW image done\n"
 fi
 
-if [[ "$WSA_MAJOR_VER" -ge 2304 ]]; then
+if [[ "$WSA_MAJOR_VER" -ge 2304 && "$WSA_MAJOR_VER" -lt 2306 ]]; then
     echo "Mount images"
     sudo mkdir -p -m 755 "$ROOT_MNT_RO" || abort
     sudo chown "0:0" "$ROOT_MNT_RO" || abort
@@ -672,7 +672,7 @@ elif [[ "$WSA_MAJOR_VER" -ge 2302 ]]; then
     ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
     echo -e "Remove read-only flag for read-only EXT4 image done\n"
 fi
-if [[ "$WSA_MAJOR_VER" -lt 2304 ]]; then
+if [[ "$WSA_MAJOR_VER" -lt 2304 || "$WSA_MAJOR_VER" -ge 2306 ]]; then
     echo "Calculate the required space"
     EXTRA_SIZE=10240
 
@@ -906,7 +906,7 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
     fi
 fi
 
-if [[ "$WSA_MAJOR_VER" -ge 2304 ]]; then
+if [[ "$WSA_MAJOR_VER" -ge 2304 && "$WSA_MAJOR_VER" -lt 2306 ]]; then
     echo "Create EROFS images"
     mk_erofs_umount "$VENDOR_MNT" "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_MNT_RW" || abort
     mk_erofs_umount "$PRODUCT_MNT" "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_MNT_RW" || abort
