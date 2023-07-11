@@ -650,7 +650,8 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
     echo -e "Extract done\n"
 fi
 
-if [[ "$WSA_MAJOR_VER" -ge 2302 ]]; then
+if [ -f "$WORK_DIR/wsa/$ARCH/system.vhdx" ]; then
+    VM_IMAGES_USE_VHDX=1
     echo "Convert vhdx to RAW image"
     vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/system_ext.vhdx" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
     vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/product.vhdx" "$WORK_DIR/wsa/$ARCH/product.img" || abort
@@ -682,7 +683,7 @@ if [[ "$WSA_MAJOR_VER" -ge 2302 ]]; then
     mk_overlayfs product "$PRODUCT_MNT_RO" "$PRODUCT_MNT_RW" "$PRODUCT_MNT" || abort
     mk_overlayfs system_ext "$SYSTEM_EXT_MNT_RO" "$SYSTEM_EXT_MNT_RW" "$SYSTEM_EXT_MNT" || abort
     echo -e "Create overlayfs done\n"
-elif [[ "$WSA_MAJOR_VER" -lt 2302 ]]; then
+else
     echo "Calculate the required space"
     EXTRA_SIZE=10240
 
@@ -916,7 +917,7 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
     fi
 fi
 
-if [[ "$WSA_MAJOR_VER" -ge 2302 ]]; then
+if [ "$VM_IMAGES_USE_VHDX" ]; then
     echo "Create system images"
     mk_image_umount "$VENDOR_MNT" "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_MNT_RW" "$SYSTEMIMAGES_FILE_SYSTEM_TYPE" || abort
     mk_image_umount "$PRODUCT_MNT" "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_MNT_RW" "$SYSTEMIMAGES_FILE_SYSTEM_TYPE" || abort
