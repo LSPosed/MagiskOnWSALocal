@@ -25,7 +25,7 @@ import requests
 from pathlib import Path
 
 magisk_ver = sys.argv[1]
-download_dir = Path.cwd().parent / "download" if sys.argv[2] == "" else Path(sys.argv[2]).resolve()
+download_dir = Path.cwd().parent / "download" if sys.argv[2] == "" else Path(sys.argv[2])
 tempScript = sys.argv[3]
 print(f"Generating Magisk download link: release type={magisk_ver}", flush=True)
 if not magisk_ver:

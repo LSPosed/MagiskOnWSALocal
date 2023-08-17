@@ -21,15 +21,34 @@
 from datetime import datetime
 import sys
 import os
+from typing import Any, OrderedDict
 
 import requests
 import json
 import re
 from pathlib import Path
 
+
+class Prop(OrderedDict):
+    def __init__(self, props: str = ...) -> None:
+        super().__init__()
+        for i, line in enumerate(props.splitlines(False)):
+            if '=' in line:
+                k, v = line.split('=', 1)
+                self[k] = v
+            else:
+                self[f".{i}"] = line
+
+    def __setattr__(self, __name: str, __value: Any) -> None:
+        self[__name] = __value
+
+    def __repr__(self):
+        return '\n'.join(f'{item}={self[item]}' for item in self)
+
+
 arch = sys.argv[1]
-download_dir = Path.cwd().parent / \
-    "download" if sys.argv[2] == "" else Path(sys.argv[2]).resolve()
+arg2 = sys.argv[2]
+download_dir = Path.cwd().parent / "download" if arg2 == "" else Path(arg2)
 tempScript = sys.argv[3]
 kernelVersion = sys.argv[4]
 file_name = sys.argv[5]
@@ -40,14 +59,21 @@ json_data = json.loads(res.content)
 headers = res.headers
 x_ratelimit_remaining = headers["x-ratelimit-remaining"]
 if res.status_code == 200:
+    link = ""
     assets = json_data["assets"]
     for asset in assets:
         if re.match(f'kernel-WSA-{abi_map[arch]}-{kernelVersion}.*\.zip$', asset["name"]) and asset["content_type"] == "application/zip":
             link = asset["browser_download_url"]
             break
+    if link == "":
+        print(f"Error: No KernelSU release found for arch={abi_map[arch]}, kernel version={kernelVersion}", flush=True)
+        exit(1)
     release_name = json_data["name"]
-    with open(os.environ['WSA_WORK_ENV'], 'a') as environ_file:
-        environ_file.write(f'KERNELSU_VER={release_name}\n')
+    with open(os.environ['WSA_WORK_ENV'], 'r') as environ_file:
+        env = Prop(environ_file.read())
+        env.KERNELSU_VER = release_name
+    with open(os.environ['WSA_WORK_ENV'], 'w') as environ_file:
+        environ_file.write(str(env))
 elif res.status_code == 403 and x_ratelimit_remaining == '0':
     message = json_data["message"]
     print(f"Github API Error: {message}", flush=True)

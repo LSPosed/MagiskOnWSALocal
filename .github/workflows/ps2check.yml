@@ -1,0 +1,27 @@
+name: PSScript checker
+
+on:
+  push:
+    paths:
+      - '**.ps1'
+      - '.github/workflows/ps2check.yml'
+  pull_request:
+    paths:
+      - '**.ps1'
+      - '.github/workflows/ps2check.yml'
+  workflow_dispatch:
+
+jobs:
+  shellcheck:
+    runs-on: windows-latest
+    steps:
+    - name : Checkout
+      uses: actions/checkout@v3
+
+    - name: Run PSScriptAnalyzer
+      uses: microsoft/psscriptanalyzer-action@v1.0
+      with:
+        path: .\installer
+        recurse: true 
+        includeDefaultRules: true 
+        enableExit: true

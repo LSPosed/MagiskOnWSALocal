@@ -8,10 +8,11 @@
 
   The following dependencies are required:
 
-  | DistrOS             |                                                                           |            |            |              |
-  |:-------------------:|---------------------------------------------------------------------------|------------|------------|--------------|
-  | Debian              | `lzip patchelf e2fsprogs python3 python3-pip aria2 p7zip-full attr unzip` | `whiptail` | `xz-utils` | `qemu-utils` |
-  | openSUSE Tumbleweed | Same as above                                                             | `dialog`   | `xz`       | `qemu-tools` |
+  | DistrOS             |                                                         |            |              |                    |               |              |
+  |:-------------------:|---------------------------------------------------------|------------|--------------|--------------------|---------------|--------------|
+  | Debian              | `lzip patchelf e2fsprogs python3 aria2 attr unzip sudo` | `whiptail` | `qemu-utils` | `python3-venv`     | `python3-pip` | `p7zip-full` |
+  | openSUSE Tumbleweed | Same as above                                           | `dialog`   | `qemu-tools` | `python3-venvctrl` | Same as above                |
+  | Arch                | Same as Debian                                          | `libnewt`  | `qemu-img`   |  Same as Debian    | `python-pip`  | `p7zip`      |
 
   The python3 library `requests` is used.
 
@@ -40,7 +41,7 @@
 - Integrate Magisk and GApps in a few clicks within minutes
 - Keep each build up to date
 - Support both ARM64 and x64
-- Support all OpenGApps variants except for aroma (aroma does not support x86_64, please use super instead)
+- Support MindTheGapps
 - Remove Amazon Appstore
 - Fix VPN dialog not showing (use our [VpnDialogs app](https://github.com/LSPosed/VpnDialogs))
 - Add device administration feature
@@ -63,9 +64,6 @@
 5. Select the WSA version and its architecture (mostly x64).
 6. Select the version of Magisk.
 7. Choose which brand of GApps you want to install:
-   - OpenGApps
-
-     Select the [OpenGApps variant](https://github.com/opengapps/opengapps/wiki#variants) you like.
    - MindTheGapps
 
      There is no other variant we can choose.
@@ -176,7 +174,8 @@
 - [The Open GApps Project](https://opengapps.org): One of the most famous Google Apps packages solution
 - [WSA-Kernel-SU](https://github.com/LSPosed/WSA-Kernel-SU) and [kernel-assisted-superuser](https://git.zx2c4.com/kernel-assisted-superuser/): The kernel `su` for debugging Magisk Integration
 - [WSAGAScript](https://github.com/ADeltaX/WSAGAScript): The first GApps integration script for WSA
+- [erofs-utils](https://github.com/sekaiacg/erofs-utils): Pre-build `erofs-utils` with erofsfuse enabled
 
 _The repository is provided as a utility._
 
-_Android is a trademark of Google LLC. Windows is a trademark of Microsoft LLC._
+_Android is a trademark of Google LLC. Windows is a trademark of Microsoft Corporation._

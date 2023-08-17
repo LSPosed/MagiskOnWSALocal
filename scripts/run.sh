@@ -26,7 +26,7 @@ if [ ! "$BASH_VERSION" ]; then
 fi
 cd "$(dirname "$0")" || exit 1
 
-./install_deps.sh
+./install_deps.sh || exit 1
 
 WHIPTAIL=$(command -v whiptail 2>/dev/null)
 DIALOG=$(command -v dialog 2>/dev/null)
@@ -44,6 +44,20 @@ function YesNoBox {
     shift
     $DIALOG --title "${o[title]}" --yesno "${o[text]}" 0 0
 }
+
+function DialogBox {
+    declare -A o="$1"
+    shift
+    $DIALOG --title "${o[title]}" --msgbox "${o[text]}" 0 0
+}
+intro="Welcome to MagiskOnWSA!
+
+    With this utility, you can integrate Magisk for WSA easily.
+    Use arrow keys to navigate, and press space to select.
+    Press enter to confirm.
+"
+DialogBox "([title]='Intro to MagiskOnWSA' \
+            [text]='$intro')"
 
 ARCH=$(
     Radiolist '([title]="Build arch"
@@ -82,19 +96,21 @@ if [ "$ROOT_SOL" = "magisk" ]; then
             'debug' "Canary Channel Debug Build" 'off'
     )
 else
-    MAGISK_VER=stable
+    MAGISK_VER=""
 fi
 
 if (YesNoBox '([title]="Install GApps" [text]="Do you want to install GApps?")'); then
-    GAPPS_BRAND=$(
-        Radiolist '([title]="Which GApps do you want to install?"
-                    [default]="MindTheGapps")' \
-            'MindTheGapps' "Recommend" 'on' \
-            'OpenGApps' "This flavor may cause startup failure" 'off'
-    )
+    # GAPPS_BRAND=$(
+    #     Radiolist '([title]="Which GApps do you want to install?"
+    #                 [default]="MindTheGapps")' \
+    #         'MindTheGapps' "Recommend" 'on' \
+    #         'OpenGApps' "This flavor may cause startup failure" 'off'
+    # )
+    GAPPS_BRAND="MindTheGapps"
 else
     GAPPS_BRAND="none"
 fi
+
 if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
     # TODO: Keep it pico since other variants of opengapps are unable to boot successfully
     if [ "$DEBUG" = "1" ]; then
@@ -112,10 +128,10 @@ if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
                 'tvmini' "" 'off'
         )
     else
-        GAPPS_VARIANT=pico
+        GAPPS_VARIANT=""
     fi
 else
-    GAPPS_VARIANT="pico"
+    GAPPS_VARIANT=""
 fi
 
 if (YesNoBox '([title]="Remove Amazon Appstore" [text]="Do you want to keep Amazon Appstore?")'); then
@@ -133,14 +149,33 @@ if [ "$COMPRESS_OUTPUT" = "--compress" ]; then
     COMPRESS_FORMAT=$(
         Radiolist '([title]="Compress format"
                     [default]="7z")' \
-            'zip' "Zip" 'off' \
             '7z' "7-Zip" 'on' \
-            'xz' "tar.xz" 'off'
+            'zip' "Zip" 'off'
     )
 fi
 
 clear
 declare -A RELEASE_TYPE_MAP=(["retail"]="retail" ["release preview"]="RP" ["insider slow"]="WIS" ["insider fast"]="WIF")
-COMMAND_LINE=(--arch "$ARCH" --release-type "${RELEASE_TYPE_MAP[$RELEASE_TYPE]}" --magisk-ver "$MAGISK_VER" --gapps-brand "$GAPPS_BRAND" --gapps-variant "$GAPPS_VARIANT" "$REMOVE_AMAZON" --root-sol "$ROOT_SOL" "$COMPRESS_OUTPUT" "$OFFLINE" "$DEBUG" "$CUSTOM_MAGISK" --compress-format "$COMPRESS_FORMAT")
+COMMAND_LINE=(--arch "$ARCH" --release-type "${RELEASE_TYPE_MAP[$RELEASE_TYPE]}" --root-sol "$ROOT_SOL" --gapps-brand "$GAPPS_BRAND")
+CHECK_NULL_LIST=("$REMOVE_AMAZON" "$COMPRESS_OUTPUT" "$OFFLINE" "$DEBUG" "$CUSTOM_MAGISK")
+for i in "${CHECK_NULL_LIST[@]}"; do
+    if [ -n "$i" ]; then
+        COMMAND_LINE+=("$i")
+    fi
+done
+
+if [ -n "$MAGISK_VER" ]; then
+    COMMAND_LINE+=(--magisk-ver "$MAGISK_VER")
+fi
+
+if [ -n "$GAPPS_VARIANT" ]; then
+    COMMAND_LINE+=(--gapps-variant "$GAPPS_VARIANT")
+fi
+
+if [ -n "$COMPRESS_FORMAT" ]; then
+    COMMAND_LINE+=(--compress-format "$COMPRESS_FORMAT")
+fi
+
 echo "COMMAND_LINE=${COMMAND_LINE[*]}"
+chmod +x ./build.sh
 ./build.sh "${COMMAND_LINE[@]}"

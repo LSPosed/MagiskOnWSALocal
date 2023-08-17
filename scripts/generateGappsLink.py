@@ -29,8 +29,8 @@ from pathlib import Path
 arch = sys.argv[1]
 brand = sys.argv[2]
 variant = sys.argv[3]
-download_dir = Path.cwd().parent / \
-    "download" if sys.argv[4] == "" else Path(sys.argv[4]).resolve()
+arg4 = sys.argv[4]
+download_dir = Path.cwd().parent / "download" if arg4 == "" else Path(arg4)
 tempScript = sys.argv[5]
 android_api = sys.argv[6]
 file_name = sys.argv[7]
@@ -61,7 +61,7 @@ elif brand == "MindTheGapps":
             '.zip/download', '.zip').replace('sourceforge.net/projects/wsa-mtg/files', 'downloads.sourceforge.net/project/wsa-mtg')
     else:
         print(f"Failed to fetch from SourceForge RSS, fallbacking to Github API...", flush=True)
-        res = requests.get(f"https://api.github.com/repos/s1204IT/MindTheGappsBuilder/releases/latest")
+        res = requests.get(f"https://api.github.com/repos/Howard20181/MindTheGappsBuilder/releases/latest")
         json_data = json.loads(res.content)
         headers = res.headers
         x_ratelimit_remaining = headers["x-ratelimit-remaining"]
