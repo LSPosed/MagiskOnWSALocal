@@ -625,7 +625,7 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
                 abort "Unzip OpenGApps failed, is the download incomplete?"
             fi
         else
-            if ! unzip "$GAPPS_PATH" "system/*" -x "system/addon.d/*" "system/system_ext/priv-app/SetupWizard/*" -d "$WORK_DIR/gapps"; then
+            if ! unzip "$GAPPS_PATH" "system/*" -x "system/addon.d/*" "system/product/priv-app/VelvetTitan/*" "system/system_ext/priv-app/SetupWizard/*" -d "$WORK_DIR/gapps"; then
                 CLEAN_DOWNLOAD_GAPPS=1
                 abort "Unzip MindTheGapps failed, package is corrupted?"
             fi
@@ -740,7 +740,7 @@ if [ "$REMOVE_AMAZON" ]; then
 fi
 
 echo "Add device administration features"
-sudo sed -i -e '/cts/a \ \ \ \ <feature name="android.software.device_admin" />' -e '/print/i \ \ \ \ <feature name="android.software.managed_users" />' "$VENDOR_MNT/etc/permissions/windows.permissions.xml"
+sudo sed -ie '/cts/a \    <feature name="android.software.device_admin" />' -e '/print/i \    <feature name="android.software.managed_users" />' "$VENDOR_MNT/etc/permissions/windows.permissions.xml"
 sudo setfattr -n security.selinux -v "u:object_r:vendor_configs_file:s0" "$VENDOR_MNT/etc/permissions/windows.permissions.xml" || abort
 echo -e "done\n"
 
