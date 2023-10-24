@@ -158,6 +158,12 @@ vhdx_to_raw_img() {
     rm -f "$1" || return 1
 }
 
+check_image_type() {
+    local type
+    type=$(blkid -o value -s TYPE "$1")
+    echo "$type"
+}
+
 mk_overlayfs() { # label lowerdir upperdir merged
     local context own
     local workdir="$WORK_DIR/worker/$1"
@@ -192,12 +198,17 @@ mk_overlayfs() { # label lowerdir upperdir merged
     sudo mount -vt overlay overlay -olowerdir="$lowerdir",upperdir="$upperdir",workdir="$workdir" "$merged" || return 1
 }
 
-mk_erofs_umount() { # dir imgpath upperdir
-    sudo "../bin/$HOST_ARCH/mkfs.erofs" -zlz4hc -T1230768000 --chunksize=4096 --exclude-regex="lost+found" "$2".erofs "$1" || abort "Failed to make erofs image from $1"
+mk_image_umount() { # dir imgpath upperdir imgtype
+    echo "mk_image_umount: $*"
+    if [ "$4" = "erofs" ]; then
+        sudo "../bin/$HOST_ARCH/mkfs.erofs" -zlz4hc -T1230768000 --chunksize=4096 --exclude-regex="lost+found" "$2"."$4" "$1" || abort "Failed to make image for $1"
+    elif [ "$4" = "ext4" ]; then
+        abort "Not yet implemented"
+    fi
     sudo umount -v "$1"
     sudo rm -f "$2"
-    sudo mv "$2".erofs "$2"
-    if [ "$3" ]; then
+    sudo mv "$2"."$4" "$2"
+    if [ -d "$3" ]; then
         sudo rm -rf "$3"
     fi
 }
@@ -639,40 +650,40 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
     echo -e "Extract done\n"
 fi
 
-if [[ "$WSA_MAJOR_VER" -ge 2302 ]]; then
+if [ -f "$WORK_DIR/wsa/$ARCH/system.vhdx" ]; then
+    VM_IMAGES_USE_VHDX=1
     echo "Convert vhdx to RAW image"
     vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/system_ext.vhdx" "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
     vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/product.vhdx" "$WORK_DIR/wsa/$ARCH/product.img" || abort
     vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/system.vhdx" "$WORK_DIR/wsa/$ARCH/system.img" || abort
     vhdx_to_raw_img "$WORK_DIR/wsa/$ARCH/vendor.vhdx" "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
     echo -e "Convert vhdx to RAW image done\n"
-fi
-
-if [[ "$WSA_MAJOR_VER" -ge 2304 ]]; then
+    SYSTEMIMAGES_FILE_SYSTEM_TYPE=$(check_image_type "$WORK_DIR/wsa/$ARCH/system.img")
     echo "Mount images"
     sudo mkdir -p -m 755 "$ROOT_MNT_RO" || abort
     sudo chown "0:0" "$ROOT_MNT_RO" || abort
     sudo setfattr -n security.selinux -v "u:object_r:rootfs:s0" "$ROOT_MNT_RO" || abort
-    mount_erofs "$WORK_DIR/wsa/$ARCH/system.img" "$ROOT_MNT_RO" || abort
-    mount_erofs "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_MNT_RO" || abort
-    mount_erofs "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_MNT_RO" || abort
-    mount_erofs "$WORK_DIR/wsa/$ARCH/system_ext.img" "$SYSTEM_EXT_MNT_RO" || abort
+    if [ "$SYSTEMIMAGES_FILE_SYSTEM_TYPE" = "ext4" ]; then
+        sudo mount -vo loop,ro "$WORK_DIR/wsa/$ARCH/system.img" "$ROOT_MNT_RO" || abort
+        sudo mount -vo loop,ro "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_MNT_RO" || abort
+        sudo mount -vo loop,ro "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_MNT_RO" || abort
+        sudo mount -vo loop,ro "$WORK_DIR/wsa/$ARCH/system_ext.img" "$SYSTEM_EXT_MNT_RO" || abort
+    elif [ "$SYSTEMIMAGES_FILE_SYSTEM_TYPE" = "erofs" ]; then
+        mount_erofs "$WORK_DIR/wsa/$ARCH/system.img" "$ROOT_MNT_RO" || abort
+        mount_erofs "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_MNT_RO" || abort
+        mount_erofs "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_MNT_RO" || abort
+        mount_erofs "$WORK_DIR/wsa/$ARCH/system_ext.img" "$SYSTEM_EXT_MNT_RO" || abort
+    else
+        abort "Unknown file system type: $SYSTEMIMAGES_FILE_SYSTEM_TYPE"
+    fi
     echo -e "done\n"
-    echo "Create overlayfs for EROFS"
+    echo "Create overlayfs"
     mk_overlayfs system "$ROOT_MNT_RO" "$SYSTEM_MNT_RW" "$ROOT_MNT" || abort 
     mk_overlayfs vendor "$VENDOR_MNT_RO" "$VENDOR_MNT_RW" "$VENDOR_MNT" || abort
     mk_overlayfs product "$PRODUCT_MNT_RO" "$PRODUCT_MNT_RW" "$PRODUCT_MNT" || abort
     mk_overlayfs system_ext "$SYSTEM_EXT_MNT_RO" "$SYSTEM_EXT_MNT_RW" "$SYSTEM_EXT_MNT" || abort
-    echo -e "Create overlayfs for EROFS done\n"
-elif [[ "$WSA_MAJOR_VER" -ge 2302 ]]; then
-    echo "Remove read-only flag for read-only EXT4 image"
-    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
-    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/product.img" || abort
-    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/system.img" || abort
-    ro_ext4_img_to_rw "$WORK_DIR/wsa/$ARCH/vendor.img" || abort
-    echo -e "Remove read-only flag for read-only EXT4 image done\n"
-fi
-if [[ "$WSA_MAJOR_VER" -lt 2304 ]]; then
+    echo -e "Create overlayfs done\n"
+else
     echo "Calculate the required space"
     EXTRA_SIZE=10240
 
@@ -906,19 +917,26 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
     fi
 fi
 
-if [[ "$WSA_MAJOR_VER" -ge 2304 ]]; then
-    echo "Create EROFS images"
-    mk_erofs_umount "$VENDOR_MNT" "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_MNT_RW" || abort
-    mk_erofs_umount "$PRODUCT_MNT" "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_MNT_RW" || abort
-    mk_erofs_umount "$SYSTEM_EXT_MNT" "$WORK_DIR/wsa/$ARCH/system_ext.img" "$SYSTEM_EXT_MNT_RW" || abort
-    mk_erofs_umount "$ROOT_MNT" "$WORK_DIR/wsa/$ARCH/system.img" || abort
-    echo -e "Create EROFS images done\n"
+if [ "$VM_IMAGES_USE_VHDX" ]; then
+    echo "Create system images"
+    mk_image_umount "$VENDOR_MNT" "$WORK_DIR/wsa/$ARCH/vendor.img" "$VENDOR_MNT_RW" "$SYSTEMIMAGES_FILE_SYSTEM_TYPE" || abort
+    mk_image_umount "$PRODUCT_MNT" "$WORK_DIR/wsa/$ARCH/product.img" "$PRODUCT_MNT_RW" "$SYSTEMIMAGES_FILE_SYSTEM_TYPE" || abort
+    mk_image_umount "$SYSTEM_EXT_MNT" "$WORK_DIR/wsa/$ARCH/system_ext.img" "$SYSTEM_EXT_MNT_RW" "$SYSTEMIMAGES_FILE_SYSTEM_TYPE" || abort
+    mk_image_umount "$ROOT_MNT" "$WORK_DIR/wsa/$ARCH/system.img" "$SYSTEM_MNT_RW" "$SYSTEMIMAGES_FILE_SYSTEM_TYPE" || abort
+    echo -e "Create system images done\n"
     echo "Umount images"
     sudo umount -v "$VENDOR_MNT_RO"
     sudo umount -v "$PRODUCT_MNT_RO"
     sudo umount -v "$SYSTEM_EXT_MNT_RO"
     sudo umount -v "$ROOT_MNT_RO"
     echo -e "done\n"
+    echo "Convert images to vhdx"
+    qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/system_ext.img" "$WORK_DIR/wsa/$ARCH/system_ext.vhdx" || abort
+    qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/product.img" "$WORK_DIR/wsa/$ARCH/product.vhdx" || abort
+    qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/system.img" "$WORK_DIR/wsa/$ARCH/system.vhdx" || abort
+    qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/vendor.img" "$WORK_DIR/wsa/$ARCH/vendor.vhdx" || abort
+    rm -f "$WORK_DIR/wsa/$ARCH/"*.img || abort
+    echo -e "Convert images to vhdx done\n"
 else
     echo "Umount images"
     sudo find "$ROOT_MNT" -exec touch -ht 200901010000.00 {} \;
@@ -933,16 +951,6 @@ else
     resize_img "$WORK_DIR/wsa/$ARCH/product.img" || abort
     resize_img "$WORK_DIR/wsa/$ARCH/system_ext.img" || abort
     echo -e "Shrink images done\n"
-fi
-
-if [[ "$WSA_MAJOR_VER" -ge 2302 ]]; then
-    echo "Convert images to vhdx"
-    qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/system_ext.img" "$WORK_DIR/wsa/$ARCH/system_ext.vhdx" || abort
-    qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/product.img" "$WORK_DIR/wsa/$ARCH/product.vhdx" || abort
-    qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/system.img" "$WORK_DIR/wsa/$ARCH/system.vhdx" || abort
-    qemu-img convert -q -f raw -o subformat=fixed -O vhdx "$WORK_DIR/wsa/$ARCH/vendor.img" "$WORK_DIR/wsa/$ARCH/vendor.vhdx" || abort
-    rm -f "$WORK_DIR/wsa/$ARCH/"*.img || abort
-    echo -e "Convert images to vhdx done\n"
 fi
 
 echo "Remove signature and add scripts"
