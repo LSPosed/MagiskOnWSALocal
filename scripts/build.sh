@@ -490,13 +490,15 @@ update_gapps_zip_name() {
 }
 WSA_MAJOR_VER=0
 update_ksu_zip_name() {
-    KERNEL_VER="5.15.94.4"
-    if [ "$WSA_MAJOR_VER" -lt "2304" ]; then
-        abort "KernelSU is not supported on WSA version below 2304"
-    fi
-    if [ "$WSA_MAJOR_VER" -ge "2306" ]; then
-        KERNEL_VER="5.15.104.1"
-    fi
+    KERNEL_VER=""
+    case "$WSA_MAJOR_VER" in
+      "2305") KERNEL_VER="5.15.94.2";;
+      "2306") KERNEL_VER="5.15.104.1";;
+      "2307") KERNEL_VER="5.15.104.2";;
+      "2308") KERNEL_VER="5.15.104.3";;
+      "2309") KERNEL_VER="5.15.104.4";;
+      *) abort "KernelSU is not supported in this WSA version: $WSA_MAJOR_VER"
+    esac
     KERNELSU_ZIP_NAME=kernelsu-$ARCH-$KERNEL_VER.zip
     KERNELSU_PATH=$DOWNLOAD_DIR/$KERNELSU_ZIP_NAME
     KERNELSU_INFO="$KERNELSU_PATH.info"
