@@ -163,11 +163,11 @@ for filename, values in identities.items():
                 wsa_build_ver = tmp_wsa_build_ver
             else:
                 continue
-        version_splited = wsa_build_ver.split(".")
-        major_ver = version_splited[0]
-        minor_ver = version_splited[1]
-        build_ver = version_splited[2]
-        revision_ver = version_splited[3]
+        version_splitted = wsa_build_ver.split(".")
+        major_ver = version_splitted[0]
+        minor_ver = version_splitted[1]
+        build_ver = version_splitted[2]
+        revision_ver = version_splitted[3]
         with open(os.environ['WSA_WORK_ENV'], 'r') as environ_file:
             env = Prop(environ_file.read())
             env.WSA_VER = wsa_build_ver
