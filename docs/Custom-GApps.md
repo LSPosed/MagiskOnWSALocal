@@ -1,6 +1,6 @@
 # How to install custom GApps
 
-1. Build WSA without gapps to let the script download needed files
+1. Build WSA without gaps to let the script download needed files
 
     `./build.sh --gapps-brand none`
 1.
