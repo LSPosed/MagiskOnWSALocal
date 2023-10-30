@@ -94,7 +94,7 @@ If (((Test-Path -Path "MakePri.ps1") -And (Test-Path -Path "makepri.exe")) -Eq $
     $null = $ProcMakePri.Handle
     $ProcMakePri.WaitForExit()
     If ($ProcMakePri.ExitCode -Ne 0) {
-        Write-Warning "Failed to merge resources, WSA Seetings will always be in English`r`nPress any key to continue"
+        Write-Warning "Failed to merge resources, WSA Settings will always be in English`r`nPress any key to continue"
         $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
     }
     $Host.UI.RawUI.WindowTitle = "Installing MagiskOnWSA...."
