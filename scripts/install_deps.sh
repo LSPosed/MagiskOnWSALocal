@@ -54,6 +54,7 @@ check_dependencies
 osrel=$(sed -n '/^ID_LIKE=/s/^.*=//p' /etc/os-release)
 declare -A os_pm_install
 # os_pm_install["/etc/redhat-release"]=yum
+os_pm_install["/etc/fedora-release"]=dnf
 os_pm_install["/etc/arch-release"]=pacman
 os_pm_install["/etc/gentoo-release"]=emerge
 os_pm_install["/etc/SuSE-release"]=zypper
@@ -62,6 +63,7 @@ os_pm_install["/etc/debian_version"]=apt-get
 
 declare -A PM_UPDATE_MAP
 PM_UPDATE_MAP["yum"]="check-update"
+PM_UPDATE_MAP["dnf"]="check-update"
 PM_UPDATE_MAP["pacman"]="-Syu --noconfirm"
 PM_UPDATE_MAP["emerge"]="-auDU1 @world"
 PM_UPDATE_MAP["zypper"]="ref"
@@ -70,6 +72,7 @@ PM_UPDATE_MAP["apk"]="update"
 
 declare -A PM_INSTALL_MAP
 PM_INSTALL_MAP["yum"]="install -y"
+PM_INSTALL_MAP["dnf"]="install -y"
 PM_INSTALL_MAP["pacman"]="-S --noconfirm --needed"
 PM_INSTALL_MAP["emerge"]="-a"
 PM_INSTALL_MAP["zypper"]="in -y"
@@ -77,6 +80,7 @@ PM_INSTALL_MAP["apt-get"]="install -y"
 PM_INSTALL_MAP["apk"]="add"
 
 declare -A PM_UPGRADE_MAP
+PM_UPGRADE_MAP["dnf"]="update -y"
 PM_UPGRADE_MAP["apt-get"]="upgrade -y"
 PM_UPGRADE_MAP["zypper"]="up -y"
 
@@ -122,12 +126,28 @@ elif [[ "$PM" =~ pacman|emerge ]]; then
         abort "Operation cancelled by user"
         ;;
     esac
+elif [ "$PM" = dnf ]; then
+    sudo "$PM" "${UPDATE_OPTION[@]}" >>/dev/null
+    if ! [[ $? =~ 0|100 ]]; then
+        abort
+    fi
+    sudo "$PM" "${UPGRADE_OPTION[@]}" ca-certificates
 else
     if ! (sudo "$PM" "${UPDATE_OPTION[@]}" && sudo "$PM" "${UPGRADE_OPTION[@]}" ca-certificates); then abort; fi
 fi
 
 if [ -n "${NEED_INSTALL[*]}" ]; then
-    if [ "$PM" = "zypper" ]; then
+    if [ "$PM" = "dnf" ]; then
+        NEED_INSTALL_FIX=${NEED_INSTALL[*]}
+        {
+            NEED_INSTALL_FIX=${NEED_INSTALL_FIX//whiptail/newt} 2>&1
+            NEED_INSTALL_FIX=${NEED_INSTALL_FIX//qemu-utils/qemu-img} 2>&1
+            NEED_INSTALL_FIX=${NEED_INSTALL_FIX//p7zip-full/p7zip-plugins} 2>&1
+        } >>/dev/null
+
+        readarray -td ' ' NEED_INSTALL <<<"$NEED_INSTALL_FIX "
+        unset 'NEED_INSTALL[-1]'
+    elif [ "$PM" = "zypper" ]; then
         NEED_INSTALL_FIX=${NEED_INSTALL[*]}
         {
             NEED_INSTALL_FIX=${NEED_INSTALL_FIX//setools/setools-console} 2>&1
