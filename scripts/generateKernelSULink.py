@@ -62,7 +62,7 @@ if res.status_code == 200:
     link = ""
     assets = json_data["assets"]
     for asset in assets:
-        if re.match(f'kernel-WSA-{abi_map[arch]}-{kernelVersion}.*\.zip$', asset["name"]) and asset["content_type"] == "application/zip":
+        if re.match(fr'kernel-WSA-{abi_map[arch]}-{kernelVersion}.*\.zip$', asset["name"]) and asset["content_type"] == "application/zip":
             link = asset["browser_download_url"]
             break
     if link == "":
