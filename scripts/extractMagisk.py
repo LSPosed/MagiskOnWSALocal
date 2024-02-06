@@ -72,6 +72,7 @@ with zipfile.ZipFile(magisk_zip) as zip:
         with open(os.environ['WSA_WORK_ENV'], 'w') as environ_file:
             environ_file.write(str(env))
     extract_as(zip, f"lib/{ abi_map[arch][0] }/libmagisk64.so", "magisk64", "magisk")
+    extract_as(zip, f"lib/{ abi_map[arch][1] }/libmagisk32.so", "magisk32", "magisk")
     standalone_policy = False
     try:
         zip.getinfo(f"lib/{ abi_map[arch][0] }/libmagiskpolicy.so")

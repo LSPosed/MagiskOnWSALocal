@@ -453,10 +453,11 @@ fi
 if [ "$ROOT_SOL" = 'magisk' ]; then
     echo "Integrate Magisk"
     "$WORK_DIR/magisk/magiskboot" compress=xz "$WORK_DIR/magisk/magisk64" "$WORK_DIR/magisk/magisk64.xz"
+    "$WORK_DIR/magisk/magiskboot" compress=xz "$WORK_DIR/magisk/magisk32" "$WORK_DIR/magisk/magisk32.xz"
     "$WORK_DIR/magisk/magiskboot" compress=xz "$WORK_DIR/magisk/stub.apk" "$WORK_DIR/magisk/stub.xz"
     echo "KEEPFORCEENCRYPT=true" >> "$WORK_DIR/magisk/config"
     echo "PREINITDEVICE=sde" >> "$WORK_DIR/magisk/config"
-    "$WORK_DIR/magisk/magiskboot" cpio "$WORK_DIR/wsa/$ARCH/Tools/initrd.img" "mv /init /wsainit" "add 0750 /lspinit ../bin/$ARCH/lspinit" "ln /lspinit /init" "add 0750 /magiskinit $WORK_DIR/magisk/magiskinit" "mkdir 0750 overlay.d" "mkdir 0750 overlay.d/sbin" "add 0644 overlay.d/sbin/magisk64.xz $WORK_DIR/magisk/magisk64.xz" "add 0644 overlay.d/sbin/stub.xz $WORK_DIR/magisk/stub.xz" "mkdir 000 .backup" "add 000 .backup/.magisk $WORK_DIR/magisk/config" || abort "Unable to patch initrd"
+    "$WORK_DIR/magisk/magiskboot" cpio "$WORK_DIR/wsa/$ARCH/Tools/initrd.img" "mv /init /wsainit" "add 0750 /lspinit ../bin/$ARCH/lspinit" "ln /lspinit /init" "add 0750 /magiskinit $WORK_DIR/magisk/magiskinit" "mkdir 0750 overlay.d" "mkdir 0750 overlay.d/sbin" "add 0644 overlay.d/sbin/magisk64.xz $WORK_DIR/magisk/magisk64.xz" "add 0644 overlay.d/sbin/magisk32.xz $WORK_DIR/magisk/magisk32.xz" "add 0644 overlay.d/sbin/stub.xz $WORK_DIR/magisk/stub.xz" "mkdir 000 .backup" "add 000 .backup/.magisk $WORK_DIR/magisk/config" || abort "Unable to patch initrd"
     echo -e "Integrate Magisk done\n"
 elif [ "$ROOT_SOL" = "kernelsu" ]; then
     echo "Integrate KernelSU"
