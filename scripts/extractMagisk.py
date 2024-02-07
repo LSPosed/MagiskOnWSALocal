@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with MagiskOnWSALocal.  If not, see <https://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2023 LSPosed Contributors
+# Copyright (C) 2024 LSPosed Contributors
 #
 
 import sys
@@ -73,15 +73,5 @@ with zipfile.ZipFile(magisk_zip) as zip:
             environ_file.write(str(env))
     extract_as(zip, f"lib/{ abi_map[arch][0] }/libmagisk64.so", "magisk64", "magisk")
     extract_as(zip, f"lib/{ abi_map[arch][1] }/libmagisk32.so", "magisk32", "magisk")
-    standalone_policy = False
-    try:
-        zip.getinfo(f"lib/{ abi_map[arch][0] }/libmagiskpolicy.so")
-        standalone_policy = True
-    except:
-        pass
-    if standalone_policy:
-        extract_as(zip, f"lib/{ abi_map[arch][0] }/libmagiskpolicy.so", "magiskpolicy", "magisk")
-    else:
-        extract_as(zip, f"lib/{ abi_map[arch][0] }/libmagiskinit.so", "magiskpolicy", "magisk")
     extract_as(zip, f"lib/{ abi_map[arch][0] }/libmagiskinit.so", "magiskinit", "magisk")
-    extract_as(zip, f"lib/{ abi_map[arch][0] }/libmagiskboot.so", "magiskboot", "magisk")
+    extract_as(zip, f"lib/{ abi_map[host_abi][0] }/libmagiskboot.so", "magiskboot", "magisk")

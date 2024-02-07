@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with MagiskOnWSALocal.  If not, see <https://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2023 LSPosed Contributors
+# Copyright (C) 2024 LSPosed Contributors
 #
 
 if [ ! "$BASH_VERSION" ]; then
@@ -420,8 +420,6 @@ if [ "$ROOT_SOL" = "magisk" ]; then
             abort "Please install Magisk 26.0+"
         fi
         sudo chmod +x "../linker/$HOST_ARCH/linker64" || abort
-        sudo patchelf --set-interpreter "../linker/$HOST_ARCH/linker64" "$WORK_DIR/magisk/magiskpolicy" || abort
-        chmod +x "$WORK_DIR/magisk/magiskpolicy" || abort
         chmod +x "$WORK_DIR/magisk/magiskboot" || abort
     elif [ -z "${CUSTOM_MAGISK+x}" ]; then
         echo "The Magisk zip package does not exist, is the download incomplete?"
