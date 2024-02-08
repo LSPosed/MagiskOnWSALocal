@@ -216,21 +216,60 @@ opts=$(
 
 eval set --"$opts"
 while [[ $# -gt 0 ]]; do
-   case "$1" in
-        --arch              ) ARCH="$2"; shift 2 ;;
-        --release-type      ) RELEASE_TYPE="$2"; shift 2 ;;
-        --install-gapps     ) HAS_GAPPS=true; shift 2 ;;
-        --root-sol          ) ROOT_SOL="$2"; shift 2 ;;
-        --compress-format   ) COMPRESS_FORMAT="$2"; shift 2 ;;
-        --compress          ) COMPRESS_OUTPUT="yes"; shift ;;
-        --offline           ) OFFLINE="on"; shift ;;
-        --magisk-custom     ) CUSTOM_MAGISK="debug"; shift ;;
-        --magisk-ver        ) MAGISK_VER="$2"; shift 2 ;;
-        --debug             ) DEBUG="on"; shift ;;
-        --skip-download-wsa ) DOWN_WSA="no"; shift ;;
-        --help              ) usage; exit 0 ;;
-        --                  ) shift; break;;
-   esac
+    case "$1" in
+        --arch)
+            ARCH="$2"
+            shift 2
+            ;;
+        --release-type)
+            RELEASE_TYPE="$2"
+            shift 2
+            ;;
+        --install-gapps)
+            HAS_GAPPS=true
+            shift 2
+            ;;
+        --root-sol)
+            ROOT_SOL="$2"
+            shift 2
+            ;;
+        --compress-format)
+            COMPRESS_FORMAT="$2"
+            shift 2
+            ;;
+        --compress)
+            COMPRESS_OUTPUT="yes"
+            shift
+            ;;
+        --offline)
+            OFFLINE="on"
+            shift
+            ;;
+        --magisk-custom)
+            CUSTOM_MAGISK="debug"
+            shift
+            ;;
+        --magisk-ver)
+            MAGISK_VER="$2"
+            shift 2
+            ;;
+        --debug)
+            DEBUG="on"
+            shift
+            ;;
+        --skip-download-wsa)
+            DOWN_WSA="no"
+            shift
+            ;;
+        --help)
+            usage
+            exit 0
+            ;;
+        --)
+            shift
+            break
+            ;;
+    esac
 done
 
 if [ "$CUSTOM_MAGISK" ]; then
@@ -312,12 +351,12 @@ WSA_MAJOR_VER=0
 update_ksu_zip_name() {
     KERNEL_VER=""
     case "$WSA_MAJOR_VER" in
-      "2305") KERNEL_VER="5.15.94.2";;
-      "2306") KERNEL_VER="5.15.104.1";;
-      "2307") KERNEL_VER="5.15.104.2";;
-      "2308") KERNEL_VER="5.15.104.3";;
-      "2309") KERNEL_VER="5.15.104.4";;
-      *) abort "KernelSU is not supported in this WSA version: $WSA_MAJOR_VER"
+        "2305") KERNEL_VER="5.15.94.2" ;;
+        "2306") KERNEL_VER="5.15.104.1" ;;
+        "2307") KERNEL_VER="5.15.104.2" ;;
+        "2308") KERNEL_VER="5.15.104.3" ;;
+        "2309") KERNEL_VER="5.15.104.4" ;;
+        *) abort "KernelSU is not supported in this WSA version: $WSA_MAJOR_VER" ;;
     esac
     KERNELSU_ZIP_NAME=kernelsu-$ARCH-$KERNEL_VER.zip
     KERNELSU_PATH=$DOWNLOAD_DIR/$KERNELSU_ZIP_NAME
@@ -435,8 +474,8 @@ if [ "$ROOT_SOL" = "magisk" ]; then
     "$WORK_DIR/magisk/magiskboot" compress=xz "$WORK_DIR/magisk/magisk64" "$WORK_DIR/magisk/magisk64.xz"
     "$WORK_DIR/magisk/magiskboot" compress=xz "$WORK_DIR/magisk/magisk32" "$WORK_DIR/magisk/magisk32.xz"
     "$WORK_DIR/magisk/magiskboot" compress=xz "$MAGISK_PATH" "$WORK_DIR/magisk/stub.xz"
-    echo "KEEPFORCEENCRYPT=true" >> "$WORK_DIR/magisk/config"
-    echo "PREINITDEVICE=sde" >> "$WORK_DIR/magisk/config"
+    echo "KEEPFORCEENCRYPT=true" >>"$WORK_DIR/magisk/config"
+    echo "PREINITDEVICE=sde" >>"$WORK_DIR/magisk/config"
     "$WORK_DIR/magisk/magiskboot" cpio "$WORK_DIR/wsa/$ARCH/Tools/initrd.img" "mv /init /wsainit" "add 0750 /lspinit ../bin/$ARCH/lspinit" "ln /lspinit /init" "add 0750 /magiskinit $WORK_DIR/magisk/magiskinit" "mkdir 0750 overlay.d" "mkdir 0750 overlay.d/sbin" "add 0644 overlay.d/sbin/magisk64.xz $WORK_DIR/magisk/magisk64.xz" "add 0644 overlay.d/sbin/magisk32.xz $WORK_DIR/magisk/magisk32.xz" "add 0644 overlay.d/sbin/stub.xz $WORK_DIR/magisk/stub.xz" "mkdir 000 .backup" "add 000 .backup/.magisk $WORK_DIR/magisk/config" || abort "Unable to patch initrd"
     echo -e "Integrate Magisk done\n"
 elif [ "$ROOT_SOL" = "kernelsu" ]; then
