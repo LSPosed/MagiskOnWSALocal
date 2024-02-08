@@ -49,11 +49,6 @@ Function Test-CommandExist {
 
 Function Finish {
     Clear-Host
-    If (Test-CommandExist Optimize-VHD) {
-        Write-Output "Optimizing VHDX size...."
-        Optimize-VHD ".\*.vhdx" -Mode Full
-    }
-    Clear-Host
     Start-Process "wsa://com.topjohnwu.magisk"
     Start-Process "wsa://com.android.vending"
 }
