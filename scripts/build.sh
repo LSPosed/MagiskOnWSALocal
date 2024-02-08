@@ -348,36 +348,71 @@ update_gapps_file_name() {
     GAPPS_PATH=$DOWNLOAD_DIR/$GAPPS_FILE_NAME
 }
 WSA_MAJOR_VER=0
+getKernelVersion() {
+    local bintype kernel_string kernel_version
+    bintype="$(file -b "$1")"
+    if [[ $bintype == *"version"* ]]; then
+        readarray -td '' kernel_string < <(awk '{ gsub(/, /,"\0"); print; }' <<<"$bintype, ")
+        unset 'kernel_string[-1]'
+        for i in "${kernel_string[@]}"; do
+            if [[ $i == *"version"* ]]; then
+                IFS=" " read -r -a kernel_string <<<"$i"
+                kernel_version="${kernel_string[1]}"
+            fi
+        done
+    else
+        IFS=" " read -r -a kernel_string <<<"$(strings "$1" | grep 'Linux version')"
+        kernel_version="${kernel_string[2]}"
+    fi
+    IFS=" " read -r -a arr <<<"${kernel_version//-/ }"
+    printf '%s' "${arr[0]}"
+}
 update_ksu_zip_name() {
     KERNEL_VER=""
-    case "$WSA_MAJOR_VER" in
-        "2305") KERNEL_VER="5.15.94.2" ;;
-        "2306") KERNEL_VER="5.15.104.1" ;;
-        "2307") KERNEL_VER="5.15.104.2" ;;
-        "2308") KERNEL_VER="5.15.104.3" ;;
-        "2309") KERNEL_VER="5.15.104.4" ;;
-        *) abort "KernelSU is not supported in this WSA version: $WSA_MAJOR_VER" ;;
-    esac
+    if [ -f "$WORK_DIR/wsa/$ARCH/Tools/kernel" ]; then
+        KERNEL_VER=$(getKernelVersion "$WORK_DIR/wsa/$ARCH/Tools/kernel")
+    fi
     KERNELSU_ZIP_NAME=kernelsu-$ARCH-$KERNEL_VER.zip
     KERNELSU_PATH=$DOWNLOAD_DIR/$KERNELSU_ZIP_NAME
     KERNELSU_INFO="$KERNELSU_PATH.info"
 }
+
 if [ -z ${OFFLINE+x} ]; then
+    echo "Generating WSA Download Links"
     require_su
     if [ "$DOWN_WSA" != "no" ]; then
-        echo "Generate Download Links"
         python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
-        # shellcheck disable=SC1090
-        source "$WSA_WORK_ENV" || abort
+        echo "Downloading WSA"
     else
-        echo "Generate Download Links"
         python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" "$DOWN_WSA" || abort
-        WSA_MAJOR_VER=$(python3 getWSAMajorVersion.py "$ARCH" "$WSA_ZIP_PATH")
+        echo "Skip download WSA, downloading WSA depends"
     fi
-    if [[ "$WSA_MAJOR_VER" -lt 2211 ]]; then
-        ANDROID_API=32
+    if ! aria2c --no-conf --log-level=info --log="$DOWNLOAD_DIR/aria2_download.log" -x16 -s16 -j5 -c -R -m0 --async-dns=false --check-integrity=true --continue=true --allow-overwrite=true --conditional-get=true -d"$DOWNLOAD_DIR" -i"$DOWNLOAD_DIR/$DOWNLOAD_CONF_NAME"; then
+        echo "We have encountered an error while downloading files."
+        exit 1
     fi
-    if [ "$ROOT_SOL" = "magisk" ]; then
+    rm -f "${DOWNLOAD_DIR:?}/$DOWNLOAD_CONF_NAME"
+fi
+
+echo "Extract WSA"
+if [ -f "$WSA_ZIP_PATH" ]; then
+    if ! python3 extractWSA.py "$ARCH" "$WSA_ZIP_PATH" "$WORK_DIR" "$WSA_WORK_ENV"; then
+        CLEAN_DOWNLOAD_WSA=1
+        abort "Unzip WSA failed, is the download incomplete?"
+    fi
+    echo -e "Extract done\n"
+    # shellcheck disable=SC1090
+    source "$WSA_WORK_ENV" || abort
+else
+    echo "The WSA zip package does not exist, is the download incomplete?"
+    exit 1
+fi
+if [[ "$WSA_MAJOR_VER" -lt 2211 ]]; then
+    ANDROID_API=32
+fi
+if [ -z ${OFFLINE+x} ]; then
+    echo "Generating Download Links"
+    if [ "$HAS_GAPPS" ] || [ "$ROOT_SOL" = "magisk" ]; then
         if [ -z ${CUSTOM_MAGISK+x} ]; then
             python3 generateMagiskLink.py "$MAGISK_VER" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
         fi
@@ -395,18 +430,14 @@ if [ -z ${OFFLINE+x} ]; then
         python3 generateGappsLink.py "$ARCH" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" "$ANDROID_API" "$GAPPS_FILE_NAME" || abort
     fi
 
-    echo "Download Artifacts"
+    echo "Downloading Artifacts"
     if ! aria2c --no-conf --log-level=info --log="$DOWNLOAD_DIR/aria2_download.log" -x16 -s16 -j5 -c -R -m0 --async-dns=false --check-integrity=true --continue=true --allow-overwrite=true --conditional-get=true -d"$DOWNLOAD_DIR" -i"$DOWNLOAD_DIR/$DOWNLOAD_CONF_NAME"; then
         echo "We have encountered an error while downloading files."
         exit 1
     fi
 else # Offline mode
-    WSA_MAJOR_VER=$(python3 getWSAMajorVersion.py "$ARCH" "$WSA_ZIP_PATH")
-    if [[ "$WSA_MAJOR_VER" -lt 2211 ]]; then
-        ANDROID_API=32
-    fi
-    declare -A FILES_CHECK_LIST=([WSA_ZIP_PATH]="$WSA_ZIP_PATH" [xaml_PATH]="$xaml_PATH" [vclibs_PATH]="$vclibs_PATH" [UWPVCLibs_PATH]="$UWPVCLibs_PATH")
-    if [ "$ROOT_SOL" = "magisk" ]; then
+    declare -A FILES_CHECK_LIST=([xaml_PATH]="$xaml_PATH" [vclibs_PATH]="$vclibs_PATH" [UWPVCLibs_PATH]="$UWPVCLibs_PATH")
+    if [ "$HAS_GAPPS" ] || [ "$ROOT_SOL" = "magisk" ]; then
         FILES_CHECK_LIST+=(["MAGISK_PATH"]="$MAGISK_PATH")
     fi
     if [ "$ROOT_SOL" = "kernelsu" ]; then
@@ -428,20 +459,6 @@ else # Offline mode
         exit 1
     fi
     require_su
-fi
-
-echo "Extract WSA"
-if [ -f "$WSA_ZIP_PATH" ]; then
-    if ! python3 extractWSA.py "$ARCH" "$WSA_ZIP_PATH" "$WORK_DIR" "$WSA_WORK_ENV"; then
-        CLEAN_DOWNLOAD_WSA=1
-        abort "Unzip WSA failed, is the download incomplete?"
-    fi
-    echo -e "Extract done\n"
-    # shellcheck disable=SC1090
-    source "$WSA_WORK_ENV" || abort
-else
-    echo "The WSA zip package does not exist, is the download incomplete?"
-    exit 1
 fi
 
 if [ "$HAS_GAPPS" ] || [ "$ROOT_SOL" = "magisk" ]; then
@@ -479,10 +496,11 @@ if [ "$ROOT_SOL" = "magisk" ]; then
     "$WORK_DIR/magisk/magiskboot" cpio "$WORK_DIR/wsa/$ARCH/Tools/initrd.img" "mv /init /wsainit" "add 0750 /lspinit ../bin/$ARCH/lspinit" "ln /lspinit /init" "add 0750 /magiskinit $WORK_DIR/magisk/magiskinit" "mkdir 0750 overlay.d" "mkdir 0750 overlay.d/sbin" "add 0644 overlay.d/sbin/magisk64.xz $WORK_DIR/magisk/magisk64.xz" "add 0644 overlay.d/sbin/magisk32.xz $WORK_DIR/magisk/magisk32.xz" "add 0644 overlay.d/sbin/stub.xz $WORK_DIR/magisk/stub.xz" "mkdir 000 .backup" "add 000 .backup/.magisk $WORK_DIR/magisk/config" || abort "Unable to patch initrd"
     echo -e "Integrate Magisk done\n"
 elif [ "$ROOT_SOL" = "kernelsu" ]; then
-    update_ksu_zip_name
     echo "Extract KernelSU"
     # shellcheck disable=SC1090
     source "${KERNELSU_INFO:?}" || abort
+    echo "WSA Kernel Version: $KERNEL_VER"
+    echo "KernelSU Version: $KERNELSU_VER"
     if ! unzip "$KERNELSU_PATH" -d "$WORK_DIR/kernelsu"; then
         CLEAN_DOWNLOAD_KERNELSU=1
         abort "Unzip KernelSU failed, package is corrupted?"
