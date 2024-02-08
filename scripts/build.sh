@@ -246,7 +246,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --magisk-custom)
-            CUSTOM_MAGISK="debug"
+            CUSTOM_MAGISK=true
             shift
             ;;
         --magisk-ver)
@@ -271,12 +271,6 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
-
-if [ "$CUSTOM_MAGISK" ]; then
-    if [ -z "$MAGISK_VER" ]; then
-        MAGISK_VER=$CUSTOM_MAGISK
-    fi
-fi
 
 check_list() {
     local input=$1
@@ -308,13 +302,6 @@ if [ "$DEBUG" ]; then
     set -x
 fi
 
-require_su() {
-    if test "$(id -u)" != "0"; then
-        if [ "$(sudo id -u)" != "0" ]; then
-            abort "sudo is required to run this script"
-        fi
-    fi
-}
 # shellcheck disable=SC1091
 [ -f "$PYTHON_VENV_DIR/bin/activate" ] && {
     source "$PYTHON_VENV_DIR/bin/activate" || abort "Failed to activate virtual environment, please re-run install_deps.sh"
@@ -344,7 +331,7 @@ if [ "$CUSTOM_MAGISK" ]; then
 fi
 ANDROID_API=33
 update_gapps_file_name() {
-    GAPPS_FILE_NAME=GApps-$ARCH-${ANDROID_API_MAP[$ANDROID_API]}.apex
+    GAPPS_FILE_NAME=GApps-$ARCH-${ANDROID_API_MAP[$ANDROID_API]}.img
     GAPPS_PATH=$DOWNLOAD_DIR/$GAPPS_FILE_NAME
 }
 WSA_MAJOR_VER=0
@@ -379,7 +366,6 @@ update_ksu_zip_name() {
 
 if [ -z ${OFFLINE+x} ]; then
     echo "Generating WSA Download Links"
-    require_su
     if [ "$DOWN_WSA" != "no" ]; then
         python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
         echo "Downloading WSA"
@@ -387,14 +373,16 @@ if [ -z ${OFFLINE+x} ]; then
         python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" "$DOWN_WSA" || abort
         echo "Skip download WSA, downloading WSA depends"
     fi
-    if ! aria2c --no-conf --log-level=info --log="$DOWNLOAD_DIR/aria2_download.log" -x16 -s16 -j5 -c -R -m0 --async-dns=false --check-integrity=true --continue=true --allow-overwrite=true --conditional-get=true -d"$DOWNLOAD_DIR" -i"$DOWNLOAD_DIR/$DOWNLOAD_CONF_NAME"; then
+    if ! aria2c --no-conf --log-level=info --log="$DOWNLOAD_DIR/aria2_download.log" -x16 -s16 -j5 -c -R -m0 \
+        --async-dns=false --check-integrity=true --continue=true --allow-overwrite=true --conditional-get=true \
+        -d"$DOWNLOAD_DIR" -i"$DOWNLOAD_DIR/$DOWNLOAD_CONF_NAME"; then
         echo "We have encountered an error while downloading files."
         exit 1
     fi
     rm -f "${DOWNLOAD_DIR:?}/$DOWNLOAD_CONF_NAME"
 fi
 
-echo "Extract WSA"
+echo "Extracting WSA"
 if [ -f "$WSA_ZIP_PATH" ]; then
     if ! python3 extractWSA.py "$ARCH" "$WSA_ZIP_PATH" "$WORK_DIR" "$WSA_WORK_ENV"; then
         CLEAN_DOWNLOAD_WSA=1
@@ -431,7 +419,9 @@ if [ -z ${OFFLINE+x} ]; then
     fi
 
     echo "Downloading Artifacts"
-    if ! aria2c --no-conf --log-level=info --log="$DOWNLOAD_DIR/aria2_download.log" -x16 -s16 -j5 -c -R -m0 --async-dns=false --check-integrity=true --continue=true --allow-overwrite=true --conditional-get=true -d"$DOWNLOAD_DIR" -i"$DOWNLOAD_DIR/$DOWNLOAD_CONF_NAME"; then
+    if ! aria2c --no-conf --log-level=info --log="$DOWNLOAD_DIR/aria2_download.log" -x16 -s16 -j5 -c -R -m0 \
+        --async-dns=false --check-integrity=true --continue=true --allow-overwrite=true --conditional-get=true \
+        -d"$DOWNLOAD_DIR" -i"$DOWNLOAD_DIR/$DOWNLOAD_CONF_NAME"; then
         echo "We have encountered an error while downloading files."
         exit 1
     fi
@@ -450,19 +440,18 @@ else # Offline mode
     fi
     for i in "${FILES_CHECK_LIST[@]}"; do
         if [ ! -f "$i" ]; then
-            echo "Offline mode: missing [$i]."
+            echo "Offline mode: missing [$i]"
             OFFLINE_ERR="1"
         fi
     done
     if [ "$OFFLINE_ERR" ]; then
-        echo "Offline mode: Some files are missing, please disable offline mode."
+        echo "Offline mode: Some files are missing, please disable offline mode"
         exit 1
     fi
-    require_su
 fi
 
 if [ "$HAS_GAPPS" ] || [ "$ROOT_SOL" = "magisk" ]; then
-    echo "Extract Magisk"
+    echo "Extracting Magisk"
     if [ -f "$MAGISK_PATH" ]; then
         MAGISK_VERSION_NAME=""
         MAGISK_VERSION_CODE=0
@@ -486,17 +475,29 @@ if [ "$HAS_GAPPS" ] || [ "$ROOT_SOL" = "magisk" ]; then
     echo -e "done\n"
 fi
 
-if [ "$ROOT_SOL" = "magisk" ]; then
-    echo "Integrate Magisk"
+if [ "$HAS_GAPPS" ] || [ "$ROOT_SOL" = "magisk" ]; then
+    echo "Integrating Magisk"
     "$WORK_DIR/magisk/magiskboot" compress=xz "$WORK_DIR/magisk/magisk64" "$WORK_DIR/magisk/magisk64.xz"
     "$WORK_DIR/magisk/magiskboot" compress=xz "$WORK_DIR/magisk/magisk32" "$WORK_DIR/magisk/magisk32.xz"
     "$WORK_DIR/magisk/magiskboot" compress=xz "$MAGISK_PATH" "$WORK_DIR/magisk/stub.xz"
     echo "KEEPFORCEENCRYPT=true" >>"$WORK_DIR/magisk/config"
     echo "PREINITDEVICE=sde" >>"$WORK_DIR/magisk/config"
-    "$WORK_DIR/magisk/magiskboot" cpio "$WORK_DIR/wsa/$ARCH/Tools/initrd.img" "mv /init /wsainit" "add 0750 /lspinit ../bin/$ARCH/lspinit" "ln /lspinit /init" "add 0750 /magiskinit $WORK_DIR/magisk/magiskinit" "mkdir 0750 overlay.d" "mkdir 0750 overlay.d/sbin" "add 0644 overlay.d/sbin/magisk64.xz $WORK_DIR/magisk/magisk64.xz" "add 0644 overlay.d/sbin/magisk32.xz $WORK_DIR/magisk/magisk32.xz" "add 0644 overlay.d/sbin/stub.xz $WORK_DIR/magisk/stub.xz" "mkdir 000 .backup" "add 000 .backup/.magisk $WORK_DIR/magisk/config" || abort "Unable to patch initrd"
+    "$WORK_DIR/magisk/magiskboot" cpio "$WORK_DIR/wsa/$ARCH/Tools/initrd.img" \
+        "mv /init /wsainit" \
+        "add 0750 /lspinit ../bin/$ARCH/lspinit" \
+        "ln /lspinit /init" \
+        "add 0750 /magiskinit $WORK_DIR/magisk/magiskinit" \
+        "mkdir 0750 overlay.d" \
+        "mkdir 0750 overlay.d/sbin" \
+        "add 0644 overlay.d/sbin/magisk64.xz $WORK_DIR/magisk/magisk64.xz" \
+        "add 0644 overlay.d/sbin/magisk32.xz $WORK_DIR/magisk/magisk32.xz" \
+        "add 0644 overlay.d/sbin/stub.xz $WORK_DIR/magisk/stub.xz" \
+        "mkdir 000 .backup" \
+        "add 000 .backup/.magisk $WORK_DIR/magisk/config" \
+        || abort "Unable to patch initrd"
     echo -e "Integrate Magisk done\n"
 elif [ "$ROOT_SOL" = "kernelsu" ]; then
-    echo "Extract KernelSU"
+    echo "Extracting KernelSU"
     # shellcheck disable=SC1090
     source "${KERNELSU_INFO:?}" || abort
     echo "WSA Kernel Version: $KERNEL_VER"
@@ -516,27 +517,22 @@ elif [ "$ROOT_SOL" = "kernelsu" ]; then
     echo -e "done\n"
 fi
 
-if [ "$HAS_GAPPS" ] && [ "$ROOT_SOL" != "magisk" ]; then
-    "$WORK_DIR/magisk/magiskboot" cpio "$WORK_DIR/wsa/$ARCH/Tools/initrd.img" "mv /init /wsainit" "add 0750 /lspinit ../bin/$ARCH/lspinit" "ln /lspinit /init" || abort "Unable to patch initrd"
-fi
-
 if [ "$HAS_GAPPS" ]; then
     update_gapps_file_name
     if [ -f "$GAPPS_PATH" ]; then
-        if ! unzip -t "$GAPPS_PATH"; then
-            CLEAN_DOWNLOAD_GAPPS=1
-            abort "Unzip GApps failed, package is corrupted?"
-        fi
-        echo "Integrate GApps"
-        cp "$GAPPS_PATH" "$WORK_DIR/wsa/$ARCH/apex/" || abort
+        echo "Integrating GApps"
+        "$WORK_DIR/magisk/magiskboot" cpio "$WORK_DIR/wsa/$ARCH/Tools/initrd.img" \
+            "add 000 overlay.d/init.lsp.cust.rc init.lsp.cust.rc" \
+            "add 000 overlay.d/sbin/cust.img $GAPPS_PATH" \
+            || abort "Unable to patch initrd"
         echo -e "done\n"
     else
         abort "The GApps package does not exist."
     fi
 fi
 
-echo "Remove signature and add scripts"
-sudo rm -rf "${WORK_DIR:?}"/wsa/"$ARCH"/\[Content_Types\].xml "$WORK_DIR/wsa/$ARCH/AppxBlockMap.xml" "$WORK_DIR/wsa/$ARCH/AppxSignature.p7x" "$WORK_DIR/wsa/$ARCH/AppxMetadata" || abort
+echo "Removing signature and add scripts"
+rm -rf "${WORK_DIR:?}"/wsa/"$ARCH"/\[Content_Types\].xml "$WORK_DIR/wsa/$ARCH/AppxBlockMap.xml" "$WORK_DIR/wsa/$ARCH/AppxSignature.p7x" "$WORK_DIR/wsa/$ARCH/AppxMetadata" || abort
 cp "$vclibs_PATH" "$xaml_PATH" "$WORK_DIR/wsa/$ARCH" || abort
 cp "$UWPVCLibs_PATH" "$xaml_PATH" "$WORK_DIR/wsa/$ARCH" || abort
 cp "../bin/$ARCH/makepri.exe" "$WORK_DIR/wsa/$ARCH" || abort
@@ -547,8 +543,7 @@ cp ../installer/Run.bat "$WORK_DIR/wsa/$ARCH" || abort
 find "$WORK_DIR/wsa/$ARCH" -maxdepth 1 -mindepth 1 -printf "%P\n" >"$WORK_DIR/wsa/$ARCH/filelist.txt" || abort
 echo -e "Remove signature and add scripts done\n"
 
-echo "Generate info"
-
+echo "Generating info"
 if [[ "$ROOT_SOL" = "none" ]]; then
     name1=""
 elif [ "$ROOT_SOL" = "magisk" ]; then
@@ -566,7 +561,7 @@ artifact_name=WSA_${WSA_VER}_${ARCH}_${WSA_REL}${name1}${name2}
 echo "$artifact_name"
 echo -e "\nFinishing building...."
 if [ -f "$OUTPUT_DIR" ]; then
-    sudo rm -rf ${OUTPUT_DIR:?}
+    rm -rf ${OUTPUT_DIR:?}
 fi
 if [ ! -d "$OUTPUT_DIR" ]; then
     mkdir -p "$OUTPUT_DIR"
@@ -593,8 +588,4 @@ else
     rm -rf "${OUTPUT_PATH:?}" || abort
     cp -r "$WORK_DIR/wsa/$ARCH" "$OUTPUT_PATH" || abort
 fi
-echo -e "done\n"
-
-echo "Cleanup Work Directory"
-sudo rm -rf "${WORK_DIR:?}"
 echo "done"
