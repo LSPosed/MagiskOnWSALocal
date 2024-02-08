@@ -405,7 +405,7 @@ else
     exit 1
 fi
 
-if [ "$ROOT_SOL" = "magisk" ]; then
+if [ "$HAS_GAPPS" ] || [ "$ROOT_SOL" = "magisk" ]; then
     echo "Extract Magisk"
     if [ -f "$MAGISK_PATH" ]; then
         MAGISK_VERSION_NAME=""
@@ -419,7 +419,6 @@ if [ "$ROOT_SOL" = "magisk" ]; then
         if [ "$MAGISK_VERSION_CODE" -lt 26000 ] && [ "$MAGISK_VER" != "stable" ] && [ -z ${CUSTOM_MAGISK+x} ]; then
             abort "Please install Magisk 26.0+"
         fi
-        sudo chmod +x "../linker/$HOST_ARCH/linker64" || abort
         chmod +x "$WORK_DIR/magisk/magiskboot" || abort
     elif [ -z "${CUSTOM_MAGISK+x}" ]; then
         echo "The Magisk zip package does not exist, is the download incomplete?"
@@ -431,7 +430,16 @@ if [ "$ROOT_SOL" = "magisk" ]; then
     echo -e "done\n"
 fi
 
-if [ "$ROOT_SOL" = "kernelsu" ]; then
+if [ "$ROOT_SOL" = "magisk" ]; then
+    echo "Integrate Magisk"
+    "$WORK_DIR/magisk/magiskboot" compress=xz "$WORK_DIR/magisk/magisk64" "$WORK_DIR/magisk/magisk64.xz"
+    "$WORK_DIR/magisk/magiskboot" compress=xz "$WORK_DIR/magisk/magisk32" "$WORK_DIR/magisk/magisk32.xz"
+    "$WORK_DIR/magisk/magiskboot" compress=xz "$MAGISK_PATH" "$WORK_DIR/magisk/stub.xz"
+    echo "KEEPFORCEENCRYPT=true" >> "$WORK_DIR/magisk/config"
+    echo "PREINITDEVICE=sde" >> "$WORK_DIR/magisk/config"
+    "$WORK_DIR/magisk/magiskboot" cpio "$WORK_DIR/wsa/$ARCH/Tools/initrd.img" "mv /init /wsainit" "add 0750 /lspinit ../bin/$ARCH/lspinit" "ln /lspinit /init" "add 0750 /magiskinit $WORK_DIR/magisk/magiskinit" "mkdir 0750 overlay.d" "mkdir 0750 overlay.d/sbin" "add 0644 overlay.d/sbin/magisk64.xz $WORK_DIR/magisk/magisk64.xz" "add 0644 overlay.d/sbin/magisk32.xz $WORK_DIR/magisk/magisk32.xz" "add 0644 overlay.d/sbin/stub.xz $WORK_DIR/magisk/stub.xz" "mkdir 000 .backup" "add 000 .backup/.magisk $WORK_DIR/magisk/config" || abort "Unable to patch initrd"
+    echo -e "Integrate Magisk done\n"
+elif [ "$ROOT_SOL" = "kernelsu" ]; then
     update_ksu_zip_name
     echo "Extract KernelSU"
     # shellcheck disable=SC1090
@@ -445,23 +453,29 @@ if [ "$ROOT_SOL" = "kernelsu" ]; then
     elif [ "$ARCH" = "arm64" ]; then
         mv "$WORK_DIR/kernelsu/Image" "$WORK_DIR/kernelsu/kernel"
     fi
-    echo -e "done\n"
-fi
-
-if [ "$ROOT_SOL" = 'magisk' ]; then
-    echo "Integrate Magisk"
-    "$WORK_DIR/magisk/magiskboot" compress=xz "$WORK_DIR/magisk/magisk64" "$WORK_DIR/magisk/magisk64.xz"
-    "$WORK_DIR/magisk/magiskboot" compress=xz "$WORK_DIR/magisk/magisk32" "$WORK_DIR/magisk/magisk32.xz"
-    "$WORK_DIR/magisk/magiskboot" compress=xz "$MAGISK_PATH" "$WORK_DIR/magisk/stub.xz"
-    echo "KEEPFORCEENCRYPT=true" >> "$WORK_DIR/magisk/config"
-    echo "PREINITDEVICE=sde" >> "$WORK_DIR/magisk/config"
-    "$WORK_DIR/magisk/magiskboot" cpio "$WORK_DIR/wsa/$ARCH/Tools/initrd.img" "mv /init /wsainit" "add 0750 /lspinit ../bin/$ARCH/lspinit" "ln /lspinit /init" "add 0750 /magiskinit $WORK_DIR/magisk/magiskinit" "mkdir 0750 overlay.d" "mkdir 0750 overlay.d/sbin" "add 0644 overlay.d/sbin/magisk64.xz $WORK_DIR/magisk/magisk64.xz" "add 0644 overlay.d/sbin/magisk32.xz $WORK_DIR/magisk/magisk32.xz" "add 0644 overlay.d/sbin/stub.xz $WORK_DIR/magisk/stub.xz" "mkdir 000 .backup" "add 000 .backup/.magisk $WORK_DIR/magisk/config" || abort "Unable to patch initrd"
-    echo -e "Integrate Magisk done\n"
-elif [ "$ROOT_SOL" = "kernelsu" ]; then
     echo "Integrate KernelSU"
     mv "$WORK_DIR/wsa/$ARCH/Tools/kernel" "$WORK_DIR/wsa/$ARCH/Tools/kernel_origin"
     cp "$WORK_DIR/kernelsu/kernel" "$WORK_DIR/wsa/$ARCH/Tools/kernel"
-    echo -e "Integrate KernelSU done\n"
+    echo -e "done\n"
+fi
+
+if [ "$HAS_GAPPS" ] && [ "$ROOT_SOL" != "magisk" ]; then
+    "$WORK_DIR/magisk/magiskboot" cpio "$WORK_DIR/wsa/$ARCH/Tools/initrd.img" "mv /init /wsainit" "add 0750 /lspinit ../bin/$ARCH/lspinit" "ln /lspinit /init" || abort "Unable to patch initrd"
+fi
+
+if [ "$HAS_GAPPS" ]; then
+    update_gapps_file_name
+    if [ -f "$GAPPS_PATH" ]; then
+        if ! unzip -t "$GAPPS_PATH"; then
+            CLEAN_DOWNLOAD_GAPPS=1
+            abort "Unzip GApps failed, package is corrupted?"
+        fi
+        echo "Integrate GApps"
+        cp "$GAPPS_PATH" "$WORK_DIR/wsa/$ARCH/apex/" || abort
+        echo -e "done\n"
+    else
+        abort "The GApps package does not exist."
+    fi
 fi
 
 echo "Remove signature and add scripts"
