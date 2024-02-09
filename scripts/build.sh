@@ -92,6 +92,7 @@ default() {
     RELEASE_TYPE=retail
     MAGISK_VER=stable
     ROOT_SOL=magisk
+    COMPRESS_FORMAT=none
 }
 
 exit_with_message() {
@@ -129,6 +130,7 @@ ROOT_SOL_MAP=(
 COMPRESS_FORMAT_MAP=(
     "7z"
     "zip"
+    "none"
 )
 
 ARR_TO_STR() {
@@ -164,18 +166,15 @@ Usage:
                         Possible values: $(ARR_TO_STR "${ROOT_SOL_MAP[@]}")
                         Default: $ROOT_SOL
 
-    --compress-format
-                        Compress format of output file.
-                        If this option is not specified and --compress is not specified, the generated file will not be compressed
+    --compress-format   Compress format of output file.
 
                         Possible values: $(ARR_TO_STR "${COMPRESS_FORMAT_MAP[@]}")
+                        Default: $COMPRESS_FORMAT
 
 Additional Options:
-    --compress          Compress the WSA, The default format is 7z, you can use the format specified by --compress-format
     --offline           Build WSA offline
     --magisk-custom     Install custom Magisk
     --skip-download-wsa Skip download WSA
-    --debug             Debug build mode
     --help              Show this help message and exit
 
 Example:
@@ -188,20 +187,17 @@ Example:
 }
 
 ARGUMENT_LIST=(
+    "compress-format:"
     "arch:"
     "release-type:"
-    "magisk-ver:"
-    "nofix-props"
     "root-sol:"
-    "compress-format:"
-    "remove-amazon"
-    "compress"
-    "offline"
+    "magisk-ver:"
     "magisk-custom"
-    "debug"
-    "help"
-    "skip-download-wsa"
     "install-gapps"
+    "offline"
+    "skip-download-wsa"
+    "help"
+    "debug"
 )
 
 default
@@ -217,6 +213,10 @@ opts=$(
 eval set --"$opts"
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --compress-format)
+            COMPRESS_FORMAT="$2"
+            shift 2
+            ;;
         --arch)
             ARCH="$2"
             shift 2
@@ -225,36 +225,24 @@ while [[ $# -gt 0 ]]; do
             RELEASE_TYPE="$2"
             shift 2
             ;;
-        --install-gapps)
-            HAS_GAPPS=true
-            shift 2
-            ;;
         --root-sol)
             ROOT_SOL="$2"
             shift 2
-            ;;
-        --compress-format)
-            COMPRESS_FORMAT="$2"
-            shift 2
-            ;;
-        --compress)
-            COMPRESS_OUTPUT="yes"
-            shift
-            ;;
-        --offline)
-            OFFLINE="on"
-            shift
-            ;;
-        --magisk-custom)
-            CUSTOM_MAGISK=true
-            shift
             ;;
         --magisk-ver)
             MAGISK_VER="$2"
             shift 2
             ;;
-        --debug)
-            DEBUG="on"
+        --magisk-custom)
+            CUSTOM_MAGISK=true
+            shift
+            ;;
+        --install-gapps)
+            HAS_GAPPS=true
+            shift
+            ;;
+        --offline)
+            OFFLINE=true
             shift
             ;;
         --skip-download-wsa)
@@ -264,6 +252,10 @@ while [[ $# -gt 0 ]]; do
         --help)
             usage
             exit 0
+            ;;
+        --debug)
+            DEBUG=true
+            shift
             ;;
         --)
             shift
@@ -309,9 +301,7 @@ fi
 declare -A RELEASE_NAME_MAP=(["retail"]="Retail" ["RP"]="Release Preview" ["WIS"]="Insider Slow" ["WIF"]="Insider Fast")
 declare -A ANDROID_API_MAP=(["30"]="11.0" ["32"]="12.1" ["33"]="13.0")
 RELEASE_NAME=${RELEASE_NAME_MAP[$RELEASE_TYPE]} || abort
-
-echo -e "Build: RELEASE_TYPE=$RELEASE_NAME"
-
+echo -e "INFO: Release Name: $RELEASE_NAME\n"
 WSA_ZIP_PATH=$DOWNLOAD_DIR/wsa-$RELEASE_TYPE.zip
 vclibs_PATH="$DOWNLOAD_DIR/Microsoft.VCLibs.140.00_$ARCH.appx"
 UWPVCLibs_PATH="$DOWNLOAD_DIR/Microsoft.VCLibs.140.00.UWPDesktop_$ARCH.appx"
@@ -322,7 +312,7 @@ if [ "$CUSTOM_MAGISK" ]; then
     if [ ! -f "$MAGISK_PATH" ]; then
         echo "Custom Magisk $MAGISK_ZIP not found"
         MAGISK_ZIP=app-$MAGISK_VER.apk
-        echo "Fallback to $MAGISK_ZIP"
+        echo -e "Fallback to $MAGISK_ZIP\n"
         MAGISK_PATH=$DOWNLOAD_DIR/$MAGISK_ZIP
         if [ ! -f "$MAGISK_PATH" ]; then
             abort "Custom Magisk $MAGISK_ZIP not found\nPlease put custom Magisk in $DOWNLOAD_DIR"
@@ -388,7 +378,7 @@ if [ -f "$WSA_ZIP_PATH" ]; then
         CLEAN_DOWNLOAD_WSA=1
         abort "Unzip WSA failed, is the download incomplete?"
     fi
-    echo -e "Extract done\n"
+    echo -e "done\n"
     # shellcheck disable=SC1090
     source "$WSA_WORK_ENV" || abort
 else
@@ -494,7 +484,6 @@ if [ "$HAS_GAPPS" ] || [ "$ROOT_SOL" = "magisk" ]; then
         "add 0750 overlay.d/sbin/post-fs-data.sh post-fs-data.sh" \
         "add 000 overlay.d/init.lsp.se.rc init.lsp.se.rc" \
         || abort "Unable to patch initrd"
-    echo -e "Integrate Magisk done\n"
 elif [ "$ROOT_SOL" = "kernelsu" ]; then
     echo "Extracting KernelSU"
     # shellcheck disable=SC1090
@@ -513,9 +502,8 @@ elif [ "$ROOT_SOL" = "kernelsu" ]; then
     echo "Integrate KernelSU"
     mv "$WORK_DIR/wsa/$ARCH/Tools/kernel" "$WORK_DIR/wsa/$ARCH/Tools/kernel_origin"
     cp "$WORK_DIR/kernelsu/kernel" "$WORK_DIR/wsa/$ARCH/Tools/kernel"
-    echo -e "done\n"
 fi
-
+echo -e "done\n"
 if [ "$HAS_GAPPS" ]; then
     update_gapps_file_name
     if [ -f "$GAPPS_PATH" ]; then
@@ -541,9 +529,8 @@ cp ../installer/MakePri.ps1 "$WORK_DIR/wsa/$ARCH" || abort
 cp ../installer/Install.ps1 "$WORK_DIR/wsa/$ARCH" || abort
 cp ../installer/Run.bat "$WORK_DIR/wsa/$ARCH" || abort
 find "$WORK_DIR/wsa/$ARCH" -maxdepth 1 -mindepth 1 -printf "%P\n" >"$WORK_DIR/wsa/$ARCH/filelist.txt" || abort
-echo -e "Remove signature and add scripts done\n"
+echo -e "done\n"
 
-echo "Generating info"
 if [[ "$ROOT_SOL" = "none" ]]; then
     name1=""
 elif [ "$ROOT_SOL" = "magisk" ]; then
@@ -558,8 +545,6 @@ else
 fi
 artifact_name=WSA_${WSA_VER}_${ARCH}_${WSA_REL}${name1}${name2}
 
-echo "$artifact_name"
-echo -e "\nFinishing building...."
 if [ -f "$OUTPUT_DIR" ]; then
     rm -rf ${OUTPUT_DIR:?}
 fi
@@ -567,25 +552,22 @@ if [ ! -d "$OUTPUT_DIR" ]; then
     mkdir -p "$OUTPUT_DIR"
 fi
 OUTPUT_PATH="${OUTPUT_DIR:?}/$artifact_name"
-if [ "$COMPRESS_OUTPUT" ] || [ -n "$COMPRESS_FORMAT" ]; then
+if [ "$COMPRESS_FORMAT" != "none" ]; then
     mv "$WORK_DIR/wsa/$ARCH" "$WORK_DIR/wsa/$artifact_name"
-    if [ -z "$COMPRESS_FORMAT" ]; then
-        COMPRESS_FORMAT="7z"
-    fi
     if [ -n "$COMPRESS_FORMAT" ]; then
         FILE_EXT=".$COMPRESS_FORMAT"
         OUTPUT_PATH="$OUTPUT_PATH$FILE_EXT"
     fi
     rm -f "${OUTPUT_PATH:?}" || abort
     if [ "$COMPRESS_FORMAT" = "7z" ]; then
-        echo "Compressing with 7z"
+        echo "Compressing with 7z to $OUTPUT_PATH"
         7z a "${OUTPUT_PATH:?}" "$WORK_DIR/wsa/$artifact_name" || abort
     elif [ "$COMPRESS_FORMAT" = "zip" ]; then
-        echo "Compressing with zip"
+        echo "Compressing with zip to $OUTPUT_PATH"
         7z -tzip a "$OUTPUT_PATH" "$WORK_DIR/wsa/$artifact_name" || abort
     fi
 else
     rm -rf "${OUTPUT_PATH:?}" || abort
+    echo "Copying to $OUTPUT_PATH"
     cp -r "$WORK_DIR/wsa/$ARCH" "$OUTPUT_PATH" || abort
 fi
-echo "done"

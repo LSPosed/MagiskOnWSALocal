@@ -1,8 +1,11 @@
-
 on post-fs
     mkdir /mnt/cust 0775 system system
     mount erofs loop@${MAGISKTMP}/cust.img /mnt/cust ro,seclabel
-    wait /system
+    wait /system_ext
     mount overlay overlay /system_ext lowerdir=/mnt/cust/system_ext:/system_ext,seclabel
+    wait /product
     mount overlay overlay /product lowerdir=/mnt/cust/product:/product,seclabel
+    wait /vendor
+    mount overlay overlay /vendor lowerdir=/mnt/cust/vendor:/vendor,seclabel
+    wait /system
     mount overlay overlay /system/priv-app lowerdir=/mnt/cust/system/priv-app:/system/priv-app,seclabel
