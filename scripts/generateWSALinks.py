@@ -60,7 +60,7 @@ download_dir = Path.cwd().parent / \
     "download" if sys.argv[3] == "" else Path(sys.argv[3])
 ms_account_conf = download_dir/".ms_account"
 tempScript = sys.argv[4]
-skip_wsa_download = sys.argv[5] == "no" if len(sys.argv) >= 6 else False
+skip_wsa_download = sys.argv[5] == "1" if len(sys.argv) >= 6 else False
 cat_id = '858014f3-3934-4abe-8078-4aa193e74ca8'
 user = ''
 session = Session()

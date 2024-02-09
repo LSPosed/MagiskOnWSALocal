@@ -234,19 +234,19 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --magisk-custom)
-            CUSTOM_MAGISK=true
+            CUSTOM_MAGISK=1
             shift
             ;;
         --install-gapps)
-            HAS_GAPPS=true
+            HAS_GAPPS=1
             shift
             ;;
         --offline)
-            OFFLINE=true
+            OFFLINE=1
             shift
             ;;
         --skip-download-wsa)
-            DOWN_WSA="no"
+            SKIP_DOWN_WSA=1
             shift
             ;;
         --help)
@@ -254,7 +254,7 @@ while [[ $# -gt 0 ]]; do
             exit 0
             ;;
         --debug)
-            DEBUG=true
+            DEBUG=1
             shift
             ;;
         --)
@@ -356,18 +356,17 @@ update_ksu_zip_name() {
 
 if [ -z ${OFFLINE+x} ]; then
     echo "Generating WSA Download Links"
-    if [ "$DOWN_WSA" != "no" ]; then
+    if [ -z ${SKIP_DOWN_WSA+x} ]; then
         python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
         echo "Downloading WSA"
     else
-        python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" "$DOWN_WSA" || abort
+        python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" "$SKIP_DOWN_WSA" || abort
         echo "Skip download WSA, downloading WSA depends"
     fi
     if ! aria2c --no-conf --log-level=info --log="$DOWNLOAD_DIR/aria2_download.log" -x16 -s16 -j5 -c -R -m0 \
         --async-dns=false --check-integrity=true --continue=true --allow-overwrite=true --conditional-get=true \
         -d"$DOWNLOAD_DIR" -i"$DOWNLOAD_DIR/$DOWNLOAD_CONF_NAME"; then
-        echo "We have encountered an error while downloading files."
-        exit 1
+        abort "We have encountered an error while downloading files."
     fi
     rm -f "${DOWNLOAD_DIR:?}/$DOWNLOAD_CONF_NAME"
 fi
@@ -376,14 +375,13 @@ echo "Extracting WSA"
 if [ -f "$WSA_ZIP_PATH" ]; then
     if ! python3 extractWSA.py "$ARCH" "$WSA_ZIP_PATH" "$WORK_DIR" "$WSA_WORK_ENV"; then
         CLEAN_DOWNLOAD_WSA=1
-        abort "Unzip WSA failed, is the download incomplete?"
+        abort "Unzip WSA failed"
     fi
     echo -e "done\n"
     # shellcheck disable=SC1090
     source "$WSA_WORK_ENV" || abort
 else
-    echo "The WSA zip package does not exist, is the download incomplete?"
-    exit 1
+    abort "The WSA zip package does not exist"
 fi
 if [[ "$WSA_MAJOR_VER" -lt 2211 ]]; then
     ANDROID_API=32
@@ -407,39 +405,36 @@ if [ -z ${OFFLINE+x} ]; then
         update_gapps_file_name
         python3 generateGappsLink.py "$ARCH" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" "$ANDROID_API" "$GAPPS_FILE_NAME" || abort
     fi
-
-    echo "Downloading Artifacts"
-    if ! aria2c --no-conf --log-level=info --log="$DOWNLOAD_DIR/aria2_download.log" -x16 -s16 -j5 -c -R -m0 \
-        --async-dns=false --check-integrity=true --continue=true --allow-overwrite=true --conditional-get=true \
-        -d"$DOWNLOAD_DIR" -i"$DOWNLOAD_DIR/$DOWNLOAD_CONF_NAME"; then
-        echo "We have encountered an error while downloading files."
-        exit 1
-    fi
-else # Offline mode
-    declare -A FILES_CHECK_LIST=([xaml_PATH]="$xaml_PATH" [vclibs_PATH]="$vclibs_PATH" [UWPVCLibs_PATH]="$UWPVCLibs_PATH")
-    if [ "$HAS_GAPPS" ] || [ "$ROOT_SOL" = "magisk" ]; then
-        FILES_CHECK_LIST+=(["MAGISK_PATH"]="$MAGISK_PATH")
-    fi
-    if [ "$ROOT_SOL" = "kernelsu" ]; then
-        update_ksu_zip_name
-        FILES_CHECK_LIST+=(["KERNELSU_PATH"]="$KERNELSU_PATH")
-    fi
-    if [ "$HAS_GAPPS" ]; then
-        update_gapps_file_name
-        FILES_CHECK_LIST+=(["GAPPS_PATH"]="$GAPPS_PATH")
-    fi
-    for i in "${FILES_CHECK_LIST[@]}"; do
-        if [ ! -f "$i" ]; then
-            echo "Offline mode: missing [$i]"
-            OFFLINE_ERR="1"
+    if [ -f "$DOWNLOAD_DIR/$DOWNLOAD_CONF_NAME" ]; then
+        echo "Downloading Artifacts"
+        if ! aria2c --no-conf --log-level=info --log="$DOWNLOAD_DIR/aria2_download.log" -x16 -s16 -j5 -c -R -m0 \
+            --async-dns=false --check-integrity=true --continue=true --allow-overwrite=true --conditional-get=true \
+            -d"$DOWNLOAD_DIR" -i"$DOWNLOAD_DIR/$DOWNLOAD_CONF_NAME"; then
+            abort "We have encountered an error while downloading files."
         fi
-    done
-    if [ "$OFFLINE_ERR" ]; then
-        echo "Offline mode: Some files are missing, please disable offline mode"
-        exit 1
     fi
 fi
-
+declare -A FILES_CHECK_LIST=([xaml_PATH]="$xaml_PATH" [vclibs_PATH]="$vclibs_PATH" [UWPVCLibs_PATH]="$UWPVCLibs_PATH")
+if [ "$HAS_GAPPS" ] || [ "$ROOT_SOL" = "magisk" ]; then
+    FILES_CHECK_LIST+=(["MAGISK_PATH"]="$MAGISK_PATH")
+fi
+if [ "$ROOT_SOL" = "kernelsu" ]; then
+    update_ksu_zip_name
+    FILES_CHECK_LIST+=(["KERNELSU_PATH"]="$KERNELSU_PATH")
+fi
+if [ "$HAS_GAPPS" ]; then
+    update_gapps_file_name
+    FILES_CHECK_LIST+=(["GAPPS_PATH"]="$GAPPS_PATH")
+fi
+for i in "${FILES_CHECK_LIST[@]}"; do
+    if [ ! -f "$i" ]; then
+        echo "Offline mode: missing [$i]"
+        FILE_MISSING="1"
+    fi
+done
+if [ "$FILE_MISSING" ]; then
+    abort "Some files are missing"
+fi
 if [ "$HAS_GAPPS" ] || [ "$ROOT_SOL" = "magisk" ]; then
     echo "Extracting Magisk"
     if [ -f "$MAGISK_PATH" ]; then
@@ -456,11 +451,9 @@ if [ "$HAS_GAPPS" ] || [ "$ROOT_SOL" = "magisk" ]; then
         fi
         chmod +x "$WORK_DIR/magisk/magiskboot" || abort
     elif [ -z "${CUSTOM_MAGISK+x}" ]; then
-        echo "The Magisk zip package does not exist, is the download incomplete?"
-        exit 1
+        abort "The Magisk zip package does not exist, is the download incomplete?"
     else
-        echo "The Magisk zip package does not exist, rename it to magisk-debug.zip and put it in the download folder."
-        exit 1
+        abort "The Magisk zip package does not exist, rename it to magisk-debug.zip and put it in the download folder."
     fi
     echo -e "done\n"
 fi
