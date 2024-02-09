@@ -11,15 +11,4 @@ if [ ! -f $MAGISKBIN/magiskpolicy ]; then
     mv $MAGISKBIN/libmagiskpolicy.so $MAGISKBIN/magiskpolicy
     chmod 755 $MAGISKBIN/magiskpolicy
 fi
-# [ -b $MAGISKTMP/.magisk/block/preinit ] || {
-#     export MAGISKTMP
-#     MAKEDEV=1 $MAGISKTMP/magisk --preinit-device 2>&1
-#     RULESCMD=""
-#     for r in "$MAGISKTMP"/.magisk/preinit/*/sepolicy.rule; do
-#         [ -f "$r" ] || continue
-#         RULESCMD="$RULESCMD --apply $r"
-#     done
-#     # shellcheck disable=SC2086
-#     $MAGISKBIN/magiskpolicy --live $RULESCMD 2>&1
-# }
 [ -f $MAGISKTMP/sepolicy.rule ] && $MAGISKBIN/magiskpolicy --live --apply $MAGISKTMP/sepolicy.rule
