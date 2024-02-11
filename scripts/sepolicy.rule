@@ -3,5 +3,3 @@ allow gmscore_app device_config_runtime_native_boot_prop file read
 allow gmscore_app system_server_tmpfs dir search
 allow gmscore_app system_server_tmpfs file open
 allow gmscore_app { system_server_tmpfs media_rw_data_file } filesystem getattr
-allow { platform_app system_app } default_android_service service_manager { find add }
-allow system_server default_android_service service_manager add

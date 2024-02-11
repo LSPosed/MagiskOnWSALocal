@@ -1,11 +1,12 @@
 on post-fs
     mkdir /mnt/cust 0775 system system
-    mount erofs loop@${MAGISKTMP}/cust.img /mnt/cust ro,seclabel
+    mount erofs loop@${MAGISKTMP}/cust.img /mnt/cust noatime,ro cache_strategy=readaround
     wait /system_ext
-    mount overlay overlay /system_ext lowerdir=/mnt/cust/system_ext:/system_ext,seclabel
+    mount overlay system_ext_etc_permissions_overlay /system_ext/etc/permissions noatime lowerdir=/system_ext/etc/permissions:/mnt/cust/system_ext/etc/permissions,redirect_dir=on,xino=on
+    mount overlay system_ext_priv-app_overlay /system_ext/priv-app noatime lowerdir=/system_ext/priv-app:/mnt/cust/system_ext/priv-app,redirect_dir=on,xino=on
     wait /product
-    mount overlay overlay /product lowerdir=/mnt/cust/product:/product,seclabel
+    mount overlay product_overlay /product noatime lowerdir=/product:/mnt/cust/product,redirect_dir=on,xino=on
     wait /vendor
-    mount overlay overlay /vendor lowerdir=/mnt/cust/vendor:/vendor,seclabel
+    mount overlay vendor_overlay /vendor noatime lowerdir=/vendor:/mnt/cust/vendor,redirect_dir=on,xino=on
     wait /system
-    mount overlay overlay /system/priv-app lowerdir=/mnt/cust/system/priv-app:/system/priv-app,seclabel
+    mount overlay system_priv-app_overlay /system/priv-app noatime lowerdir=/mnt/cust/system/priv-app:/system/priv-app,redirect_dir=on,xino=on

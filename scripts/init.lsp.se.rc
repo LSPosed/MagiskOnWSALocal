@@ -1,2 +1,0 @@
-on post-fs-data
-    exec u:r:magisk:s0 0 0 -- ${MAGISKTMP}/post-fs-data.sh

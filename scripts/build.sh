@@ -474,8 +474,6 @@ if [ "$HAS_GAPPS" ] || [ "$ROOT_SOL" = "magisk" ]; then
         "add 0644 overlay.d/sbin/magisk32.xz $WORK_DIR/magisk/magisk32.xz" \
         "add 0644 overlay.d/sbin/stub.xz $WORK_DIR/magisk/stub.xz" \
         "mkdir 000 .backup" \
-        "add 0750 overlay.d/sbin/post-fs-data.sh post-fs-data.sh" \
-        "add 000 overlay.d/init.lsp.se.rc init.lsp.se.rc" \
         || abort "Unable to patch initrd"
 elif [ "$ROOT_SOL" = "kernelsu" ]; then
     echo "Extracting KernelSU"
@@ -503,7 +501,7 @@ if [ "$HAS_GAPPS" ]; then
         echo "Integrating GApps"
         "$WORK_DIR/magisk/magiskboot" cpio "$WORK_DIR/wsa/$ARCH/Tools/initrd.img" \
             "add 000 overlay.d/init.lsp.cust.rc init.lsp.cust.rc" \
-            "add 000 overlay.d/sbin/sepolicy.rule sepolicy.rule" \
+            "add 000 /lspolicy.rule sepolicy.rule" \
             "add 000 overlay.d/sbin/cust.img $GAPPS_PATH" \
             || abort "Unable to patch initrd"
         echo -e "done\n"
