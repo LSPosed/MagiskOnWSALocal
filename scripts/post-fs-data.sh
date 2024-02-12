@@ -14,14 +14,14 @@ fi
 ABI=$(/system/bin/getprop ro.product.cpu.abi)
 for file in busybox magiskpolicy magiskboot magiskinit; do
     [ -x "$MAGISKBIN/$file" ] || {
-        /system/bin/unzip -d $MAGISKBIN -j $MAGISKTMP/stub.apk "lib/$ABI/lib$file.so"
+        /system/bin/unzip -d $MAGISKBIN -oj $MAGISKTMP/stub.apk "lib/$ABI/lib$file.so"
         mv $MAGISKBIN/lib$file.so $MAGISKBIN/$file
         chmod 755 "$MAGISKBIN/$file"
     }
 done
 for file in util_functions.sh boot_patch.sh; do
     [ -x "$MAGISKBIN/$file" ] || {
-        /system/bin/unzip -d $MAGISKBIN -j $MAGISKTMP/stub.apk "assets/$file"
+        /system/bin/unzip -d $MAGISKBIN -oj $MAGISKTMP/stub.apk "assets/$file"
         chmod 755 "$MAGISKBIN/$file"
     }
 done
