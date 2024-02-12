@@ -474,6 +474,8 @@ if [ "$HAS_GAPPS" ] || [ "$ROOT_SOL" = "magisk" ]; then
         "add 0644 overlay.d/sbin/magisk32.xz $WORK_DIR/magisk/magisk32.xz" \
         "add 0644 overlay.d/sbin/stub.xz $WORK_DIR/magisk/stub.xz" \
         "mkdir 000 .backup" \
+        "add 000 overlay.d/init.lsp.magisk.rc init.lsp.magisk.rc" \
+        "add 000 overlay.d/sbin/post-fs-data.sh post-fs-data.sh" \
         || abort "Unable to patch initrd"
 elif [ "$ROOT_SOL" = "kernelsu" ]; then
     echo "Extracting KernelSU"
