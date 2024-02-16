@@ -257,6 +257,7 @@ MAGISK_VER_MAP=(
 GAPPS_BRAND_MAP=(
     "OpenGApps"
     "MindTheGapps"
+    "LiteGapps"
     "none"
 )
 
@@ -270,6 +271,12 @@ GAPPS_VARIANT_MAP=(
     "pico"
     "tvstock"
     "tvmini"
+    "pixel"
+    "basic"
+    "user"
+    "go"
+    "core"
+    "lite"
 )
 
 ROOT_SOL_MAP=(
@@ -483,6 +490,8 @@ update_gapps_zip_name() {
     if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
         ANDROID_API=30
         GAPPS_ZIP_NAME=$GAPPS_BRAND-$ARCH-${ANDROID_API_MAP[$ANDROID_API]}-$GAPPS_VARIANT.zip
+    elif [ "$GAPPS_BRAND" = "LiteGapps" ]; then
+        GAPPS_ZIP_NAME=$GAPPS_BRAND-$ARCH-${ANDROID_API_MAP[$ANDROID_API]}-$GAPPS_VARIANT.zip
     else
         GAPPS_ZIP_NAME=$GAPPS_BRAND-$ARCH-${ANDROID_API_MAP[$ANDROID_API]}.zip
     fi
@@ -638,6 +647,19 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
             if ! unzip -p "$GAPPS_PATH" {Core,GApps}/'*.lz' | tar --lzip -C "$WORK_DIR/gapps" -xf - -i --strip-components=2 --exclude='setupwizardtablet-x86_64' --exclude='packageinstallergoogle-all' --exclude='speech-common' --exclude='markup-lib-arm' --exclude='markup-lib-arm64' --exclude='markup-all' --exclude='setupwizarddefault-x86_64' --exclude='pixellauncher-all' --exclude='pixellauncher-common'; then
                 CLEAN_DOWNLOAD_GAPPS=1
                 abort "Unzip OpenGApps failed, is the download incomplete?"
+            fi
+        elif [ "$GAPPS_BRAND" = "LiteGapps" ]; then
+            if ! unzip -p "$GAPPS_PATH" files/files.tar.xz | tar -xJf - -C "$WORK_DIR/gapps" --strip-components=3 "x86_64/${ANDROID_API}/system"; then
+                CLEAN_DOWNLOAD_GAPPS=1
+                abort "Unzip LiteGapps failed, is the download incomplete?"
+            fi
+            if unzip -l "$GAPPS_PATH" | grep -q "modules/"; then
+                for module_zip in $(unzip -l "$GAPPS_PATH" | awk '/modules\/.*\.zip/ && !/[-_]MarkupGoogle|[-_]PixelLauncher|[-_]PixelSetupWizard|[-_]SetupWizard/ { print $4 }'); do
+                    unzip -j -o "$GAPPS_PATH" "$module_zip" -d "$WORK_DIR/litegapps-modules"
+                    unzip -o "$WORK_DIR/litegapps-modules/$(basename "$module_zip")" 'system/*' -d "$WORK_DIR/litegapps-modules"
+                    rsync -a "$WORK_DIR/litegapps-modules/system/" "$WORK_DIR/gapps/"
+                done
+                rm -rf "$WORK_DIR/litegapps-modules/"
             fi
         else
             if ! unzip "$GAPPS_PATH" "system/*" -x "system/addon.d/*" "system/product/priv-app/VelvetTitan/*" "system/system_ext/priv-app/SetupWizard/*" -d "$WORK_DIR/gapps"; then
@@ -867,7 +889,7 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
 
     if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
         find "$WORK_DIR/gapps/" -maxdepth 1 -mindepth 1 -type d -exec sudo cp --preserve=all -r {} "$SYSTEM_MNT" \; || abort
-    elif [ "$GAPPS_BRAND" = "MindTheGapps" ]; then
+    elif [ "$GAPPS_BRAND" = "MindTheGapps" ] || [ "$GAPPS_BRAND" = "LiteGapps" ]; then
         sudo cp --preserve=all -r "$WORK_DIR/gapps/system_ext/"* "$SYSTEM_EXT_MNT/" || abort
         if [ -e "$SYSTEM_EXT_MNT/priv-app/SetupWizard" ]; then
             rm -rf "${SYSTEM_EXT_MNT:?}/priv-app/Provision"
@@ -888,6 +910,20 @@ if [ "$GAPPS_BRAND" != 'none' ]; then
         find "$WORK_DIR/gapps/priv-app/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$SYSTEM_MNT/priv-app/placeholder" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
         find "$WORK_DIR/gapps/etc/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$SYSTEM_MNT/etc/placeholder" -type d -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
         find "$WORK_DIR/gapps/etc/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$SYSTEM_MNT/etc/placeholder" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
+    elif [ "$GAPPS_BRAND" = "LiteGapps" ]; then
+        sudo setfattr -n security.selinux -v "u:object_r:system_file:s0" "$PRODUCT_MNT/framework" || abort
+        find "$WORK_DIR/gapps/product/app/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$PRODUCT_MNT/app/placeholder" -type d -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
+        find "$WORK_DIR/gapps/product/priv-app/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$PRODUCT_MNT/priv-app/placeholder" -type d -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
+        find "$WORK_DIR/gapps/product/framework/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$PRODUCT_MNT/framework/placeholder" -type d -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
+
+        find "$WORK_DIR/gapps/product/app/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$PRODUCT_MNT/app/placeholder" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
+        find "$WORK_DIR/gapps/product/priv-app/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$PRODUCT_MNT/priv-app/placeholder" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
+        find "$WORK_DIR/gapps/product/framework/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$PRODUCT_MNT/framework/placeholder" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
+        find "$WORK_DIR/gapps/system_ext/etc/permissions/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$SYSTEM_EXT_MNT/etc/permissions/placeholder" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
+
+        find "$WORK_DIR/gapps/system_ext/priv-app/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$SYSTEM_EXT_MNT/priv-app/placeholder" -type d -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
+        find "$WORK_DIR/gapps/system_ext/etc/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$SYSTEM_EXT_MNT/etc/placeholder" -type d -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
+        find "$WORK_DIR/gapps/system_ext/priv-app/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$SYSTEM_EXT_MNT/priv-app/placeholder" -type f -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
     else
         sudo setfattr -n security.selinux -v "u:object_r:system_file:s0" "$PRODUCT_MNT/framework" || abort
         find "$WORK_DIR/gapps/product/app/" -maxdepth 1 -mindepth 1 -printf '%P\n' | xargs -I placeholder sudo find "$PRODUCT_MNT/app/placeholder" -type d -exec setfattr -n security.selinux -v "u:object_r:system_file:s0" {} \; || abort
@@ -981,7 +1017,7 @@ fi
 if [ "$GAPPS_BRAND" = "none" ]; then
     name2="-NoGApps"
 else
-    if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
+    if [ "$GAPPS_BRAND" = "OpenGApps" ] || [ "$GAPPS_BRAND" = "LiteGapps" ]; then
         name2=-$GAPPS_BRAND-${ANDROID_API_MAP[$ANDROID_API]}-${GAPPS_VARIANT}
     else
         name2=-$GAPPS_BRAND-${ANDROID_API_MAP[$ANDROID_API]}

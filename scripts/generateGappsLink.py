@@ -78,6 +78,14 @@ elif brand == "MindTheGapps":
             ratelimit_reset = datetime.fromtimestamp(int(ratelimit_reset))
             print(f"The current rate limit window resets in {ratelimit_reset}", flush=True)
             exit(1)
+elif brand == "LiteGapps":
+    res = requests.get(
+        f'https://sourceforge.net/projects/litegapps/rss?path=/litegapps/{abi_map[arch]}/{android_api}/{variant}&limit=100')
+    # In the past, the variant name was capitalized in the zip's filename, that's why I added "flags=re.IGNORECASE"; I'll just leave it, in case it would be necessary again in the future
+    matched = re.search(f'https://.*AUTO-LiteGapps-(?:{variant}-)?{abi_map[arch]}-{release}-(v[\d.]+|\d{{8}})-official\.zip/download', res.text, flags=re.IGNORECASE)
+    if matched:
+        link = matched.group().replace(
+            '.zip/download', '.zip').replace('sourceforge.net/projects/litegapps/files', 'downloads.sourceforge.net/project/litegapps')
 
 print(f"download link: {link}", flush=True)
 
