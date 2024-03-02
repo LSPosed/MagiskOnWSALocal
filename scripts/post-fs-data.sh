@@ -38,5 +38,7 @@ for file in "$MAGISKTMP"/*; do
     if echo "$file" | grep -Eq "lsp_.+\.img"; then
         foldername=$(basename "$file" .img)
         umount "$MAGISKTMP/$foldername"
+        rm -rf "${MAGISKTMP:?}/${foldername:?}"
+        rm -f "$file"
     fi
 done
