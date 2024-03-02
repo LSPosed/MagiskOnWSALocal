@@ -67,7 +67,8 @@ clean_download() {
             rm -f "${MAGISK_PATH:?}"
         fi
         if [ "$CLEAN_DOWNLOAD_GAPPS" ]; then
-            rm -f "${GAPPS_PATH:?}"
+            rm -f "${GAPPS_IMAGE_PATH:?}"
+            rm -f "${GAPPS_RC_PATH:?}"
         fi
         if [ "$CLEAN_DOWNLOAD_KERNELSU" ]; then
             rm -f "${KERNELSU_PATH:?}"
@@ -300,6 +301,7 @@ fi
 }
 declare -A RELEASE_NAME_MAP=(["retail"]="Retail" ["RP"]="Release Preview" ["WIS"]="Insider Slow" ["WIF"]="Insider Fast")
 declare -A ANDROID_API_MAP=(["30"]="11.0" ["32"]="12.1" ["33"]="13.0")
+declare -A ARCH_NAME_MAP=(["x64"]="x86_64" ["arm64"]="arm64")
 RELEASE_NAME=${RELEASE_NAME_MAP[$RELEASE_TYPE]} || abort
 echo -e "INFO: Release Name: $RELEASE_NAME\n"
 WSA_ZIP_PATH=$DOWNLOAD_DIR/wsa-$RELEASE_TYPE.zip
@@ -308,6 +310,7 @@ UWPVCLibs_PATH="$DOWNLOAD_DIR/Microsoft.VCLibs.140.00.UWPDesktop_$ARCH.appx"
 xaml_PATH="$DOWNLOAD_DIR/Microsoft.UI.Xaml.2.8_$ARCH.appx"
 MAGISK_ZIP=magisk-$MAGISK_VER.zip
 MAGISK_PATH=$DOWNLOAD_DIR/$MAGISK_ZIP
+CUST_PATH="$DOWNLOAD_DIR/cust.img"
 if [ "$CUSTOM_MAGISK" ]; then
     if [ ! -f "$MAGISK_PATH" ]; then
         echo "Custom Magisk $MAGISK_ZIP not found"
@@ -320,9 +323,11 @@ if [ "$CUSTOM_MAGISK" ]; then
     fi
 fi
 ANDROID_API=33
-update_gapps_file_name() {
-    GAPPS_FILE_NAME=GApps-$ARCH-${ANDROID_API_MAP[$ANDROID_API]}.img
-    GAPPS_PATH=$DOWNLOAD_DIR/$GAPPS_FILE_NAME
+update_gapps_files_name() {
+    GAPPS_IMAGE_NAME=gapps-${ANDROID_API_MAP[$ANDROID_API]}-${ARCH_NAME_MAP[$ARCH]}.img
+    GAPPS_RC_NAME=gapps-${ANDROID_API_MAP[$ANDROID_API]}.rc
+    GAPPS_IMAGE_PATH=$DOWNLOAD_DIR/$GAPPS_IMAGE_NAME
+    GAPPS_RC_PATH=$DOWNLOAD_DIR/$GAPPS_RC_NAME
 }
 WSA_MAJOR_VER=0
 getKernelVersion() {
@@ -402,8 +407,8 @@ if [ -z ${OFFLINE+x} ]; then
         echo "KERNELSU_VER=$KERNELSU_VER" >"$KERNELSU_INFO"
     fi
     if [ "$HAS_GAPPS" ]; then
-        update_gapps_file_name
-        python3 generateGappsLink.py "$ARCH" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" "$ANDROID_API" "$GAPPS_FILE_NAME" || abort
+        update_gapps_files_name
+        python3 generateGappsLink.py "$ARCH" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" "$ANDROID_API" "$GAPPS_IMAGE_NAME" || abort
     fi
     if [ -f "$DOWNLOAD_DIR/$DOWNLOAD_CONF_NAME" ]; then
         echo "Downloading Artifacts"
@@ -416,15 +421,15 @@ if [ -z ${OFFLINE+x} ]; then
 fi
 declare -A FILES_CHECK_LIST=([xaml_PATH]="$xaml_PATH" [vclibs_PATH]="$vclibs_PATH" [UWPVCLibs_PATH]="$UWPVCLibs_PATH")
 if [ "$HAS_GAPPS" ] || [ "$ROOT_SOL" = "magisk" ]; then
-    FILES_CHECK_LIST+=(["MAGISK_PATH"]="$MAGISK_PATH")
+    FILES_CHECK_LIST+=(["MAGISK_PATH"]="$MAGISK_PATH" ["CUST_PATH"]="$CUST_PATH")
 fi
 if [ "$ROOT_SOL" = "kernelsu" ]; then
     update_ksu_zip_name
     FILES_CHECK_LIST+=(["KERNELSU_PATH"]="$KERNELSU_PATH")
 fi
 if [ "$HAS_GAPPS" ]; then
-    update_gapps_file_name
-    FILES_CHECK_LIST+=(["GAPPS_PATH"]="$GAPPS_PATH")
+    update_gapps_files_name
+    FILES_CHECK_LIST+=(["GAPPS_IMAGE_PATH"]="$GAPPS_IMAGE_PATH" ["GAPPS_RC_PATH"]="$GAPPS_RC_PATH")
 fi
 for i in "${FILES_CHECK_LIST[@]}"; do
     if [ ! -f "$i" ]; then
@@ -476,6 +481,7 @@ if [ "$HAS_GAPPS" ] || [ "$ROOT_SOL" = "magisk" ]; then
         "mkdir 000 .backup" \
         "add 000 overlay.d/init.lsp.magisk.rc init.lsp.magisk.rc" \
         "add 000 overlay.d/sbin/post-fs-data.sh post-fs-data.sh" \
+        "add 000 overlay.d/sbin/lsp_cust.img $CUST_PATH" \
         || abort "Unable to patch initrd"
 elif [ "$ROOT_SOL" = "kernelsu" ]; then
     echo "Extracting KernelSU"
@@ -498,13 +504,13 @@ elif [ "$ROOT_SOL" = "kernelsu" ]; then
 fi
 echo -e "done\n"
 if [ "$HAS_GAPPS" ]; then
-    update_gapps_file_name
-    if [ -f "$GAPPS_PATH" ]; then
+    update_gapps_files_name
+    if [ -f "$GAPPS_IMAGE_PATH" ] && [ -f "$GAPPS_RC_PATH" ]; then
         echo "Integrating GApps"
         "$WORK_DIR/magisk/magiskboot" cpio "$WORK_DIR/wsa/$ARCH/Tools/initrd.img" \
-            "add 000 overlay.d/init.lsp.cust.rc init.lsp.cust.rc" \
             "add 000 /lspolicy.rule sepolicy.rule" \
-            "add 000 overlay.d/sbin/cust.img $GAPPS_PATH" \
+            "add 000 overlay.d/gapps.rc $GAPPS_RC_PATH" \
+            "add 000 overlay.d/sbin/lsp_gapps.img $GAPPS_IMAGE_PATH" \
             || abort "Unable to patch initrd"
         echo -e "done\n"
     else
