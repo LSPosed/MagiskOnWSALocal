@@ -19,7 +19,6 @@
 #
 
 from datetime import datetime
-import os
 import sys
 
 import requests
@@ -60,10 +59,10 @@ if res.status_code == 200:
     download_files = {}
     assets = json_data["assets"]
     for asset in assets:
-        if re.match(f'GApps.*{release}.*\.rc$', asset["name"]):
+        if re.match(f'gapps.*{release}.*\.rc$', asset["name"]):
             download_files[asset["name"]] = asset["browser_download_url"]
             continue
-        elif re.match(f'GApps.*{release}.*{abi_map[arch]}.*\.img$', asset["name"]):
+        elif re.match(f'gapps.*{release}.*{abi_map[arch]}.*\.img$', asset["name"]):
             download_files[asset["name"]] = asset["browser_download_url"]
             break
     with open(download_dir/tempScript, 'a') as f:
