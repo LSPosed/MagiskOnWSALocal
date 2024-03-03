@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with MagiskOnWSALocal.  If not, see <https://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2023 LSPosed Contributors
+# Copyright (C) 2024 LSPosed Contributors
 #
 
 # DEBUG=--debug
@@ -100,45 +100,16 @@ else
 fi
 
 if (YesNoBox '([title]="Install GApps" [text]="Do you want to install GApps?")'); then
-    # GAPPS_BRAND=$(
-    #     Radiolist '([title]="Which GApps do you want to install?"
-    #                 [default]="MindTheGapps")' \
-    #         'MindTheGapps' "Recommend" 'on' \
-    #         'OpenGApps' "This flavor may cause startup failure" 'off'
-    # )
-    GAPPS_BRAND="MindTheGapps"
+    INSTALL_GAPPS="--install-gapps"
 else
-    GAPPS_BRAND="none"
+    INSTALL_GAPPS=""
 fi
 
-if [ "$GAPPS_BRAND" = "OpenGApps" ]; then
-    # TODO: Keep it pico since other variants of opengapps are unable to boot successfully
-    if [ "$DEBUG" = "1" ]; then
-        GAPPS_VARIANT=$(
-            Radiolist '([title]="Variants of GApps"
-                        [default]="pico")' \
-                'super' "" 'off' \
-                'stock' "" 'off' \
-                'full' "" 'off' \
-                'mini' "" 'off' \
-                'micro' "" 'off' \
-                'nano' "" 'off' \
-                'pico' "" 'on' \
-                'tvstock' "" 'off' \
-                'tvmini' "" 'off'
-        )
-    else
-        GAPPS_VARIANT=""
-    fi
-else
-    GAPPS_VARIANT=""
-fi
-
-if (YesNoBox '([title]="Remove Amazon Appstore" [text]="Do you want to keep Amazon Appstore?")'); then
-    REMOVE_AMAZON=""
-else
-    REMOVE_AMAZON="--remove-amazon"
-fi
+# if (YesNoBox '([title]="Remove Amazon Appstore" [text]="Do you want to keep Amazon Appstore?")'); then
+#     REMOVE_AMAZON=""
+# else
+#     REMOVE_AMAZON="--remove-amazon"
+# fi
 
 if (YesNoBox '([title]="Compress output" [text]="Do you want to compress the output?")'); then
     COMPRESS_OUTPUT="--compress"
@@ -156,8 +127,8 @@ fi
 
 clear
 declare -A RELEASE_TYPE_MAP=(["retail"]="retail" ["release preview"]="RP" ["insider slow"]="WIS" ["insider fast"]="WIF")
-COMMAND_LINE=(--arch "$ARCH" --release-type "${RELEASE_TYPE_MAP[$RELEASE_TYPE]}" --root-sol "$ROOT_SOL" --gapps-brand "$GAPPS_BRAND")
-CHECK_NULL_LIST=("$REMOVE_AMAZON" "$COMPRESS_OUTPUT" "$OFFLINE" "$DEBUG" "$CUSTOM_MAGISK")
+COMMAND_LINE=(--arch "$ARCH" --release-type "${RELEASE_TYPE_MAP[$RELEASE_TYPE]}" --root-sol "$ROOT_SOL")
+CHECK_NULL_LIST=("$INSTALL_GAPPS" "$REMOVE_AMAZON" "$COMPRESS_OUTPUT" "$OFFLINE" "$DEBUG" "$CUSTOM_MAGISK")
 for i in "${CHECK_NULL_LIST[@]}"; do
     if [ -n "$i" ]; then
         COMMAND_LINE+=("$i")
@@ -166,10 +137,6 @@ done
 
 if [ -n "$MAGISK_VER" ]; then
     COMMAND_LINE+=(--magisk-ver "$MAGISK_VER")
-fi
-
-if [ -n "$GAPPS_VARIANT" ]; then
-    COMMAND_LINE+=(--gapps-variant "$GAPPS_VARIANT")
 fi
 
 if [ -n "$COMPRESS_FORMAT" ]; then
