@@ -83,10 +83,6 @@ declare -A PM_UPGRADE_MAP
 PM_UPGRADE_MAP["apt-get"]="install -y"
 PM_UPGRADE_MAP["zypper"]="up -y"
 
-declare -A PM_SYSTEM_UPGRADE_MAP
-PM_SYSTEM_UPGRADE_MAP["apt-get"]="upgrade"
-PM_SYSTEM_UPGRADE_MAP["zypper"]="up"
-
 check_package_manager() {
     for f in "${!os_pm_install[@]}"; do
         if [[ -f $f ]]; then
@@ -104,8 +100,6 @@ check_package_manager() {
         unset 'INSTALL_OPTION[-1]'
         readarray -td ' ' UPGRADE_OPTION <<<"${PM_UPGRADE_MAP[$PM]} "
         unset 'UPGRADE_OPTION[-1]'
-        readarray -td ' ' SYSTEM_UPGRADE_OPTION <<<"${PM_SYSTEM_UPGRADE_MAP[$PM]} "
-        unset 'SYSTEM_UPGRADE_OPTION[-1]'
     fi
 }
 
