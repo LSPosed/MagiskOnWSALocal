@@ -79,6 +79,10 @@ with zipfile.ZipFile(wsa_zip_path) as zip:
             if not Path(workdir / zip_name).is_file():
                 print(f"unzipping {zip_name} to {workdir}", flush=True)
                 zip_path = zip.extract(f, workdir)
+                with zipfile.ZipFile(zip_path) as zip:
+                    stat = Path(zip_path).stat()
+                    print(f"unzipping from {zip_path}", flush=True)
+                    zip.extractall(archdir)
                 ver_no = zip_name.split("_")
                 long_ver = ver_no[1]
                 ver = long_ver.split(".")
@@ -106,7 +110,3 @@ with zipfile.ZipFile(wsa_zip_path) as zip:
                         l.extract(g, xmldir)
                     elif re.search(u'Images/.+\.png', g.filename):
                         l.extract(g, archdir)
-with zipfile.ZipFile(zip_path) as zip:
-    stat = Path(zip_path).stat()
-    print(f"unzipping from {zip_path}", flush=True)
-    zip.extractall(archdir)
