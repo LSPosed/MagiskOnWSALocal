@@ -50,12 +50,12 @@ if brand == "OpenGApps":
         print("Failed to fetch from OpenGApps API, fallbacking to SourceForge RSS...")
         res = requests.get(
             f'https://sourceforge.net/projects/opengapps/rss?path=/{abi_map[arch]}&limit=100')
-        link = re.search(f'https://.*{abi_map[arch]}/.*{release}.*{variant}.*\.zip/download', res.text).group().replace(
+        link = re.search(fr'https://.*{abi_map[arch]}/.*{release}.*{variant}.*\.zip/download', res.text).group().replace(
             '.zip/download', '.zip').replace('sourceforge.net/projects/opengapps/files', 'downloads.sourceforge.net/project/opengapps')
 elif brand == "MindTheGapps":
     res = requests.get(
         f'https://sourceforge.net/projects/wsa-mtg/rss?path=/{abi_map[arch]}&limit=100')
-    matched = re.search(f'https://.*{release}.*{abi_map[arch]}.*\.zip/download', res.text)
+    matched = re.search(fr'https://.*{release}.*{abi_map[arch]}.*\.zip/download', res.text)
     if matched:
         link = matched.group().replace(
             '.zip/download', '.zip').replace('sourceforge.net/projects/wsa-mtg/files', 'downloads.sourceforge.net/project/wsa-mtg')
@@ -68,7 +68,7 @@ elif brand == "MindTheGapps":
         if res.status_code == 200:
             assets = json_data["assets"]
             for asset in assets:
-                if re.match(f'.*{release}.*{abi_map[arch]}.*\.zip$', asset["name"]) and asset["content_type"] == "application/zip":
+                if re.match(fr'.*{release}.*{abi_map[arch]}.*\.zip$', asset["name"]) and asset["content_type"] == "application/zip":
                     link = asset["browser_download_url"]
                     break
         elif res.status_code == 403 and x_ratelimit_remaining == '0':
