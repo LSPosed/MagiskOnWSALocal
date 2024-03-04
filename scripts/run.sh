@@ -74,7 +74,8 @@ RELEASE_TYPE=$(
         'insider slow' "Beta Channel" 'off' \
         'insider fast' "Dev Channel" 'off'
 )
-
+declare -A RELEASE_TYPE_MAP=(["retail"]="retail" ["release preview"]="RP" ["insider slow"]="WIS" ["insider fast"]="WIF")
+COMMAND_LINE=(--arch "$ARCH" --release-type "${RELEASE_TYPE_MAP[$RELEASE_TYPE]}")
 if (YesNoBox '([title]="Root" [text]="Do you want to Root WSA?")'); then
     ROOT_SOL=$(
         Radiolist '([title]="Root solution"
@@ -82,8 +83,7 @@ if (YesNoBox '([title]="Root" [text]="Do you want to Root WSA?")'); then
             'magisk' "Magisk" 'on' \
             'kernelsu' "KernelSU" 'off'
     )
-else
-    ROOT_SOL="none"
+    COMMAND_LINE+=(--root-sol "$ROOT_SOL")
 fi
 
 if [ "$ROOT_SOL" = "magisk" ]; then
@@ -95,14 +95,11 @@ if [ "$ROOT_SOL" = "magisk" ]; then
             'canary' "Canary Channel" 'off' \
             'debug' "Canary Channel Debug Build" 'off'
     )
-else
-    MAGISK_VER=""
+    COMMAND_LINE+=(--magisk-ver "$MAGISK_VER")
 fi
 
 if (YesNoBox '([title]="Install GApps" [text]="Do you want to install GApps?")'); then
-    INSTALL_GAPPS="--install-gapps"
-else
-    INSTALL_GAPPS=""
+    COMMAND_LINE+=(--install-gapps)
 fi
 
 # if (YesNoBox '([title]="Remove Amazon Appstore" [text]="Do you want to keep Amazon Appstore?")'); then
@@ -112,37 +109,16 @@ fi
 # fi
 
 if (YesNoBox '([title]="Compress output" [text]="Do you want to compress the output?")'); then
-    COMPRESS_OUTPUT="--compress"
-else
-    COMPRESS_OUTPUT=""
-fi
-if [ "$COMPRESS_OUTPUT" = "--compress" ]; then
     COMPRESS_FORMAT=$(
         Radiolist '([title]="Compress format"
                     [default]="7z")' \
             '7z' "7-Zip" 'on' \
             'zip' "Zip" 'off'
     )
-fi
-
-clear
-declare -A RELEASE_TYPE_MAP=(["retail"]="retail" ["release preview"]="RP" ["insider slow"]="WIS" ["insider fast"]="WIF")
-COMMAND_LINE=(--arch "$ARCH" --release-type "${RELEASE_TYPE_MAP[$RELEASE_TYPE]}" --root-sol "$ROOT_SOL")
-CHECK_NULL_LIST=("$INSTALL_GAPPS" "$REMOVE_AMAZON" "$COMPRESS_OUTPUT" "$OFFLINE" "$DEBUG" "$CUSTOM_MAGISK")
-for i in "${CHECK_NULL_LIST[@]}"; do
-    if [ -n "$i" ]; then
-        COMMAND_LINE+=("$i")
-    fi
-done
-
-if [ -n "$MAGISK_VER" ]; then
-    COMMAND_LINE+=(--magisk-ver "$MAGISK_VER")
-fi
-
-if [ -n "$COMPRESS_FORMAT" ]; then
     COMMAND_LINE+=(--compress-format "$COMPRESS_FORMAT")
 fi
 
+clear
 echo "COMMAND_LINE=${COMMAND_LINE[*]}"
 chmod +x ./build.sh
 ./build.sh "${COMMAND_LINE[@]}"
