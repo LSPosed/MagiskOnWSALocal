@@ -44,7 +44,7 @@ function YesNoBox {
         [ "$2" = "no" ] && default="--defaultno"
     }
     shift
-    $DIALOG --title "${o[title]}" --yesno "${o[text]}" "$default" 0 0
+    $DIALOG --title "${o[title]}" --yesno "${o[text]}" $default 0 0
 }
 
 function DialogBox {
