@@ -121,6 +121,7 @@ if [ "$COMPRESS_OUTPUT" = "--compress" ]; then
         Radiolist '([title]="Compress format"
                     [default]="7z")' \
             '7z' "7-Zip" 'on' \
+            'tar' "Tar" 'off' \
             'zip' "Zip" 'off'
     )
 fi
