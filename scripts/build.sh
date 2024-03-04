@@ -130,6 +130,7 @@ ROOT_SOL_MAP=(
 
 COMPRESS_FORMAT_MAP=(
     "7z"
+    "tar"
     "zip"
     "none"
 )
@@ -561,6 +562,9 @@ if [ "$COMPRESS_FORMAT" != "none" ]; then
     if [ "$COMPRESS_FORMAT" = "7z" ]; then
         echo "Compressing with 7z to $OUTPUT_PATH"
         7z a "${OUTPUT_PATH:?}" "$WORK_DIR/wsa/$artifact_name" || abort
+    elif [ "$COMPRESS_FORMAT" = "tar" ]; then
+        echo "Compressing with tar to $OUTPUT_PATH"
+        tar -C "$WORK_DIR/wsa" -cf "$OUTPUT_PATH" "$artifact_name" || abort
     elif [ "$COMPRESS_FORMAT" = "zip" ]; then
         echo "Compressing with zip to $OUTPUT_PATH"
         7z -tzip a "$OUTPUT_PATH" "$WORK_DIR/wsa/$artifact_name" || abort
