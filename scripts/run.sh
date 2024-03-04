@@ -18,8 +18,6 @@
 # Copyright (C) 2024 LSPosed Contributors
 #
 
-# DEBUG=--debug
-# CUSTOM_MAGISK=--magisk-custom
 if [ ! "$BASH_VERSION" ]; then
     echo "Please do not use sh to run this script, just execute it directly" 1>&2
     exit 1
@@ -41,8 +39,12 @@ function Radiolist {
 
 function YesNoBox {
     declare -A o="$1"
+    local default
+    [ "$2" ] && {
+        [ "$2" = "no" ] && default="--defaultno"
+    }
     shift
-    $DIALOG --title "${o[title]}" --yesno "${o[text]}" 0 0
+    $DIALOG --title "${o[title]}" --yesno "${o[text]}" "$default" 0 0
 }
 
 function DialogBox {
@@ -102,10 +104,8 @@ if (YesNoBox '([title]="Install GApps" [text]="Do you want to install GApps?")')
     COMMAND_LINE+=(--install-gapps)
 fi
 
-# if (YesNoBox '([title]="Remove Amazon Appstore" [text]="Do you want to keep Amazon Appstore?")'); then
-#     REMOVE_AMAZON=""
-# else
-#     REMOVE_AMAZON="--remove-amazon"
+# if (YesNoBox '([title]="Remove Amazon Appstore" [text]="Do you want to remove Amazon Appstore?")' no); then
+#     COMMAND_LINE+=(--remove-amazon)
 # fi
 
 if (YesNoBox '([title]="Compress output" [text]="Do you want to compress the output?")'); then
