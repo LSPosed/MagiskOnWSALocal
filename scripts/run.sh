@@ -104,9 +104,9 @@ if (YesNoBox '([title]="Install GApps" [text]="Do you want to install GApps?")')
     COMMAND_LINE+=(--install-gapps)
 fi
 
-# if (YesNoBox '([title]="Remove Amazon Appstore" [text]="Do you want to remove Amazon Appstore?")' no); then
-#     COMMAND_LINE+=(--remove-amazon)
-# fi
+if (YesNoBox '([title]="Remove Amazon Appstore" [text]="Do you want to remove Amazon Appstore?")' no); then
+    COMMAND_LINE+=(--remove-amazon)
+fi
 
 if (YesNoBox '([title]="Compress output" [text]="Do you want to compress the output?")'); then
     COMPRESS_FORMAT=$(

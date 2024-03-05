@@ -195,6 +195,7 @@ ARGUMENT_LIST=(
     "magisk-ver:"
     "magisk-custom"
     "install-gapps"
+    "remove-amazon"
     "offline"
     "skip-download-wsa"
     "help"
@@ -240,6 +241,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --install-gapps)
             HAS_GAPPS=1
+            shift
+            ;;
+        --remove-amazon)
+            REMOVE_AMAZON=1
             shift
             ;;
         --offline)
@@ -518,6 +523,10 @@ if [ "$HAS_GAPPS" ]; then
     fi
 fi
 
+if [ "$REMOVE_AMAZON" ]; then
+    rm -f "$WORK_DIR/wsa/$ARCH/apex/"mado*.apex || abort
+fi
+
 echo "Removing signature and add scripts"
 rm -rf "${WORK_DIR:?}"/wsa/"$ARCH"/\[Content_Types\].xml "$WORK_DIR/wsa/$ARCH/AppxBlockMap.xml" "$WORK_DIR/wsa/$ARCH/AppxSignature.p7x" "$WORK_DIR/wsa/$ARCH/AppxMetadata" || abort
 cp "$vclibs_PATH" "$xaml_PATH" "$WORK_DIR/wsa/$ARCH" || abort
@@ -543,6 +552,7 @@ else
     name2=-GApps-${ANDROID_API_MAP[$ANDROID_API]}
 fi
 artifact_name=WSA_${WSA_VER}_${ARCH}_${WSA_REL}${name1}${name2}
+[ "$REMOVE_AMAZON" ] && artifact_name+=-NoAmazon
 
 if [ -f "$OUTPUT_DIR" ]; then
     rm -rf ${OUTPUT_DIR:?}
