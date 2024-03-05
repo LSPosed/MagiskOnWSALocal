@@ -300,8 +300,18 @@ if [ "$DEBUG" ]; then
     set -x
 fi
 
-if [ "$HAS_GAPPS" ] && [ "$ROOT_SOL" = "kernelsu" ]; then
-    abort "Unsupported combination: Install GApps and KernelSU"
+if [ "$HAS_GAPPS" ]; then
+    case "$ROOT_SOL" in
+        "none")
+            ROOT_SOL="magisk"
+            echo "WARN: Force install Magisk since GApps needs it to mount the file"
+            ;;
+        "kernelsu")
+            abort "Unsupported combination: Install GApps and KernelSU"
+            ;;
+        *)
+            ;;
+    esac
 fi
 
 # shellcheck disable=SC1091
@@ -402,7 +412,7 @@ if [[ "$WSA_MAJOR_VER" -lt 2211 ]]; then
 fi
 if [ -z ${OFFLINE+x} ]; then
     echo "Generating Download Links"
-    if [ "$HAS_GAPPS" ] || [ "$ROOT_SOL" = "magisk" ]; then
+    if [ "$ROOT_SOL" = "magisk" ]; then
         if [ -z ${CUSTOM_MAGISK+x} ]; then
             python3 generateMagiskLink.py "$MAGISK_VER" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
         fi
@@ -429,7 +439,7 @@ if [ -z ${OFFLINE+x} ]; then
     fi
 fi
 declare -A FILES_CHECK_LIST=([xaml_PATH]="$xaml_PATH" [vclibs_PATH]="$vclibs_PATH" [UWPVCLibs_PATH]="$UWPVCLibs_PATH")
-if [ "$HAS_GAPPS" ] || [ "$ROOT_SOL" = "magisk" ]; then
+if [ "$ROOT_SOL" = "magisk" ]; then
     FILES_CHECK_LIST+=(["MAGISK_PATH"]="$MAGISK_PATH" ["CUST_PATH"]="$CUST_PATH")
 fi
 if [ "$ROOT_SOL" = "kernelsu" ]; then
@@ -449,7 +459,7 @@ done
 if [ "$FILE_MISSING" ]; then
     abort "Some files are missing"
 fi
-if [ "$HAS_GAPPS" ] || [ "$ROOT_SOL" = "magisk" ]; then
+if [ "$ROOT_SOL" = "magisk" ]; then
     echo "Extracting Magisk"
     if [ -f "$MAGISK_PATH" ]; then
         MAGISK_VERSION_NAME=""
@@ -472,7 +482,7 @@ if [ "$HAS_GAPPS" ] || [ "$ROOT_SOL" = "magisk" ]; then
     echo -e "done\n"
 fi
 
-if [ "$HAS_GAPPS" ] || [ "$ROOT_SOL" = "magisk" ]; then
+if [ "$ROOT_SOL" = "magisk" ]; then
     echo "Integrating Magisk"
     "$WORK_DIR/magisk/magiskboot" compress=xz "$WORK_DIR/magisk/magisk64" "$WORK_DIR/magisk/magisk64.xz"
     "$WORK_DIR/magisk/magiskboot" compress=xz "$WORK_DIR/magisk/magisk32" "$WORK_DIR/magisk/magisk32.xz"
