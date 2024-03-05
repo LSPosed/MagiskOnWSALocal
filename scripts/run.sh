@@ -98,10 +98,9 @@ if [ "$ROOT_SOL" = "magisk" ]; then
             'debug' "Canary Channel Debug Build" 'off'
     )
     COMMAND_LINE+=(--magisk-ver "$MAGISK_VER")
-fi
-
-if (YesNoBox '([title]="Install GApps" [text]="Do you want to install GApps?")'); then
-    COMMAND_LINE+=(--install-gapps)
+    if (YesNoBox '([title]="Install GApps" [text]="Do you want to install GApps?")'); then
+        COMMAND_LINE+=(--install-gapps)
+    fi
 fi
 
 if (YesNoBox '([title]="Remove Amazon Appstore" [text]="Do you want to remove Amazon Appstore?")' no); then

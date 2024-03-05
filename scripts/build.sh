@@ -300,6 +300,10 @@ if [ "$DEBUG" ]; then
     set -x
 fi
 
+if [ "$HAS_GAPPS" ] && [ "$ROOT_SOL" = "kernelsu" ]; then
+    abort "Unsupported combination: Install GApps and KernelSU"
+fi
+
 # shellcheck disable=SC1091
 [ -f "$PYTHON_VENV_DIR/bin/activate" ] && {
     source "$PYTHON_VENV_DIR/bin/activate" || abort "Failed to activate virtual environment, please re-run install_deps.sh"
