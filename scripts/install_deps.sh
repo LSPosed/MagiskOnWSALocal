@@ -40,15 +40,10 @@ require_su() {
 echo "Checking and ensuring dependencies"
 check_dependencies() {
     command -v whiptail >/dev/null 2>&1 || command -v dialog >/dev/null 2>&1 || NEED_INSTALL+=("whiptail")
-    command -v lzip >/dev/null 2>&1 || NEED_INSTALL+=("lzip")
-    command -v patchelf >/dev/null 2>&1 || NEED_INSTALL+=("patchelf")
-    command -v resize2fs >/dev/null 2>&1 || NEED_INSTALL+=("e2fsprogs")
     command -v pip >/dev/null 2>&1 || NEED_INSTALL+=("python3-pip")
     command -v aria2c >/dev/null 2>&1 || NEED_INSTALL+=("aria2")
     command -v 7z >/dev/null 2>&1 || NEED_INSTALL+=("p7zip-full")
-    command -v setfattr >/dev/null 2>&1 || NEED_INSTALL+=("attr")
     command -v unzip >/dev/null 2>&1 || NEED_INSTALL+=("unzip")
-    command -v qemu-img >/dev/null 2>&1 || NEED_INSTALL+=("qemu-utils")
 }
 check_dependencies
 osrel=$(sed -n '/^ID_LIKE=/s/^.*=//p' /etc/os-release)
@@ -130,9 +125,7 @@ if [ -n "${NEED_INSTALL[*]}" ]; then
     if [ "$PM" = "zypper" ]; then
         NEED_INSTALL_FIX=${NEED_INSTALL[*]}
         {
-            NEED_INSTALL_FIX=${NEED_INSTALL_FIX//setools/setools-console} 2>&1
             NEED_INSTALL_FIX=${NEED_INSTALL_FIX//whiptail/dialog} 2>&1
-            NEED_INSTALL_FIX=${NEED_INSTALL_FIX//qemu-utils/qemu-tools} 2>&1
         } >>/dev/null
 
         readarray -td ' ' NEED_INSTALL <<<"$NEED_INSTALL_FIX "
@@ -145,7 +138,6 @@ if [ -n "${NEED_INSTALL[*]}" ]; then
         NEED_INSTALL_FIX=${NEED_INSTALL[*]}
         {
             NEED_INSTALL_FIX=${NEED_INSTALL_FIX//whiptail/libnewt} 2>&1
-            NEED_INSTALL_FIX=${NEED_INSTALL_FIX//qemu-utils/qemu-img} 2>&1
             NEED_INSTALL_FIX=${NEED_INSTALL_FIX//python3-pip/python-pip} 2>&1
             NEED_INSTALL_FIX=${NEED_INSTALL_FIX//p7zip-full/p7zip} 2>&1
         } >>/dev/null
@@ -158,7 +150,6 @@ if [ -n "${NEED_INSTALL[*]}" ]; then
             NEED_INSTALL_FIX=${NEED_INSTALL_FIX//whiptail/dialog} 2>&1
             NEED_INSTALL_FIX=${NEED_INSTALL_FIX//python3-pip/dev-python/pip} 2>&1
             NEED_INSTALL_FIX=${NEED_INSTALL_FIX//p7zip-full/p7zip} 2>&1
-            NEED_INSTALL_FIX=${NEED_INSTALL_FIX//qemu-utils/qemu} 2>&1
         } >>/dev/null
 
         readarray -td ' ' NEED_INSTALL <<<"$NEED_INSTALL_FIX "
