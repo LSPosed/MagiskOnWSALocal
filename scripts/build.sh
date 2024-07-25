@@ -542,7 +542,6 @@ if [ "$HAS_GAPPS" ]; then
     if [ -f "$GAPPS_IMAGE_PATH" ] && [ -f "$GAPPS_RC_PATH" ]; then
         echo "Integrating GApps"
         "$WORK_DIR/magisk/magiskboot" cpio "$WORK_DIR/wsa/$ARCH/Tools/initrd.img" \
-            "add 000 /lspolicy.rule sepolicy.rule" \
             "add 000 overlay.d/gapps.rc $GAPPS_RC_PATH" \
             "add 000 overlay.d/sbin/lsp_gapps.img $GAPPS_IMAGE_PATH" \
             || abort "Unable to patch initrd"
