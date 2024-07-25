@@ -486,13 +486,18 @@ if [ "$ROOT_SOL" = "magisk" ]; then
     echo "Integrating Magisk"
     SKIP="#"
     SINGLEABI="#"
+    SKIPINITLD="#"
     if [ -f "$WORK_DIR/magisk/magisk64" ]; then
         "$WORK_DIR/magisk/magiskboot" compress=xz "$WORK_DIR/magisk/magisk64" "$WORK_DIR/magisk/magisk64.xz"
         "$WORK_DIR/magisk/magiskboot" compress=xz "$WORK_DIR/magisk/magisk32" "$WORK_DIR/magisk/magisk32.xz"
-        unset SKIP
+        unset SINGLEABI
     else
         "$WORK_DIR/magisk/magiskboot" compress=xz "$WORK_DIR/magisk/magisk" "$WORK_DIR/magisk/magisk.xz"
-        unset SINGLEABI
+        unset SKIP
+    fi
+    if [ -f "$WORK_DIR/magisk/init-ld" ]; then
+        "$WORK_DIR/magisk/magiskboot" compress=xz "$WORK_DIR/magisk/init-ld" "$WORK_DIR/magisk/init-ld.xz"
+        unset SKIPINITLD
     fi
     "$WORK_DIR/magisk/magiskboot" compress=xz "$MAGISK_PATH" "$WORK_DIR/magisk/stub.xz"
     "$WORK_DIR/magisk/magiskboot" cpio "$WORK_DIR/wsa/$ARCH/Tools/initrd.img" \
@@ -502,9 +507,10 @@ if [ "$ROOT_SOL" = "magisk" ]; then
         "add 0750 /magiskinit $WORK_DIR/magisk/magiskinit" \
         "mkdir 0750 overlay.d" \
         "mkdir 0750 overlay.d/sbin" \
-        "$SKIP add 0644 overlay.d/sbin/magisk64.xz $WORK_DIR/magisk/magisk64.xz" \
-        "$SKIP add 0644 overlay.d/sbin/magisk32.xz $WORK_DIR/magisk/magisk32.xz" \
-        "$SINGLEABI add 0644 overlay.d/sbin/magisk.xz $WORK_DIR/magisk/magisk.xz" \
+        "$SINGLEABI add 0644 overlay.d/sbin/magisk64.xz $WORK_DIR/magisk/magisk64.xz" \
+        "$SINGLEABI add 0644 overlay.d/sbin/magisk32.xz $WORK_DIR/magisk/magisk32.xz" \
+        "$SKIP add 0644 overlay.d/sbin/magisk.xz $WORK_DIR/magisk/magisk.xz" \
+        "$SKIPINITLD add 0644 overlay.d/sbin/init-ld.xz $WORK_DIR/magisk/init-ld.xz" \
         "add 0644 overlay.d/sbin/stub.xz $WORK_DIR/magisk/stub.xz" \
         "mkdir 000 .backup" \
         "add 000 overlay.d/init.lsp.magisk.rc init.lsp.magisk.rc" \
