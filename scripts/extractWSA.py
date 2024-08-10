@@ -108,5 +108,5 @@ with zipfile.ZipFile(wsa_zip_path) as zip:
                     elif g.filename == 'AppxManifest.xml':
                         g.filename = f'resources.{name}.xml'
                         l.extract(g, xmldir)
-                    elif re.search(u'Images/.+\.png', g.filename):
+                    elif re.search(r'Images/.+\.png', g.filename):
                         l.extract(g, archdir)
