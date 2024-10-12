@@ -15,117 +15,17 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with MagiskOnWSALocal.  If not, see <https://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2022 LSPosed Contributors
+# Copyright (C) 2024 LSPosed Contributors
 #
-
-# DEBUG=--debug
-# CUSTOM_MAGISK=--magisk-custom
 
 if [ ! "$BASH_VERSION" ]; then
     echo "Please do not use sh to run this script, just execute it directly" 1>&2
     exit 1
 fi
 cd "$(dirname "$0")" || exit 1
-SUDO="$(which sudo 2>/dev/null)"
-abort() {
-    echo "Dependencies: an error has occurred, exit"
-    exit 1
-}
-require_su() {
-    if test "$(whoami)" != "root"; then
-        if [ -z "$SUDO" ] && [ "$($SUDO whoami)" != "root" ]; then
-            echo "ROOT/SUDO is required to run this script"
-            abort
-        fi
-    fi
-}
-echo "Checking and ensuring dependencies"
-check_dependencies() {
-    command -v whiptail >/dev/null 2>&1 || command -v dialog >/dev/null 2>&1 || NEED_INSTALL+=("whiptail")
-    command -v seinfo >/dev/null 2>&1 || NEED_INSTALL+=("setools")
-    command -v lzip >/dev/null 2>&1 || NEED_INSTALL+=("lzip")
-    command -v wine64 >/dev/null 2>&1 || NEED_INSTALL+=("wine")
-    command -v winetricks >/dev/null 2>&1 || NEED_INSTALL+=("winetricks")
-    command -v patchelf >/dev/null 2>&1 || NEED_INSTALL+=("patchelf")
-    command -v resize2fs >/dev/null 2>&1 || NEED_INSTALL+=("e2fsprogs")
-    command -v pip >/dev/null 2>&1 || NEED_INSTALL+=("python3-pip")
-    command -v aria2c >/dev/null 2>&1 || NEED_INSTALL+=("aria2")
-    command -v 7z > /dev/null 2>&1 || NEED_INSTALL+=("p7zip-full")
-    command -v setfattr > /dev/null 2>&1 || NEED_INSTALL+=("attr")
-    command -v xz > /dev/null 2>&1 || NEED_INSTALL+=("xz-utils")
-    command -v unzip > /dev/null 2>&1 || NEED_INSTALL+=("unzip")
-}
-check_dependencies
-osrel=$(sed -n '/^ID_LIKE=/s/^.*=//p' /etc/os-release);
-declare -A os_pm_install;
-# os_pm_install["/etc/redhat-release"]=yum
-# os_pm_install["/etc/arch-release"]=pacman
-# os_pm_install["/etc/gentoo-release"]=emerge
-os_pm_install["/etc/SuSE-release"]=zypper
-os_pm_install["/etc/debian_version"]=apt-get
-# os_pm_install["/etc/alpine-release"]=apk
 
-declare -A PM_UPDATE_MAP;
-PM_UPDATE_MAP["yum"]="check-update"
-PM_UPDATE_MAP["pacman"]="-Syu --noconfirm"
-PM_UPDATE_MAP["emerge"]="-auDN @world"
-PM_UPDATE_MAP["zypper"]="ref"
-PM_UPDATE_MAP["apt-get"]="update"
-PM_UPDATE_MAP["apk"]="update"
+./install_deps.sh || exit 1
 
-declare -A PM_INSTALL_MAP;
-PM_INSTALL_MAP["yum"]="install -y"
-PM_INSTALL_MAP["pacman"]="-S --noconfirm --needed"
-PM_INSTALL_MAP["emerge"]="-a"
-PM_INSTALL_MAP["zypper"]="in -y"
-PM_INSTALL_MAP["apt-get"]="install -y"
-PM_INSTALL_MAP["apk"]="add"
-
-check_package_manager() {
-    for f in "${!os_pm_install[@]}"; do
-        if [[ -f $f ]]; then
-            PM="${os_pm_install[$f]}"
-            break
-        fi
-    done
-    if [[ "$osrel" = *"suse"* ]]; then
-        PM="zypper"
-    fi
-    if [ -n "$PM" ]; then
-        readarray -td ' ' UPDATE_OPTION <<<"${PM_UPDATE_MAP[$PM]} "; unset 'UPDATE_OPTION[-1]';
-        readarray -td ' ' INSTALL_OPTION <<<"${PM_INSTALL_MAP[$PM]} "; unset 'INSTALL_OPTION[-1]';
-    fi
-}
-
-check_package_manager
-if [ -n "${NEED_INSTALL[*]}" ]; then
-    if [ -z "$PM" ]; then
-        echo "Unable to determine package manager: Unsupported distros"
-        abort
-    else
-        if [ "$PM" = "zypper" ]; then
-            NEED_INSTALL_FIX=${NEED_INSTALL[*]}
-            {
-                NEED_INSTALL_FIX=${NEED_INSTALL_FIX//setools/setools-console} 2>&1
-                NEED_INSTALL_FIX=${NEED_INSTALL_FIX//whiptail/dialog} 2>&1
-                NEED_INSTALL_FIX=${NEED_INSTALL_FIX//xz-utils/xz} 2>&1
-            }  >> /dev/null
-            
-            readarray -td ' ' NEED_INSTALL <<<"$NEED_INSTALL_FIX "; unset 'NEED_INSTALL[-1]';
-        elif [ "$PM" = "apk" ]; then
-            NEED_INSTALL_FIX=${NEED_INSTALL[*]}
-            readarray -td ' ' NEED_INSTALL <<<"${NEED_INSTALL_FIX//p7zip-full/p7zip} "; unset 'NEED_INSTALL[-1]';
-        fi
-        require_su
-        if ! ($SUDO "$PM" "${UPDATE_OPTION[@]}" && $SUDO "$PM" "${INSTALL_OPTION[@]}" "${NEED_INSTALL[@]}") then abort; fi
-    fi
-fi
-pip list --disable-pip-version-check | grep -E "^requests " >/dev/null 2>&1 || python3 -m pip install requests
-
-winetricks list-installed | grep -E "^msxml6" >/dev/null 2>&1 || {
-    cp -r ../wine/.cache/* ~/.cache
-    winetricks msxml6 || abort
-}
 WHIPTAIL=$(command -v whiptail 2>/dev/null)
 DIALOG=$(command -v dialog 2>/dev/null)
 DIALOG=${WHIPTAIL:-$DIALOG}
@@ -139,14 +39,31 @@ function Radiolist {
 
 function YesNoBox {
     declare -A o="$1"
+    local default
+    [ "$2" ] && {
+        [ "$2" = "no" ] && default="--defaultno"
+    }
     shift
-    $DIALOG --title "${o[title]}" --yesno "${o[text]}" 0 0
+    $DIALOG --title "${o[title]}" $default --yesno "${o[text]}" 0 0
 }
+
+function DialogBox {
+    declare -A o="$1"
+    shift
+    $DIALOG --title "${o[title]}" --msgbox "${o[text]}" 0 0
+}
+intro="Welcome to MagiskOnWSA!
+
+    With this utility, you can integrate Magisk for WSA easily.
+    Use arrow keys to navigate, and press space to select.
+    Press enter to confirm.
+"
+DialogBox "([title]='Intro to MagiskOnWSA' \
+            [text]='$intro')"
 
 ARCH=$(
     Radiolist '([title]="Build arch"
                 [default]="x64")' \
-        \
         'x64' "X86_64" 'on' \
         'arm64' "AArch64" 'off'
 )
@@ -154,99 +71,53 @@ ARCH=$(
 RELEASE_TYPE=$(
     Radiolist '([title]="WSA release type"
                 [default]="retail")' \
-        \
         'retail' "Stable Channel" 'on' \
         'release preview' "Release Preview Channel" 'off' \
         'insider slow' "Beta Channel" 'off' \
         'insider fast' "Dev Channel" 'off'
 )
+declare -A RELEASE_TYPE_MAP=(["retail"]="retail" ["release preview"]="RP" ["insider slow"]="WIS" ["insider fast"]="WIF")
+COMMAND_LINE=(--arch "$ARCH" --release-type "${RELEASE_TYPE_MAP[$RELEASE_TYPE]}")
+if (YesNoBox '([title]="Root" [text]="Do you want to Root WSA?")'); then
+    ROOT_SOL=$(
+        Radiolist '([title]="Root solution"
+                    [default]="magisk")' \
+            'magisk' "Magisk" 'on' \
+            'kernelsu' "KernelSU" 'off'
+    )
+    COMMAND_LINE+=(--root-sol "$ROOT_SOL")
+fi
 
-if [ -z "${CUSTOM_MAGISK+x}" ]; then
+if [ "$ROOT_SOL" = "magisk" ]; then
     MAGISK_VER=$(
         Radiolist '([title]="Magisk version"
-                        [default]="stable")' \
-            \
+                    [default]="stable")' \
             'stable' "Stable Channel" 'on' \
             'beta' "Beta Channel" 'off' \
             'canary' "Canary Channel" 'off' \
             'debug' "Canary Channel Debug Build" 'off'
     )
-else
-    MAGISK_VER=debug
-fi
-
-if (YesNoBox '([title]="Install GApps" [text]="Do you want to install GApps?")'); then
-    GAPPS_BRAND=$(
-        Radiolist '([title]="Which GApps do you want to install?"
-                 [default]="MindTheGapps")' \
-            \
-            'OpenGApps' "" 'off' \
-            'MindTheGapps' "" 'on'
-    )
-else
-    GAPPS_BRAND="none"
-fi
-if [ $GAPPS_BRAND = "OpenGApps" ]; then
-    # TODO: Keep it pico since other variants of opengapps are unable to boot successfully
-    if [ "$DEBUG" = "1" ]; then
-    GAPPS_VARIANT=$(
-        Radiolist '([title]="Variants of GApps"
-                     [default]="pico")' \
-            \
-            'super' "" 'off' \
-            'stock' "" 'off' \
-            'full' "" 'off' \
-            'mini' "" 'off' \
-            'micro' "" 'off' \
-            'nano' "" 'off' \
-            'pico' "" 'on' \
-            'tvstock' "" 'off' \
-            'tvmini' "" 'off'
-    )
-    else
-        GAPPS_VARIANT=pico
+    COMMAND_LINE+=(--magisk-ver "$MAGISK_VER")
+    if (YesNoBox '([title]="Install GApps" [text]="Do you want to install GApps?")'); then
+        COMMAND_LINE+=(--install-gapps)
     fi
-else
-    GAPPS_VARIANT="pico"
 fi
 
-if (YesNoBox '([title]="Remove Amazon Appstore" [text]="Do you want to keep Amazon Appstore?")'); then
-    REMOVE_AMAZON=""
-else
-    REMOVE_AMAZON="--remove-amazon"
+if (YesNoBox '([title]="Remove Amazon Appstore" [text]="Do you want to remove Amazon Appstore?")' no); then
+    COMMAND_LINE+=(--remove-amazon)
 fi
-
-ROOT_SOL=$(
-    Radiolist '([title]="Root solution"
-                     [default]="magisk")' \
-        \
-        'magisk' "" 'on' \
-        'none' "" 'off'
-)
 
 if (YesNoBox '([title]="Compress output" [text]="Do you want to compress the output?")'); then
-    COMPRESS_OUTPUT="--compress"
-else
-    COMPRESS_OUTPUT=""
-fi
-if [ "$COMPRESS_OUTPUT" = "--compress" ]; then
     COMPRESS_FORMAT=$(
         Radiolist '([title]="Compress format"
-                        [default]="7z")' \
-            \
+                    [default]="7z")' \
             '7z' "7-Zip" 'on' \
-            'xz' "tar.xz" 'off' \
             'zip' "Zip" 'off'
-        )
+    )
+    COMMAND_LINE+=(--compress-format "$COMPRESS_FORMAT")
 fi
-# if ! (YesNoBox '([title]="Off line mode" [text]="Do you want to enable off line mode?")'); then
-#     OFFLINE="--offline"
-# else
-#     OFFLINE=""
-# fi
-# OFFLINE="--offline"
+
 clear
-declare -A RELEASE_TYPE_MAP=(["retail"]="retail" ["release preview"]="RP" ["insider slow"]="WIS" ["insider fast"]="WIF")
-COMMAND_LINE=(--arch "$ARCH" --release-type "${RELEASE_TYPE_MAP[$RELEASE_TYPE]}" --magisk-ver "$MAGISK_VER" --gapps-brand "$GAPPS_BRAND" --gapps-variant "$GAPPS_VARIANT" "$REMOVE_AMAZON" --root-sol "$ROOT_SOL" "$COMPRESS_OUTPUT" "$OFFLINE" "$DEBUG" "$CUSTOM_MAGISK" --compress-format "$COMPRESS_FORMAT")
 echo "COMMAND_LINE=${COMMAND_LINE[*]}"
+chmod +x ./build.sh
 ./build.sh "${COMMAND_LINE[@]}"

@@ -1,0 +1,25 @@
+name: 'Lock Threads'
+
+on:
+  issues:
+    types: [closed]
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: lock
+
+jobs:
+  action:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dessant/lock-threads@v4
+        with:
+          exclude-any-issue-labels: 'do-not-autoclose'
+          exclude-any-pr-labels: 'do-not-autoclose'
+          include-any-pr-labels: 'spam'
