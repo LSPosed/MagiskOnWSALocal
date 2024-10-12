@@ -231,6 +231,25 @@ while [[ $# -gt 0 ]]; do
             ROOT_SOL="$2"
             shift 2
             ;;
+<<<<<<< HEAD
+=======
+        --compress-format)
+            COMPRESS_FORMAT="$2"
+            shift 2
+            ;;
+        --compress)
+            COMPRESS_OUTPUT="yes"
+            shift
+            ;;
+        --offline)
+            OFFLINE="on"
+            shift
+            ;;
+        --magisk-custom)
+            CUSTOM_MAGISK="debug"
+            shift
+            ;;
+>>>>>>> parent of cef9ef4 ([WIP] Gapps integrate)
         --magisk-ver)
             MAGISK_VER="$2"
             shift 2
@@ -270,6 +289,12 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+if [ "$CUSTOM_MAGISK" ]; then
+    if [ -z "$MAGISK_VER" ]; then
+        MAGISK_VER=$CUSTOM_MAGISK
+    fi
+fi
+
 check_list() {
     local input=$1
     if [ -n "$input" ]; then
@@ -300,6 +325,7 @@ if [ "$DEBUG" ]; then
     set -x
 fi
 
+<<<<<<< HEAD
 if [ "$HAS_GAPPS" ]; then
     case "$ROOT_SOL" in
         "none")
@@ -314,6 +340,15 @@ if [ "$HAS_GAPPS" ]; then
     esac
 fi
 
+=======
+require_su() {
+    if test "$(id -u)" != "0"; then
+        if [ "$(sudo id -u)" != "0" ]; then
+            abort "sudo is required to run this script"
+        fi
+    fi
+}
+>>>>>>> parent of cef9ef4 ([WIP] Gapps integrate)
 # shellcheck disable=SC1091
 [ -f "$PYTHON_VENV_DIR/bin/activate" ] && {
     source "$PYTHON_VENV_DIR/bin/activate" || abort "Failed to activate virtual environment, please re-run install_deps.sh"
@@ -342,11 +377,17 @@ if [ "$CUSTOM_MAGISK" ]; then
     fi
 fi
 ANDROID_API=33
+<<<<<<< HEAD
 update_gapps_files_name() {
     GAPPS_IMAGE_NAME=gapps-${ANDROID_API_MAP[$ANDROID_API]}-${ARCH_NAME_MAP[$ARCH]}.img
     GAPPS_RC_NAME=gapps-${ANDROID_API_MAP[$ANDROID_API]}.rc
     GAPPS_IMAGE_PATH=$DOWNLOAD_DIR/$GAPPS_IMAGE_NAME
     GAPPS_RC_PATH=$DOWNLOAD_DIR/$GAPPS_RC_NAME
+=======
+update_gapps_file_name() {
+    GAPPS_FILE_NAME=GApps-$ARCH-${ANDROID_API_MAP[$ANDROID_API]}.apex
+    GAPPS_PATH=$DOWNLOAD_DIR/$GAPPS_FILE_NAME
+>>>>>>> parent of cef9ef4 ([WIP] Gapps integrate)
 }
 WSA_MAJOR_VER=0
 getKernelVersion() {
@@ -380,22 +421,33 @@ update_ksu_zip_name() {
 
 if [ -z ${OFFLINE+x} ]; then
     echo "Generating WSA Download Links"
+<<<<<<< HEAD
     if [ -z ${SKIP_DOWN_WSA+x} ]; then
+=======
+    require_su
+    if [ "$DOWN_WSA" != "no" ]; then
+>>>>>>> parent of cef9ef4 ([WIP] Gapps integrate)
         python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" || abort
         echo "Downloading WSA"
     else
         python3 generateWSALinks.py "$ARCH" "$RELEASE_TYPE" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" "$SKIP_DOWN_WSA" || abort
         echo "Skip download WSA, downloading WSA depends"
     fi
+<<<<<<< HEAD
     if ! aria2c --no-conf --log-level=info --log="$DOWNLOAD_DIR/aria2_download.log" -x16 -s16 -j5 -c -R -m0 \
         --async-dns=false --check-integrity=true --continue=true --allow-overwrite=true --conditional-get=true \
         -d"$DOWNLOAD_DIR" -i"$DOWNLOAD_DIR/$DOWNLOAD_CONF_NAME"; then
         abort "We have encountered an error while downloading files."
+=======
+    if ! aria2c --no-conf --log-level=info --log="$DOWNLOAD_DIR/aria2_download.log" -x16 -s16 -j5 -c -R -m0 --async-dns=false --check-integrity=true --continue=true --allow-overwrite=true --conditional-get=true -d"$DOWNLOAD_DIR" -i"$DOWNLOAD_DIR/$DOWNLOAD_CONF_NAME"; then
+        echo "We have encountered an error while downloading files."
+        exit 1
+>>>>>>> parent of cef9ef4 ([WIP] Gapps integrate)
     fi
     rm -f "${DOWNLOAD_DIR:?}/$DOWNLOAD_CONF_NAME"
 fi
 
-echo "Extracting WSA"
+echo "Extract WSA"
 if [ -f "$WSA_ZIP_PATH" ]; then
     if ! python3 extractWSA.py "$ARCH" "$WSA_ZIP_PATH" "$WORK_DIR" "$WSA_WORK_ENV"; then
         CLEAN_DOWNLOAD_WSA=1
@@ -429,6 +481,7 @@ if [ -z ${OFFLINE+x} ]; then
         update_gapps_files_name
         python3 generateGappsLink.py "$ARCH" "$DOWNLOAD_DIR" "$DOWNLOAD_CONF_NAME" "$ANDROID_API" "$GAPPS_IMAGE_NAME" || abort
     fi
+<<<<<<< HEAD
     if [ -f "$DOWNLOAD_DIR/$DOWNLOAD_CONF_NAME" ]; then
         echo "Downloading Artifacts"
         if ! aria2c --no-conf --log-level=info --log="$DOWNLOAD_DIR/aria2_download.log" -x16 -s16 -j5 -c -R -m0 \
@@ -436,8 +489,40 @@ if [ -z ${OFFLINE+x} ]; then
             -d"$DOWNLOAD_DIR" -i"$DOWNLOAD_DIR/$DOWNLOAD_CONF_NAME"; then
             abort "We have encountered an error while downloading files."
         fi
+=======
+
+    echo "Downloading Artifacts"
+    if ! aria2c --no-conf --log-level=info --log="$DOWNLOAD_DIR/aria2_download.log" -x16 -s16 -j5 -c -R -m0 --async-dns=false --check-integrity=true --continue=true --allow-overwrite=true --conditional-get=true -d"$DOWNLOAD_DIR" -i"$DOWNLOAD_DIR/$DOWNLOAD_CONF_NAME"; then
+        echo "We have encountered an error while downloading files."
+        exit 1
     fi
+else # Offline mode
+    declare -A FILES_CHECK_LIST=([xaml_PATH]="$xaml_PATH" [vclibs_PATH]="$vclibs_PATH" [UWPVCLibs_PATH]="$UWPVCLibs_PATH")
+    if [ "$HAS_GAPPS" ] || [ "$ROOT_SOL" = "magisk" ]; then
+        FILES_CHECK_LIST+=(["MAGISK_PATH"]="$MAGISK_PATH")
+    fi
+    if [ "$ROOT_SOL" = "kernelsu" ]; then
+        update_ksu_zip_name
+        FILES_CHECK_LIST+=(["KERNELSU_PATH"]="$KERNELSU_PATH")
+    fi
+    if [ "$HAS_GAPPS" ]; then
+        update_gapps_file_name
+        FILES_CHECK_LIST+=(["GAPPS_PATH"]="$GAPPS_PATH")
+    fi
+    for i in "${FILES_CHECK_LIST[@]}"; do
+        if [ ! -f "$i" ]; then
+            echo "Offline mode: missing [$i]."
+            OFFLINE_ERR="1"
+        fi
+    done
+    if [ "$OFFLINE_ERR" ]; then
+        echo "Offline mode: Some files are missing, please disable offline mode."
+        exit 1
+>>>>>>> parent of cef9ef4 ([WIP] Gapps integrate)
+    fi
+    require_su
 fi
+<<<<<<< HEAD
 declare -A FILES_CHECK_LIST=([xaml_PATH]="$xaml_PATH" [vclibs_PATH]="$vclibs_PATH" [UWPVCLibs_PATH]="$UWPVCLibs_PATH")
 if [ "$ROOT_SOL" = "magisk" ]; then
     FILES_CHECK_LIST+=(["MAGISK_PATH"]="$MAGISK_PATH" ["CUST_PATH"]="$CUST_PATH")
@@ -461,6 +546,11 @@ if [ "$FILE_MISSING" ]; then
 fi
 if [ "$ROOT_SOL" = "magisk" ]; then
     echo "Extracting Magisk"
+=======
+
+if [ "$HAS_GAPPS" ] || [ "$ROOT_SOL" = "magisk" ]; then
+    echo "Extract Magisk"
+>>>>>>> parent of cef9ef4 ([WIP] Gapps integrate)
     if [ -f "$MAGISK_PATH" ]; then
         MAGISK_VERSION_NAME=""
         MAGISK_VERSION_CODE=0
@@ -483,6 +573,7 @@ if [ "$ROOT_SOL" = "magisk" ]; then
 fi
 
 if [ "$ROOT_SOL" = "magisk" ]; then
+<<<<<<< HEAD
     echo "Integrating Magisk"
     SKIP="#"
     SINGLEABI="#"
@@ -517,8 +608,18 @@ if [ "$ROOT_SOL" = "magisk" ]; then
         "add 000 overlay.d/sbin/post-fs-data.sh post-fs-data.sh" \
         "add 000 overlay.d/sbin/lsp_cust.img $CUST_PATH" \
         || abort "Unable to patch initrd"
+=======
+    echo "Integrate Magisk"
+    "$WORK_DIR/magisk/magiskboot" compress=xz "$WORK_DIR/magisk/magisk64" "$WORK_DIR/magisk/magisk64.xz"
+    "$WORK_DIR/magisk/magiskboot" compress=xz "$WORK_DIR/magisk/magisk32" "$WORK_DIR/magisk/magisk32.xz"
+    "$WORK_DIR/magisk/magiskboot" compress=xz "$MAGISK_PATH" "$WORK_DIR/magisk/stub.xz"
+    echo "KEEPFORCEENCRYPT=true" >>"$WORK_DIR/magisk/config"
+    echo "PREINITDEVICE=sde" >>"$WORK_DIR/magisk/config"
+    "$WORK_DIR/magisk/magiskboot" cpio "$WORK_DIR/wsa/$ARCH/Tools/initrd.img" "mv /init /wsainit" "add 0750 /lspinit ../bin/$ARCH/lspinit" "ln /lspinit /init" "add 0750 /magiskinit $WORK_DIR/magisk/magiskinit" "mkdir 0750 overlay.d" "mkdir 0750 overlay.d/sbin" "add 0644 overlay.d/sbin/magisk64.xz $WORK_DIR/magisk/magisk64.xz" "add 0644 overlay.d/sbin/magisk32.xz $WORK_DIR/magisk/magisk32.xz" "add 0644 overlay.d/sbin/stub.xz $WORK_DIR/magisk/stub.xz" "mkdir 000 .backup" "add 000 .backup/.magisk $WORK_DIR/magisk/config" || abort "Unable to patch initrd"
+    echo -e "Integrate Magisk done\n"
+>>>>>>> parent of cef9ef4 ([WIP] Gapps integrate)
 elif [ "$ROOT_SOL" = "kernelsu" ]; then
-    echo "Extracting KernelSU"
+    echo "Extract KernelSU"
     # shellcheck disable=SC1090
     source "${KERNELSU_INFO:?}" || abort
     echo "WSA Kernel Version: $KERNEL_VER"
@@ -536,6 +637,7 @@ elif [ "$ROOT_SOL" = "kernelsu" ]; then
     mv "$WORK_DIR/wsa/$ARCH/Tools/kernel" "$WORK_DIR/wsa/$ARCH/Tools/kernel_origin"
     cp "$WORK_DIR/kernelsu/kernel" "$WORK_DIR/wsa/$ARCH/Tools/kernel"
 fi
+<<<<<<< HEAD
 echo -e "done\n"
 if [ "$HAS_GAPPS" ]; then
     update_gapps_files_name
@@ -545,18 +647,39 @@ if [ "$HAS_GAPPS" ]; then
             "add 000 overlay.d/gapps.rc $GAPPS_RC_PATH" \
             "add 000 overlay.d/sbin/lsp_gapps.img $GAPPS_IMAGE_PATH" \
             || abort "Unable to patch initrd"
+=======
+
+if [ "$HAS_GAPPS" ] && [ "$ROOT_SOL" != "magisk" ]; then
+    "$WORK_DIR/magisk/magiskboot" cpio "$WORK_DIR/wsa/$ARCH/Tools/initrd.img" "mv /init /wsainit" "add 0750 /lspinit ../bin/$ARCH/lspinit" "ln /lspinit /init" || abort "Unable to patch initrd"
+fi
+
+if [ "$HAS_GAPPS" ]; then
+    update_gapps_file_name
+    if [ -f "$GAPPS_PATH" ]; then
+        if ! unzip -t "$GAPPS_PATH"; then
+            CLEAN_DOWNLOAD_GAPPS=1
+            abort "Unzip GApps failed, package is corrupted?"
+        fi
+        echo "Integrate GApps"
+        cp "$GAPPS_PATH" "$WORK_DIR/wsa/$ARCH/apex/" || abort
+>>>>>>> parent of cef9ef4 ([WIP] Gapps integrate)
         echo -e "done\n"
     else
         abort "The GApps package does not exist."
     fi
 fi
 
+<<<<<<< HEAD
 if [ "$REMOVE_AMAZON" ]; then
     rm -f "$WORK_DIR/wsa/$ARCH/apex/"mado*.apex || abort
 fi
 
 echo "Removing signature and add scripts"
 rm -rf "${WORK_DIR:?}"/wsa/"$ARCH"/\[Content_Types\].xml "$WORK_DIR/wsa/$ARCH/AppxBlockMap.xml" "$WORK_DIR/wsa/$ARCH/AppxSignature.p7x" "$WORK_DIR/wsa/$ARCH/AppxMetadata" || abort
+=======
+echo "Remove signature and add scripts"
+sudo rm -rf "${WORK_DIR:?}"/wsa/"$ARCH"/\[Content_Types\].xml "$WORK_DIR/wsa/$ARCH/AppxBlockMap.xml" "$WORK_DIR/wsa/$ARCH/AppxSignature.p7x" "$WORK_DIR/wsa/$ARCH/AppxMetadata" || abort
+>>>>>>> parent of cef9ef4 ([WIP] Gapps integrate)
 cp "$vclibs_PATH" "$xaml_PATH" "$WORK_DIR/wsa/$ARCH" || abort
 cp "$UWPVCLibs_PATH" "$xaml_PATH" "$WORK_DIR/wsa/$ARCH" || abort
 cp "../bin/$ARCH/makepri.exe" "$WORK_DIR/wsa/$ARCH" || abort
@@ -567,6 +690,11 @@ cp ../installer/Run.bat "$WORK_DIR/wsa/$ARCH" || abort
 find "$WORK_DIR/wsa/$ARCH" -maxdepth 1 -mindepth 1 -printf "%P\n" >"$WORK_DIR/wsa/$ARCH/filelist.txt" || abort
 echo -e "done\n"
 
+<<<<<<< HEAD
+=======
+echo "Generate info"
+
+>>>>>>> parent of cef9ef4 ([WIP] Gapps integrate)
 if [[ "$ROOT_SOL" = "none" ]]; then
     name1=""
 elif [ "$ROOT_SOL" = "magisk" ]; then
@@ -583,7 +711,7 @@ artifact_name=WSA_${WSA_VER}_${ARCH}_${WSA_REL}${name1}${name2}
 [ "$REMOVE_AMAZON" ] && artifact_name+=-NoAmazon
 
 if [ -f "$OUTPUT_DIR" ]; then
-    rm -rf ${OUTPUT_DIR:?}
+    sudo rm -rf ${OUTPUT_DIR:?}
 fi
 if [ ! -d "$OUTPUT_DIR" ]; then
     mkdir -p "$OUTPUT_DIR"
@@ -608,3 +736,11 @@ else
     echo "Copying to $OUTPUT_PATH"
     cp -r "$WORK_DIR/wsa/$ARCH" "$OUTPUT_PATH" || abort
 fi
+<<<<<<< HEAD
+=======
+echo -e "done\n"
+
+echo "Cleanup Work Directory"
+sudo rm -rf "${WORK_DIR:?}"
+echo "done"
+>>>>>>> parent of cef9ef4 ([WIP] Gapps integrate)

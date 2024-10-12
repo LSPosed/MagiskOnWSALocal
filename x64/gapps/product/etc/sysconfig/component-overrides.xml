@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--    This file is part of MagiskOnWSALocal.
+
+        MagiskOnWSALocal is free software: you can redistribute it and/or modify
+        it under the terms of the GNU Affero General Public License as
+        published by the Free Software Foundation, either version 3 of the
+        License, or (at your option) any later version.
+
+        MagiskOnWSALocal is distributed in the hope that it will be useful,
+        but WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        GNU Affero General Public License for more details.
+
+        You should have received a copy of the GNU Affero General Public License
+        along with MagiskOnWSALocal.  If not, see <https://www.gnu.org/licenses/>.
+
+        Copyright (C) 2023 LSPosed Contributors
+-->
+<config>
+    <component-override package="com.android.vending">
+        <!-- Conflicts with WSA's built-in package verifier, disable to prevent boot loops. -->
+        <component class="com.google.android.finsky.verifier.impl.PackageVerificationReceiver" enabled="false" />
+        <!-- Disable stock OTA components if installed -->
+        <component class="com.google.android.finsky.systemupdate.SystemUpdateSettingsContentProvider" enabled="false" />
+        <component class="com.google.android.finsky.systemupdateactivity.SettingsSecurityEntryPoint" enabled="false" />
+        <component class="com.google.android.finsky.systemupdateactivity.SystemUpdateActivity" enabled="false" />
+    </component-override>
+    <component-override package="com.google.android.gms">
+        <component class="com.google.android.gms.update.phone.PopupDialog" enabled="false" />
+        <component class="com.google.android.gms.update.OtaSuggestionSummaryProvider" enabled="false" />
+        <component class="com.google.android.gms.update.SystemUpdateActivity" enabled="false" />
+        <component class="com.google.android.gms.update.SystemUpdateGcmTaskService" enabled="false" />
+        <component class="com.google.android.gms.update.SystemUpdateService" enabled="false" />
+    </component-override>
+</config>
