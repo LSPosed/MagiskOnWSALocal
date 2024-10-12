@@ -79,10 +79,13 @@ body:
       description: Please copy and paste the error or submit a screenshot. Without log, the issue will be closed. /请复制粘贴错误或提交截图。无日志提交会被关闭。
       value: |
         <details>
-        <summary>Details</summary>
-
-
-
+        
+        [//]: <> (Don't modify above)
+        
+        ```
+        # Replace this line with the log / 将此行用日志替换
+        ```
+        [//]: <> (Don't modify below)
         </details>
     validations:
       required: true
