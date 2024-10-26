@@ -67,7 +67,7 @@ if res.status_code == 200:
     assets = json_data["assets"]
     for asset in assets:
         asset_name = asset["name"]
-        if re.match(f'kernel-WSA-{abi_map[arch]}-{kernelVersion}.*\.zip$', asset_name) and asset["content_type"] == "application/zip":
+        if re.match(rf'kernel-WSA-{abi_map[arch]}-{kernelVersion}.*\.zip$', asset_name) and asset["content_type"] == "application/zip":
             tmp_kernel_ver = re.search(
                 u'\d{1}.\d{1,}.\d{1,}.\d{1,}', asset_name.split("-")[3]).group()
             if (kernel_ver == 0):
@@ -76,7 +76,7 @@ if res.status_code == 200:
                 kernel_ver = tmp_kernel_ver
     print(f"Kernel version: {kernel_ver}", flush=True)
     for asset in assets:
-        if re.match(f'kernel-WSA-{abi_map[arch]}-{kernel_ver}.*\.zip$', asset["name"]) and asset["content_type"] == "application/zip":
+        if re.match(rf'kernel-WSA-{abi_map[arch]}-{kernel_ver}.*\.zip$', asset["name"]) and asset["content_type"] == "application/zip":
             link = asset["browser_download_url"]
             break
     if link == "":

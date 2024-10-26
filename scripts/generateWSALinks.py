@@ -145,26 +145,26 @@ def send_req(i, v, out_file_name):
 threads = []
 wsa_build_ver = 0
 for filename, values in identities.items():
-    if re.match(f"MicrosoftCorporationII\.WindowsSubsystemForAndroid_.*\.msixbundle", filename):
+    if re.match(rf"MicrosoftCorporationII\.WindowsSubsystemForAndroid_.*\.msixbundle", filename):
         tmp_wsa_build_ver = re.search(
-            u'\d{4}.\d{5}.\d{1,}.\d{1,}', filename).group()
+            r'\d{4}.\d{5}.\d{1,}.\d{1,}', filename).group()
         if (wsa_build_ver == 0):
             wsa_build_ver = tmp_wsa_build_ver
         elif version.parse(wsa_build_ver) < version.parse(tmp_wsa_build_ver):
             wsa_build_ver = tmp_wsa_build_ver
 for filename, values in identities.items():
-    if re.match(f"Microsoft\.UI\.Xaml\..*_{arch}_.*\.appx", filename):
+    if re.match(rf"Microsoft\.UI\.Xaml\..*_{arch}_.*\.appx", filename):
         out_file_name = f"{values[1]}_{arch}.appx"
         out_file = download_dir / out_file_name
-    elif re.match(f"Microsoft\.VCLibs\..+\.UWPDesktop_.*_{arch}_.*\.appx", filename):
+    elif re.match(rf"Microsoft\.VCLibs\..+\.UWPDesktop_.*_{arch}_.*\.appx", filename):
         out_file_name = f"{values[1]}_{arch}.appx"
         out_file = download_dir / out_file_name
-    elif re.match(f"Microsoft\.VCLibs\..+_.*_{arch}_.*\.appx", filename):
+    elif re.match(rf"Microsoft\.VCLibs\..+_.*_{arch}_.*\.appx", filename):
         out_file_name = f"{values[1]}_{arch}.appx"
         out_file = download_dir / out_file_name
-    elif not skip_wsa_download and re.match(f"MicrosoftCorporationII\.WindowsSubsystemForAndroid_.*\.msixbundle", filename):
+    elif not skip_wsa_download and re.match(rf"MicrosoftCorporationII\.WindowsSubsystemForAndroid_.*\.msixbundle", filename):
         tmp_wsa_build_ver = re.search(
-            u'\d{4}.\d{5}.\d{1,}.\d{1,}', filename).group()
+            r'\d{4}.\d{5}.\d{1,}.\d{1,}', filename).group()
         if (wsa_build_ver != tmp_wsa_build_ver):
             continue
         version_splitted = wsa_build_ver.split(".")
