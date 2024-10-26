@@ -111,6 +111,7 @@ if [ -f "$WORK_DIR/magisk/init-ld" ]; then
 fi
 "$WORK_DIR/magisk/magiskboot" compress=xz "$MAGISK_PATH" "$WORK_DIR/magisk/stub.xz"
 "$WORK_DIR/magisk/magiskboot" cpio "$TARGET" \
+    "add 0750 /lspinit ../bin/$ARCH/lspinit" \
     "add 0750 /magiskinit $WORK_DIR/magisk/magiskinit" \
     "$SINGLEABI add 0644 overlay.d/sbin/magisk64.xz $WORK_DIR/magisk/magisk64.xz" \
     "$SINGLEABI add 0644 overlay.d/sbin/magisk32.xz $WORK_DIR/magisk/magisk32.xz" \
