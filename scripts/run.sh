@@ -86,6 +86,8 @@ if (YesNoBox '([title]="Root" [text]="Do you want to Root WSA?")'); then
             'kernelsu' "KernelSU" 'off'
     )
     COMMAND_LINE+=(--root-sol "$ROOT_SOL")
+else
+    COMMAND_LINE+=(--root-sol "none")
 fi
 
 if [ "$ROOT_SOL" = "magisk" ]; then
