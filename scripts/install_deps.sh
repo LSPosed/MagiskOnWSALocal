@@ -162,7 +162,7 @@ fi
 python_version=$(python3 -c 'import sys;print("{0}{1}".format(*(sys.version_info[:2])))')
 PYTHON_VENV_DIR="$(dirname "$PWD")/python3-env"
 if [ "$python_version" -ge 311 ] || [ -f "$PYTHON_VENV_DIR/bin/activate" ]; then
-    python3 -c "import venv" >/dev/null 2>&1 || {
+    if ! (python3 -c "import venv" >/dev/null 2>&1) || ! (python3 -c "import ensurepip" >/dev/null 2>&1); then
         case "$PM" in
         zypper)
             if ! (sudo "$PM" "${INSTALL_OPTION[@]}" "python3-venvctrl"); then
@@ -175,7 +175,7 @@ if [ "$python_version" -ge 311 ] || [ -f "$PYTHON_VENV_DIR/bin/activate" ]; then
             fi
             ;;
         esac
-    }
+    fi
     echo "Creating python3 virtual env"
     python3 -m venv --system-site-packages "$PYTHON_VENV_DIR" || {
         echo "Failed to upgrade python3 virtual env, clear and recreate"
