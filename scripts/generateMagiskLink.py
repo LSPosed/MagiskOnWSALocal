@@ -47,20 +47,32 @@ download_dir = Path.cwd().parent / \
     "download" if sys.argv[2] == "" else Path(sys.argv[2])
 tempScript = sys.argv[3]
 download_files = {}
+cdn_hosts=["cdn.jsdelivr.net", "fastly.jsdelivr.net", "testingcf.jsdelivr.net", "gcore.jsdelivr.net"]
 print(
     f"Generating Magisk download link: release type={magisk_ver}", flush=True)
+magisk_link = None
 if not magisk_ver:
     magisk_ver = "stable"
 if magisk_ver == "stable" or magisk_ver == "beta" or magisk_ver == "canary" or magisk_ver == "debug":
     try:
         magisk_link = json.loads(requests.get(
-            f"https://github.com/topjohnwu/magisk-files/raw/master/{magisk_ver}.json").content)['magisk']['link']
+            f"https://topjohnwu.github.io/magisk-files/{magisk_ver}.json").content)['magisk']['link']
         download_files[f"magisk-{magisk_ver}.zip"] = magisk_link
     except Exception:
         print("Failed to fetch from GitHub API, fallbacking to jsdelivr...")
-        magisk_link = json.loads(requests.get(
-            f"https://fastly.jsdelivr.net/gh/topjohnwu/magisk-files@master/{magisk_ver}.json").content)['magisk']['link']
-        download_files[f"magisk-{magisk_ver}.zip"] = magisk_link
+        for host in cdn_hosts:
+            try:
+                magisk_link = json.loads(requests.get(
+                    f"https://{host}/gh/topjohnwu/magisk-files@master/{magisk_ver}.json").content)['magisk']['link']
+                download_files[f"magisk-{magisk_ver}.zip"] = magisk_link
+                break
+            except Exception:
+                print(f"Failed to fetch from {host}, trying next...", flush=True)
+                pass
+    finally:
+        if magisk_link is None:
+            print("Failed to fetch Magisk download link", flush=True)
+            exit(1)
 res = requests.get(
     f"https://api.github.com/repos/LSPosed/WSA-Addon/releases/latest", auth=github_auth)
 json_data = json.loads(res.content)
